@@ -4,6 +4,8 @@
 #include <hpx/future.hpp>
 #include <vector>
 
+typedef enum BLAS_TRANSPOSE {Blas_no_trans=111, Blas_trans=112} BLAS_TRANSPOSE;
+
 // =============================================================================
 // BLAS operations on CPU with MKL
 // =============================================================================
@@ -13,45 +15,71 @@
 /**
  * @brief In-place Cholesky decomposition of A
  *
- * @param A matrix to be factorized
- * @param N size of the matrix
- * @return factorized, lower triangular matrix L
+ * @param f_A matrix to be factorized
+ * @param N matrix dimension
+ * @return factorized, lower triangular matrix f_L
  */
 hpx::shared_future<std::vector<double>> potrf(hpx::shared_future<std::vector<double>> f_A, std::size_t N);
 
-// in-place solve X * L^T = A where L lower triangular
+/**
+ * @brief In-place solve X * L^T = A where L lower triangular
+ *
+ * @param f_L Cholesky factor matrix
+ * @param f_A right hand side matrix
+ * @param N matrix dimension
+ * @return solution matrix f_X
+ */
 hpx::shared_future<std::vector<double>>
-trsm(hpx::shared_future<std::vector<double>> L, hpx::shared_future<std::vector<double>> f_A, std::size_t N);
+trsm(hpx::shared_future<std::vector<double>> f_L, hpx::shared_future<std::vector<double>> f_A, std::size_t N);
 
-// A = A - B * B^T
+/**
+ * @brief Symmetric rank update: A = A - B * B^T
+ * @param f_A Base matrix
+ * @param f_B Symmetric update matrix
+ * @param N matrix dimension
+ * @return updated matrix f_A
+ */
 hpx::shared_future<std::vector<double>>
 syrk(hpx::shared_future<std::vector<double>> f_A, hpx::shared_future<std::vector<double>> f_B, std::size_t N);
 
-// C = C - A * B^T
+/**
+ * @brief General matrix-matrix multiplication: C = C - A * B^T
+ * @param f_C Base matrix
+ * @param f_B Right update matrix
+ * @param f_A Left update matrix
+ * @param N matrix dimension
+ * @return updated matrix f_X
+ */
 hpx::shared_future<std::vector<double>> gemm(hpx::shared_future<std::vector<double>> f_A,
                          hpx::shared_future<std::vector<double>> f_B,
                          hpx::shared_future<std::vector<double>> f_C,
                          std::size_t N);
 
-// in-place solve L * x = a where L lower triangular
+/**
+ * @brief In-place solve L(^T) * x = a where L lower triangular
+ * @param f_L Cholesky factor matrix
+ * @param f_a right hand side vector
+ * @param N matrix dimension
+ * @param transpose_L
+ * @return solution vector f_x
+ */
 hpx::shared_future<std::vector<double>>
-trsv_l(hpx::shared_future<std::vector<double>> L, hpx::shared_future<std::vector<double>> f_a, std::size_t N);
+trsv(hpx::shared_future<std::vector<double>> L, hpx::shared_future<std::vector<double>> f_a, std::size_t N, BLAS_TRANSPOSE transpose_L);
 
-// b = b - A * a
-hpx::shared_future<std::vector<double>> gemv_l(hpx::shared_future<std::vector<double>> f_A,
+/**
+ * @brief General matrix-vector multiplication: b = b - A(^T) * a
+ * @param f_A update matrix
+ * @param f_a update vector
+ * @param f_b base vector
+ * @param N matrix dimension
+ * @param transpose_A
+ * @return updated vector f_b
+ */
+hpx::shared_future<std::vector<double>> gemv(hpx::shared_future<std::vector<double>> f_A,
                            hpx::shared_future<std::vector<double>> f_a,
                            hpx::shared_future<std::vector<double>> f_b,
-                           std::size_t N);
-
-// in-place solve L^T * x = a where L lower triangular
-hpx::shared_future<std::vector<double>>
-trsv_u(hpx::shared_future<std::vector<double>> L, hpx::shared_future<std::vector<double>> f_a, std::size_t N);
-
-// b = b - A^T * a
-hpx::shared_future<std::vector<double>> gemv_u(hpx::shared_future<std::vector<double>> f_A,
-                           hpx::shared_future<std::vector<double>> f_a,
-                           hpx::shared_future<std::vector<double>> f_b,
-                           std::size_t N);
+                           std::size_t N,
+                           BLAS_TRANSPOSE transpose_A);
 
 // A = y*beta^T + A
 hpx::shared_future<std::vector<double>> ger(hpx::shared_future<std::vector<double>> f_A,

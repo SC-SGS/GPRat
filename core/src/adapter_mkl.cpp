@@ -6,19 +6,17 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // BLAS operations for tiled cholkesy
-// in-place Cholesky decomposition of A -> return factorized matrix L
 hpx::shared_future<std::vector<double>> potrf(hpx::shared_future<std::vector<double>> f_A,
                               std::size_t N)
 {
   auto A = f_A.get();
-  // use ?potrf2 recursive version for better stability
-  // POTRF - caution with dpotrf
+  // POTRF: in-place Cholesky decomposition of A
+  // use dpotrf2 recursive version for better stability
   LAPACKE_dpotrf2(LAPACK_ROW_MAJOR, 'L', N, A.data(), N);
-  // return vector
+  // return factorized matrix L
   return hpx::make_ready_future(A);
 }
 
-// in-place solve X * L^T = A where L lower triangular
 hpx::shared_future<std::vector<double>> trsm(hpx::shared_future<std::vector<double>> f_L,
                              hpx::shared_future<std::vector<double>> f_A,
                              std::size_t N)
@@ -27,30 +25,28 @@ hpx::shared_future<std::vector<double>> trsm(hpx::shared_future<std::vector<doub
   auto A = f_A.get();
   // TRSM constants
   const double alpha = 1.0;
-  // TRSM kernel - caution with dtrsm
+  // TRSM: in-place solve X * L^T = A where L lower triangular
   cblas_dtrsm(CblasRowMajor, CblasRight, CblasLower, CblasTrans, CblasNonUnit, N, N, alpha, L.data(), N, A.data(), N);
-  // return vector
+  // return solution matrix X
   return hpx::make_ready_future(A);
 }
 
-// A = A - B * B^T
 hpx::shared_future<std::vector<double>> syrk(hpx::shared_future<std::vector<double>> f_A,
                              hpx::shared_future<std::vector<double>> f_B,
                              std::size_t N)
 {
   auto B = f_B.get();
   auto A = f_A.get();
- // SYRK constants
+  // SYRK constants
   const double alpha = -1.0;
   const double beta = 1.0;
-  // SYRK kernel - caution with dsyrk
+  // SYRK:A = A - B * B^T
   cblas_dsyrk(CblasRowMajor, CblasLower, CblasNoTrans,
               N, N, alpha, B.data(), N, beta, A.data(), N);
-  // return vector
+  // return updated matrix A
   return hpx::make_ready_future(A);
 }
 
-// C = C - A * B^T
 hpx::shared_future<std::vector<double>> gemm(hpx::shared_future<std::vector<double>> f_A,
                              hpx::shared_future<std::vector<double>> f_B,
                              hpx::shared_future<std::vector<double>> f_C,
@@ -62,32 +58,32 @@ hpx::shared_future<std::vector<double>> gemm(hpx::shared_future<std::vector<doub
   // GEMM constants
   const double alpha = -1.0;
   const double beta = 1.0;
-  // GEMM kernel - caution with dgemm
+  // GEMM: C = C - A * B^T
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,
               N, N, N, alpha, A.data(), N, B.data(), N, beta, C.data(), N);
-  // return vector
+  // return updated matrix C
   return hpx::make_ready_future(C);
 }
 
-// in-place solve L * x = a where L lower triangular
-hpx::shared_future<std::vector<double>> trsv_l(hpx::shared_future<std::vector<double>> f_L,
+hpx::shared_future<std::vector<double>> trsv(hpx::shared_future<std::vector<double>> f_L,
                                hpx::shared_future<std::vector<double>> f_a,
-                               std::size_t N)
+                               const std::size_t N,
+                               const BLAS_TRANSPOSE transpose_L)
 {
   auto L = f_L.get();
   auto a = f_a.get();
-  // TRSV kernel
-  cblas_dtrsv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
+  // TRSV: In-place solve L(^T) * x = a where L lower triangular
+  cblas_dtrsv(CblasRowMajor, CblasLower, static_cast<CBLAS_TRANSPOSE>(transpose_L), CblasNonUnit,
               N, L.data(), N, a.data(), 1);
-  // return vector
+  // return solution vector x
   return hpx::make_ready_future(a);
 }
 
-// b = b - A * a
-hpx::shared_future<std::vector<double>> gemv_l(hpx::shared_future<std::vector<double>> f_A,
+hpx::shared_future<std::vector<double>> gemv(hpx::shared_future<std::vector<double>> f_A,
                                hpx::shared_future<std::vector<double>> f_a,
                                hpx::shared_future<std::vector<double>> f_b,
-                               std::size_t N)
+                               const std::size_t N,
+                               const BLAS_TRANSPOSE transpose_A)
 {
   auto A = f_A.get();
   auto a = f_a.get();
@@ -95,43 +91,10 @@ hpx::shared_future<std::vector<double>> gemv_l(hpx::shared_future<std::vector<do
   // GEMV constants
   const double alpha = -1.0;
   const double beta = 1.0;
-  // GEMV kernel
-  cblas_dgemv(CblasRowMajor, CblasNoTrans, N, N, alpha,
+  // GEMV:  b = b - A(^T) * a
+  cblas_dgemv(CblasRowMajor, static_cast<CBLAS_TRANSPOSE>(transpose_A), N, N, alpha,
               A.data(), N, a.data(), 1, beta, b.data(), 1);
-  // return vector
-  return hpx::make_ready_future(b);
-}
-
-// in-place solve L^T * x = a where L lower triangular
-hpx::shared_future<std::vector<double>> trsv_u(hpx::shared_future<std::vector<double>> f_L,
-                               hpx::shared_future<std::vector<double>> f_a,
-                               std::size_t N)
-{
-  auto L = f_L.get();
-  auto a = f_a.get();
-  // TRSV kernel
-  cblas_dtrsv(CblasRowMajor, CblasLower, CblasTrans, CblasNonUnit,
-              N, L.data(), N, a.data(), 1);
-  // return vector
-  return hpx::make_ready_future(a);
-}
-
-// b = b - A^T * a
-hpx::shared_future<std::vector<double>> gemv_u(hpx::shared_future<std::vector<double>> f_A,
-                               hpx::shared_future<std::vector<double>> f_a,
-                               hpx::shared_future<std::vector<double>> f_b,
-                               std::size_t N)
-{
-  auto A = f_A.get();
-  auto a = f_a.get();
-  auto b = f_b.get();
-  // GEMV constants
-  const double alpha = -1.0;
-  const double beta = 1.0;
-  // GEMV kernel
-  cblas_dgemv(CblasRowMajor, CblasTrans, N, N, alpha,
-              A.data(), N, a.data(), 1, beta, b.data(), 1);
-  // return vector
+  // return updated vector b
   return hpx::make_ready_future(b);
 }
 

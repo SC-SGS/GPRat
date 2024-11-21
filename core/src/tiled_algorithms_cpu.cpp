@@ -26,14 +26,12 @@ void right_looking_cholesky_tiled(
     {
         // POTRF
         ft_tiles[k * n_tiles + k] = hpx::dataflow(
-            hpx::annotated_function(hpx::unwrapping(&potrf), "cholesky_tiled"),
-            ft_tiles[k * n_tiles + k],
-            N);
-        for (std::size_t m = k + 1; m < n_tiles; m++)
-        {
+            hpx::annotated_function(&potrf, "cholesky_tiled"),
+            ft_tiles[k * n_tiles + k], N);
+        for (std::size_t m = k + 1; m < n_tiles; m++) {
             // TRSM
             ft_tiles[m * n_tiles + k] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&trsm),
+                hpx::annotated_function(&trsm,
                                         "cholesky_tiled"),
                 ft_tiles[k * n_tiles + k],
                 ft_tiles[m * n_tiles + k],
@@ -43,7 +41,7 @@ void right_looking_cholesky_tiled(
         {
             // SYRK
             ft_tiles[m * n_tiles + m] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&syrk),
+                hpx::annotated_function(&syrk,
                                         "cholesky_tiled"),
                 ft_tiles[m * n_tiles + m],
                 ft_tiles[m * n_tiles + k],
@@ -52,7 +50,7 @@ void right_looking_cholesky_tiled(
             {
                 // GEMM
                 ft_tiles[m * n_tiles + n] = hpx::dataflow(
-                    hpx::annotated_function(hpx::unwrapping(&gemm),
+                    hpx::annotated_function(&gemm,
                                             "cholesky_tiled"),
                     ft_tiles[m * n_tiles + k],
                     ft_tiles[n * n_tiles + k],
@@ -77,7 +75,7 @@ void forward_solve_tiled(
     {
         // TRSM
         ft_rhs[k] =
-            hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&trsv_l),
+            hpx::dataflow(hpx::annotated_function(&trsv_l,
                                                   "triangular_solve_tiled"),
                           ft_tiles[k * n_tiles + k],
                           ft_rhs[k],
@@ -86,7 +84,7 @@ void forward_solve_tiled(
         {
             // GEMV
             ft_rhs[m] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&gemv_l),
+                hpx::annotated_function(&gemv_l,
                                         "triangular_solve_tiled"),
                 ft_tiles[m * n_tiles + k],
                 ft_rhs[k],
@@ -108,7 +106,7 @@ void backward_solve_tiled(
         std::size_t k = static_cast<std::size_t>(k_);
         // TRSM
         ft_rhs[k] =
-            hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&trsv_u),
+            hpx::dataflow(hpx::annotated_function(&trsv_u,
                                                   "triangular_solve_tiled"),
                           ft_tiles[k * n_tiles + k],
                           ft_rhs[k],
@@ -119,7 +117,7 @@ void backward_solve_tiled(
             std::size_t m = static_cast<std::size_t>(m_);
             // GEMV
             ft_rhs[m] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&gemv_u),
+                hpx::annotated_function(&gemv_u,
                                         "triangular_solve_tiled"),
                 ft_tiles[k * n_tiles + m],
                 ft_rhs[k],
@@ -144,7 +142,7 @@ void forward_solve_tiled_matrix(
         {
             // TRSM
             ft_rhs[k * m_tiles + c] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&trsm_l_matrix),
+                hpx::annotated_function(&trsm_l_matrix,
                                         "triangular_solve_tiled_matrix"),
                 ft_tiles[k * n_tiles + k],
                 ft_rhs[k * m_tiles + c],
@@ -154,7 +152,7 @@ void forward_solve_tiled_matrix(
             {
                 // GEMV
                 ft_rhs[m * m_tiles + c] = hpx::dataflow(
-                    hpx::annotated_function(hpx::unwrapping(&gemm_l_matrix),
+                    hpx::annotated_function(&gemm_l_matrix,
                                             "triangular_solve_tiled_matrix"),
                     ft_tiles[m * n_tiles + k],
                     ft_rhs[k * m_tiles + c],
@@ -182,7 +180,7 @@ void backward_solve_tiled_matrix(
             std::size_t k = static_cast<std::size_t>(k_);
             // TRSM
             ft_rhs[k * m_tiles + c] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&trsm_u_matrix),
+                hpx::annotated_function(&trsm_u_matrix,
                                         "triangular_solve_tiled_matrix"),
                 ft_tiles[k * n_tiles + k],
                 ft_rhs[k * m_tiles + c],
@@ -194,7 +192,7 @@ void backward_solve_tiled_matrix(
                 std::size_t m = static_cast<std::size_t>(m_);
                 // GEMV
                 ft_rhs[m * m_tiles + c] = hpx::dataflow(
-                    hpx::annotated_function(hpx::unwrapping(&gemm_u_matrix),
+                    hpx::annotated_function(&gemm_u_matrix,
                                             "triangular_solve_tiled_matrix"),
                     ft_tiles[k * n_tiles + m],
                     ft_rhs[k * m_tiles + c],
@@ -224,7 +222,7 @@ void forward_solve_KcK_tiled(
         {
             // TRSM
             ft_rhs[c * m_tiles + r] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&trsm_l_KcK),
+                hpx::annotated_function(&trsm_l_KcK,
                                         "triangular_solve_tiled_matrix_KK"),
                 ft_tiles[c * n_tiles + c],
                 ft_rhs[c * m_tiles + r],
@@ -234,7 +232,7 @@ void forward_solve_KcK_tiled(
             {
                 // GEMV
                 ft_rhs[m * m_tiles + r] = hpx::dataflow(
-                    hpx::annotated_function(hpx::unwrapping(&gemm_l_KcK),
+                    hpx::annotated_function(&gemm_l_KcK,
                                             "triangular_solve_tiled_matrix_KK"),
                     ft_tiles[m * n_tiles + c],
                     ft_rhs[c * m_tiles + r],
@@ -258,7 +256,7 @@ void compute_gemm_of_invK_y(
         for (std::size_t j = 0; j < n_tiles; j++)
         {
             ft_alpha[i] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&gemv_p),
+                hpx::annotated_function(&gemv_p,
                                         "prediction_tiled"),
                 ft_invK[i * n_tiles + j],
                 ft_y[j],
@@ -313,7 +311,7 @@ void prediction_tiled(
         for (std::size_t m = 0; m < n_tiles; m++)
         {
             ft_rhs[k] =
-                hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&gemv_p),
+                hpx::dataflow(hpx::annotated_function(&gemv_p,
                                                       "prediction_tiled"),
                               ft_tiles[k * n_tiles + m],
                               ft_vector[m],
@@ -340,7 +338,7 @@ void posterior_covariance_tiled(
         {  // Compute inner product to obtain diagonal elements of
            // (K_MxN * (K^-1_NxN * K_NxM))
             ft_inter_tiles[i] = hpx::dataflow(
-                hpx::annotated_function(hpx::unwrapping(&dot_uncertainty),
+                hpx::annotated_function(&dot_uncertainty,
                                         "posterior_tiled"),
                 ft_tCC_tiles[n * m_tiles + i],
                 ft_inter_tiles[i],
@@ -368,7 +366,7 @@ void full_cov_tiled(
                 // GEMV
                 ft_priorK[c * m_tiles + k] = hpx::dataflow(
                     hpx::annotated_function(
-                        hpx::unwrapping(&gemm_cross_tcross_matrix),
+                        &gemm_cross_tcross_matrix,
                         "triangular_solve_tiled_matrix"),
                     ft_tCC_tiles[m * m_tiles + c],
                     ft_tCC_tiles[m * m_tiles + k],
@@ -430,7 +428,7 @@ void update_grad_K_tiled_mkl(
         for (std::size_t j = 0; j < n_tiles; j++)
         {
             ft_tiles[i * n_tiles + j] =
-                hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&ger),
+                hpx::dataflow(hpx::annotated_function(&ger,
                                                       "gradient_tiled"),
                               ft_tiles[i * n_tiles + j],
                               ft_v1[i],
@@ -475,7 +473,7 @@ void update_hyperparameter(
             for (std::size_t j = 0; j < n_tiles; ++j)
             {
                 diag_tiles[i] = hpx::dataflow(
-                    hpx::annotated_function(hpx::unwrapping(&gemm_grad),
+                    hpx::annotated_function(&gemm_grad,
                                             "grad_left_tiled"),
                     ft_invK[i * n_tiles + j],
                     ft_gradparam[j * n_tiles + i],
@@ -512,7 +510,7 @@ void update_hyperparameter(
             for (std::size_t m = 0; m < n_tiles; m++)
             {
                 inter_alpha[k] = hpx::dataflow(
-                    hpx::annotated_function(hpx::unwrapping(&gemv_p),
+                    hpx::annotated_function(&gemv_p,
                                             "prediction_tiled"),
                     ft_gradparam[k * n_tiles + m],
                     ft_alpha[m],

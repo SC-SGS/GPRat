@@ -234,8 +234,8 @@ double compute_loss(const std::vector<double> &K_diag_tile,
                     std::size_t N)
 {
     double l = 0.0;
-    l += dot(static_cast<int>(N), y_tile, alpha_tile);
-    for (std::size_t i = 0; i < N; i++)
+    l += dot(y_tile, alpha_tile, static_cast<int>(N));
+    for (std::size_t i = 0; i < N; i++) 
     {
         // Add the squared difference to the error
         l += log(K_diag_tile[i * N + i] * K_diag_tile[i * N + i]);
@@ -399,7 +399,7 @@ double sum_gradright(const std::vector<double> &inter_alpha,
                      double grad,
                      std::size_t N)
 {
-    grad += dot(static_cast<int>(N), inter_alpha, alpha);
+    grad += dot(inter_alpha, alpha, static_cast<int>(N));
     return grad;
 }
 
@@ -424,6 +424,6 @@ double sum_noise_gradright(const std::vector<double> &alpha,
 {
     double noise_der =
         compute_sigmoid(to_unconstrained(hyperparameters[2], true));
-    grad += (noise_der * dot(static_cast<int>(N), alpha, alpha));
+    grad += (noise_der * dot(alpha, alpha, static_cast<int>(N)));
     return grad;
 }

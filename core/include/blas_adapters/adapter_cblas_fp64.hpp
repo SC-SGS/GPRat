@@ -1,5 +1,5 @@
-#ifndef ADAPTER_MKL_H
-#define ADAPTER_MKL_H
+#ifndef ADAPTER_CBLAS_FP64_H
+#define ADAPTER_CBLAS_FP64_H
 
 #include <hpx/future.hpp>
 #include <vector>
@@ -18,8 +18,7 @@ typedef enum BLAS_ALPHA {Blas_add=1, Blas_substract=-1} BLAS_ALPHA;
 // BLAS level 3 operations -------------------------------------- {{{
 
 /**
- * @brief In-place Cholesky decomposition of A
- *
+ * @brief FP64 In-place Cholesky decomposition of A
  * @param f_A matrix to be factorized
  * @param N matrix dimension
  * @return factorized, lower triangular matrix f_L
@@ -28,8 +27,7 @@ hpx::shared_future<std::vector<double>> potrf(hpx::shared_future<std::vector<dou
                               const std::size_t N);
 
 /**
- * @brief In-place solve L(^T) * X = A or X * L(^T) = A where L lower triangular
- *
+ * @brief FP64 In-place solve L(^T) * X = A or X * L(^T) = A where L lower triangular
  * @param f_L Cholesky factor matrix
  * @param f_A right hand side matrix
  * @param N first dimension
@@ -44,7 +42,7 @@ hpx::shared_future<std::vector<double>> trsm(hpx::shared_future<std::vector<doub
                                       const BLAS_SIDE side_L);
 
 /**
- * @brief Symmetric rank-k update: A = A - B * B^T
+ * @brief FP64 Symmetric rank-k update: A = A - B * B^T
  * @param f_A Base matrix
  * @param f_B Symmetric update matrix
  * @param N matrix dimension
@@ -55,7 +53,7 @@ hpx::shared_future<std::vector<double>> syrk(hpx::shared_future<std::vector<doub
                              const std::size_t N);
 
 /**
- * @brief General matrix-matrix multiplication: C = C - A(^T) * B(^T)
+ * @brief FP64 General matrix-matrix multiplication: C = C - A(^T) * B(^T)
  * @param f_C Base matrix
  * @param f_B Right update matrix
  * @param f_A Left update matrix
@@ -80,7 +78,7 @@ hpx::shared_future<std::vector<double>> gemm(hpx::shared_future<std::vector<doub
 // BLAS level 2 operations ------------------------------- {{{
 
 /**
- * @brief In-place solve L(^T) * x = a where L lower triangular
+ * @brief FP64 In-place solve L(^T) * x = a where L lower triangular
  * @param f_L Cholesky factor matrix
  * @param f_a right hand side vector
  * @param N matrix dimension
@@ -93,7 +91,7 @@ hpx::shared_future<std::vector<double>> trsv(hpx::shared_future<std::vector<doub
                                const BLAS_TRANSPOSE transpose_L);
 
 /**
- * @brief General matrix-vector multiplication: b = b - A(^T) * a
+ * @brief FP64 General matrix-vector multiplication: b = b - A(^T) * a
  * @param f_A update matrix
  * @param f_a update vector
  * @param f_b base vector
@@ -111,7 +109,7 @@ hpx::shared_future<std::vector<double>> gemv(hpx::shared_future<std::vector<doub
                                const BLAS_TRANSPOSE transpose_A);
 
 /**
- * @brief General matrix rank-1 update: A = A - x*y^T
+ * @brief FP64 General matrix rank-1 update: A = A - x*y^T
  * @param f_A base matrix
  * @param f_x first update vector
  * @param f_y second update vector
@@ -124,7 +122,7 @@ hpx::shared_future<std::vector<double>> ger(hpx::shared_future<std::vector<doubl
                             const std::size_t N);
 
 /**
- * @brief Vector update with diagonal SYRK: r = r + diag(A^T * A)
+ * @brief FP64 Vector update with diagonal SYRK: r = r + diag(A^T * A)
  * @param f_A update matrix
  * @param f_r base vector
  * @param N first matrix dimension
@@ -136,7 +134,7 @@ hpx::shared_future<std::vector<double>> dot_diag_syrk(hpx::shared_future<std::ve
                                         const std::size_t N,
                                         const std::size_t M);
 /**
- * @brief Vector update with diagonal GEMM: r = r + diag(A * B)
+ * @brief FP64 Vector update with diagonal GEMM: r = r + diag(A * B)
  * @param f_A first update matrix
  * @param f_B second update matrix
  * @param f_r base vector
@@ -155,7 +153,7 @@ hpx::shared_future<std::vector<double>> dot_diag_gemm(hpx::shared_future<std::ve
 // BLAS level 1 operations ------------------------------- {{{
 
 /**
- * @brief Dot product: a * b
+ * @brief FP64 Dot product: a * b
  * @param f_a left vector
  * @param f_b right vector
  * @param N vector length
@@ -167,4 +165,4 @@ double dot(std::vector<double> a,
 
 // }}} --------------------------------- end of BLAS level 1 operations
 
-#endif  // end of ADAPTER_MKL_H
+#endif // end of ADAPTER_CBLAS_FP64_H

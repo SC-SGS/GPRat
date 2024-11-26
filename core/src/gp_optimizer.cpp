@@ -1,6 +1,6 @@
 #include "../include/gp_optimizer.hpp"
+#include "../include/blas_adapters/adapter_cblas_fp64.hpp"
 
-#include "../include/adapter_mkl.hpp"
 #include <numeric>
 
 /**

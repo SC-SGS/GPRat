@@ -1,9 +1,8 @@
-#include "../include/adapter_mkl.hpp"
+#include "../include/blas_adapters/adapter_cblas_fp64.hpp"
 
+// MKL CBLAS and LAPACKE
 #include "mkl_cblas.h"
 #include "mkl_lapacke.h"
-#include <vector>
-
 
 // BLAS level 3 operations -------------------------------------- {{{
 
@@ -174,4 +173,4 @@ double dot(std::vector<double> a,
   return cblas_ddot(N, a.data(), 1, b.data(), 1);
 }
 
-// }}} --------------------------------- end of BLAS level 2 operations
+// }}} --------------------------------- end of BLAS level 1 operations

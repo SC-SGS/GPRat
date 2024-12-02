@@ -1,4 +1,4 @@
-#include "../include/blas_adapters/adapter_cblas_fp64.hpp"
+#include "../include/adapter_cblas_fp64.hpp"
 
 // MKL CBLAS and LAPACKE
 #include "mkl_cblas.h"

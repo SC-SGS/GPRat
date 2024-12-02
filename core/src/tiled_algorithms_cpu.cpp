@@ -1,6 +1,6 @@
 #include "../include/tiled_algorithms_cpu.hpp"
 
-#include "../include/blas_adapters/adapter_cblas_fp64.hpp"
+#include "../include/adapter_cblas_fp64.hpp"
 #include "../include/gp_optimizer.hpp"
 #include "../include/gp_uncertainty.hpp"
 #include <cmath>

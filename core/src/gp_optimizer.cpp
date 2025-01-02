@@ -53,27 +53,18 @@ double compute_covariance_dist_func(std::size_t i_global,
                                     const std::vector<double> &i_input,
                                     const std::vector<double> &j_input)
 {
-    // C(z_i,z_j) = vertical_lengthscale * exp(-0.5*lengthscale*(z_i-z_j)^2)
-    double z_ik = 0.0;
-    double z_jk = 0.0;
+    // -0.5*lengthscale^2*(z_i-z_j)^2
+
+    double &lengthscale = hyperparameters[0];
     double distance = 0.0;
+    double z_ik_minus_z_jk;
+
     for (std::size_t k = 0; k < n_regressors; k++)
     {
-        int offset = -n_regressors + 1 + k;
-        int i_local = i_global + offset;
-        int j_local = j_global + offset;
-        if (i_local >= 0)
-        {
-            z_ik = i_input[i_local];
-        }
-        if (j_local >= 0)
-        {
-            z_jk = j_input[j_local];
-        }
-        distance += pow(z_ik - z_jk, 2);
+        z_ik_minus_z_jk = i_input[i_global + k] - j_input[j_global + k];
+        distance += z_ik_minus_z_jk * z_ik_minus_z_jk;
     }
-
-    return -1.0 / (2.0 * pow(hyperparameters[0], 2.0)) * distance;
+    return -0.5 / (lengthscale * lengthscale) * distance;
 }
 
 /**

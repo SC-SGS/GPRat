@@ -17,11 +17,11 @@ namespace gprat
  * @param f_path Path to the file
  * @param n Number of samples
  */
-GP_data::GP_data(const std::string &f_path, int n) :
+GP_data::GP_data(const std::string &f_path, int n, int n_reg) :
     n_samples(n),
     file_path(f_path)
 {
-    data = utils::load_data(f_path, n);
+    data = utils::load_data(f_path, n, n_reg - 1);
 }
 
 /**

@@ -31,7 +31,7 @@ int compute_train_tile_size(int n_samples, int n_tiles);
 std::pair<int, int> compute_test_tiles(int m_samples, int n_tiles, int n_tile_size);
 
 // Load data from file
-std::vector<double> load_data(const std::string &file_path, int n_samples);
+std::vector<double> load_data(const std::string &file_path, int n_samples, int offset=0);
 
 // Print a vector
 void print(const std::vector<double> &vec, int start = 0, int end = -1, const std::string &separator = " ");

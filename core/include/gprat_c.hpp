@@ -35,7 +35,7 @@ struct GP_data
      * @param f_path Path to the file
      * @param n Number of samples
      */
-    GP_data(const std::string &file_path, int n);
+    GP_data(const std::string &file_path, int n, int n_reg);
 };
 
 /**

@@ -86,10 +86,10 @@ std::pair<int, int> compute_test_tiles(int n_test, int n_tiles, int n_tile_size)
  * @param file_path Path to the file
  * @param n_samples Number of samples to load
  */
-std::vector<double> load_data(const std::string &file_path, int n_samples)
+std::vector<double> load_data(const std::string &file_path, int n_samples, int offset)
 {
     std::vector<double> _data;
-    _data.resize(n_samples);
+    _data.resize(n_samples + offset, 0.0);
 
     FILE *input_file = fopen(file_path.c_str(), "r");
     if (input_file == NULL)
@@ -101,7 +101,7 @@ std::vector<double> load_data(const std::string &file_path, int n_samples)
     std::size_t scanned_elements = 0;
     for (int i = 0; i < n_samples; i++)
     {
-        scanned_elements += fscanf(input_file, "%lf", &_data[i]);  // scanned_elements++;
+        scanned_elements += fscanf(input_file, "%lf", &_data[i+offset]);  // scanned_elements++;
     }
 
     fclose(input_file);

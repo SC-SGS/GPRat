@@ -1,8 +1,7 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
-// #include <boost/program_options.hpp>
-#include "../install/include/gprat_c.hpp"
+#include "../install/include/gpxpy_c.hpp"
 #include "../install/include/utils_c.hpp"
 
 int main(int argc, char *argv[])
@@ -57,9 +56,9 @@ int main(int argc, char *argv[])
 
                 /////////////////////
                 ////// data loading
-                gprat::GP_data training_input(train_path, n_train);
-                gprat::GP_data training_output(out_path, n_train);
-                gprat::GP_data test_input(test_path, n_test);
+                gpxpy::GP_data training_input(train_path, n_train, n_reg);
+                gpxpy::GP_data training_output(out_path, n_train, n_reg);
+                gpxpy::GP_data test_input(test_path, n_test, n_reg);
 
                 /////////////////////
                 ///// GP

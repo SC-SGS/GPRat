@@ -18,7 +18,8 @@ export CXX=g++
 # export CXX=clang++
 
 # Configure APEX
-export APEX_SCREEN_OUTPUT=1
+export APEX_SCREEN_OUTPUT=0
+export APEX_DISABLE=1
 # Configure MKL
 export MKL_CONFIG='-DMKL_ARCH=intel64 -DMKL_LINK=dynamic -DMKL_INTERFACE_FULL=intel_lp64 -DMKL_THREADING=sequential'
 

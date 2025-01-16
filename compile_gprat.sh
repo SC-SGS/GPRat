@@ -48,7 +48,8 @@ export PRESET=release-linux
 cmake --preset $PRESET \
       -DGPRAT_BUILD_BINDINGS=$BINDINGS \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DHPX_IGNORE_BOOST_COMPATIBILITY=ON
+      -DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
+      -DGPRAT_ENABLE_FORMAT_TARGETS=OFF
 cmake --build --preset $PRESET
 cmake --install build/$PRESET
 # ctest --preset $PRESET

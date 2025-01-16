@@ -27,7 +27,7 @@ double compute_sigmoid(const double &parameter);
 double compute_covariance_dist_func(std::size_t i_global,
                                     std::size_t j_global,
                                     std::size_t n_regressors,
-                                    double *hyperparameters,
+                                    const std::vector<double> &hyperparameters,
                                     const std::vector<double> &i_input,
                                     const std::vector<double> &j_input);
 
@@ -38,7 +38,7 @@ std::vector<double> compute_cov_dist_vec(std::size_t row,
                                          std::size_t col,
                                          std::size_t N,
                                          std::size_t n_regressors,
-                                         double *hyperparameters,
+                                         const std::vector<double> &hyperparameters,
                                          const std::vector<double> &input);
 
 /**
@@ -48,28 +48,21 @@ std::vector<double>
 gen_tile_covariance_opt(std::size_t row,
                         std::size_t col,
                         std::size_t N,
-                        std::size_t n_regressors,
-                        double *hyperparameters,
+                        const std::vector<double> &hyperparameters,
                         const std::vector<double> &cov_dists);
 
 /**
  * @brief Generate a derivative tile w.r.t. vertical_lengthscale.
  */
-std::vector<double> gen_tile_grad_v(std::size_t row,
-                                    std::size_t col,
-                                    std::size_t N,
-                                    std::size_t n_regressors,
-                                    double *hyperparameters,
+std::vector<double> gen_tile_grad_v(std::size_t N,
+                                    const std::vector<double> &hyperparameters,
                                     const std::vector<double> &cov_dists);
 
 /**
  * @brief Generate a derivative tile w.r.t. lengthscale.
  */
-std::vector<double> gen_tile_grad_l(std::size_t row,
-                                    std::size_t col,
-                                    std::size_t N,
-                                    std::size_t n_regressors,
-                                    double *hyperparameters,
+std::vector<double> gen_tile_grad_l(std::size_t N,
+                                    const std::vector<double> &hyperparameters,
                                     const std::vector<double> &cov_dists);
 
 /**
@@ -87,7 +80,7 @@ gen_tile_grad_l_trans(std::size_t N, const std::vector<double> &grad_l_tile);
 /**
  * @brief Compute hyper-parameter beta_1 or beta_2 to power t.
  */
-double gen_beta_T(int t, double *hyperparameters, int param_idx);
+double gen_beta_T(int t, const std::vector<double> &hyperparameters, std::size_t param_idx);
 
 /**
  * @brief Compute negative-log likelihood tiled.
@@ -119,7 +112,7 @@ double compute_gradient(const double &grad_l,
  * diag tiles multiplied by derivative of noise_variance.
  */
 double compute_gradient_noise(const std::vector<std::vector<double>> &ft_tiles,
-                              double *hyperparameters,
+                              const std::vector<double> &hyperparameters,
                               std::size_t N,
                               std::size_t n_tiles);
 
@@ -139,13 +132,12 @@ update_second_moment(const double &gradient, double v_T, const double &beta_2);
  * @brief Update hyperparameter using gradient decent.
  */
 double update_param(const double &unconstrained_hyperparam,
-                    double *hyperparameters,
-                    const double &gradient,
+                    const std::vector<double> &hyperparameters,
                     double m_T,
                     double v_T,
                     const std::vector<double> &beta1_T,
                     const std::vector<double> &beta2_T,
-                    int iter);
+                    std::size_t iter);
 
 /**
  * @brief Generate an identity tile if i==j.
@@ -172,13 +164,12 @@ double sum_gradright(const std::vector<double> &inter_alpha,
 
 double sum_noise_gradleft(const std::vector<double> &ft_invK,
                           double grad,
-                          double *hyperparameters,
-                          std::size_t N,
-                          std::size_t n_tiles);
+                          const std::vector<double> &hyperparameters,
+                          std::size_t N);
 
 double sum_noise_gradright(const std::vector<double> &alpha,
                            double grad,
-                           double *hyperparameters,
+                           const std::vector<double> &hyperparameters,
                            std::size_t N);
 
 #endif  // end of GP_OPTIMIZER_H

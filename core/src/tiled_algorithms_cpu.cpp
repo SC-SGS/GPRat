@@ -18,7 +18,7 @@
  */
 void right_looking_cholesky_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
-    std::size_t N,
+    int N,
     std::size_t n_tiles)
 
 {
@@ -70,7 +70,7 @@ void right_looking_cholesky_tiled(
 void forward_solve_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_rhs,
-    std::size_t N,
+    int N,
     std::size_t n_tiles)
 {
     for (std::size_t k = 0; k < n_tiles; k++)
@@ -99,12 +99,13 @@ void forward_solve_tiled(
 void backward_solve_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_rhs,
-    std::size_t N,
+    int N,
     std::size_t n_tiles)
 {
-    for (int k = n_tiles - 1; k >= 0;
-         k--)  // int instead of std::size_t for last comparison
+    for (int k_ = static_cast<int>(n_tiles) - 1; k_ >= 0;
+         k_--)  // int instead of std::size_t for last comparison
     {
+        std::size_t k = static_cast<std::size_t>(k_);
         // TRSM
         ft_rhs[k] =
             hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&trsv_u),
@@ -112,9 +113,10 @@ void backward_solve_tiled(
                           ft_tiles[k * n_tiles + k],
                           ft_rhs[k],
                           N);
-        for (int m = k - 1; m >= 0;
-             m--)  // int instead of std::size_t for last comparison
+        for (int m_ = k_ - 1; m_ >= 0;
+             m_--)  // int instead of std::size_t for last comparison
         {
+            std::size_t m = static_cast<std::size_t>(m_);
             // GEMV
             ft_rhs[m] = hpx::dataflow(
                 hpx::annotated_function(hpx::unwrapping(&gemv_u),
@@ -131,8 +133,8 @@ void backward_solve_tiled(
 void forward_solve_tiled_matrix(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_rhs,
-    std::size_t N,
-    std::size_t M,
+    int N,
+    int M,
     std::size_t n_tiles,
     std::size_t m_tiles)
 {
@@ -167,16 +169,17 @@ void forward_solve_tiled_matrix(
 void backward_solve_tiled_matrix(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_rhs,
-    std::size_t N,
-    std::size_t M,
+    int N,
+    int M,
     std::size_t n_tiles,
     std::size_t m_tiles)
 {
-    for (int c = 0; c < m_tiles; c++)
+    for (std::size_t c = 0; c < m_tiles; c++)
     {
-        for (int k = n_tiles - 1; k >= 0;
-             k--)  // int instead of std::size_t for last comparison
+        for (int k_ = static_cast<int>(n_tiles) - 1; k_ >= 0;
+             k_--)  // int instead of std::size_t for last comparison
         {
+            std::size_t k = static_cast<std::size_t>(k_);
             // TRSM
             ft_rhs[k * m_tiles + c] = hpx::dataflow(
                 hpx::annotated_function(hpx::unwrapping(&trsm_u_matrix),
@@ -185,9 +188,10 @@ void backward_solve_tiled_matrix(
                 ft_rhs[k * m_tiles + c],
                 N,
                 M);
-            for (int m = k - 1; m >= 0;
-                 m--)  // int instead of std::size_t for last comparison
+            for (int m_ = k_ - 1; m_ >= 0;
+                 m_--)  // int instead of std::size_t for last comparison
             {
+                std::size_t m = static_cast<std::size_t>(m_);
                 // GEMV
                 ft_rhs[m * m_tiles + c] = hpx::dataflow(
                     hpx::annotated_function(hpx::unwrapping(&gemm_u_matrix),
@@ -209,8 +213,8 @@ void backward_solve_tiled_matrix(
 void forward_solve_KcK_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_rhs,
-    std::size_t N,
-    std::size_t M,
+    int N,
+    int M,
     std::size_t n_tiles,
     std::size_t m_tiles)
 {
@@ -246,7 +250,7 @@ void compute_gemm_of_invK_y(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_invK,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_y,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_alpha,
-    std::size_t N,
+    int N,
     std::size_t n_tiles)
 {
     for (std::size_t i = 0; i < n_tiles; i++)
@@ -271,7 +275,7 @@ void compute_loss_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_alpha,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_y,
     hpx::shared_future<double> &loss,
-    std::size_t N,
+    int N,
     std::size_t n_tiles)
 {
     std::vector<hpx::shared_future<double>> loss_tiled;
@@ -299,8 +303,8 @@ void prediction_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_vector,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_rhs,
-    std::size_t N_row,
-    std::size_t N_col,
+    int N_row,
+    int N_col,
     std::size_t n_tiles,
     std::size_t m_tiles)
 {
@@ -324,8 +328,8 @@ void prediction_tiled(
 void posterior_covariance_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tCC_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_inter_tiles,
-    std::size_t N,
-    std::size_t M,
+    int N,
+    int M,
     std::size_t n_tiles,
     std::size_t m_tiles)
 {
@@ -350,8 +354,8 @@ void posterior_covariance_tiled(
 void full_cov_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tCC_tiles,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_priorK,
-    std::size_t N,
-    std::size_t M,
+    int N,
+    int M,
     std::size_t n_tiles,
     std::size_t m_tiles)
 {
@@ -381,7 +385,7 @@ void prediction_uncertainty_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_priorK,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_inter,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_vector,
-    std::size_t M,
+    int M,
     std::size_t m_tiles)
 {
     for (std::size_t i = 0; i < m_tiles; i++)
@@ -399,7 +403,7 @@ void prediction_uncertainty_tiled(
 void pred_uncer_tiled(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_priorK,
     std::vector<hpx::shared_future<std::vector<double>>> &ft_vector,
-    std::size_t M,
+    int M,
     std::size_t m_tiles)
 {
     for (std::size_t i = 0; i < m_tiles; i++)
@@ -417,7 +421,7 @@ void update_grad_K_tiled_mkl(
     std::vector<hpx::shared_future<std::vector<double>>> &ft_tiles,
     const std::vector<hpx::shared_future<std::vector<double>>> &ft_v1,
     const std::vector<hpx::shared_future<std::vector<double>>> &ft_v2,
-    std::size_t N,
+    int N,
     std::size_t n_tiles)
 
 {
@@ -442,15 +446,15 @@ void update_hyperparameter(
     const std::vector<hpx::shared_future<std::vector<double>>> &ft_invK,
     const std::vector<hpx::shared_future<std::vector<double>>> &ft_gradparam,
     const std::vector<hpx::shared_future<std::vector<double>>> &ft_alpha,
-    double *hyperparameters,
-    std::size_t N,
+    std::vector<double> &hyperparameters,
+    int N,
     std::size_t n_tiles,
     std::vector<hpx::shared_future<double>> &m_T,
     std::vector<hpx::shared_future<double>> &v_T,
     const std::vector<hpx::shared_future<double>> &beta1_T,
     const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    int param_idx)
+    std::size_t iter,
+    std::size_t param_idx)
 {
     ////////////////////////////////////
     /// part 1: trace(inv(K)*grad_param)
@@ -570,12 +574,11 @@ void update_hyperparameter(
                                     "gradient_tiled"),
             unconstrained_param,
             hyperparameters,
-            gradient,
             m_T[param_idx],
             v_T[param_idx],
             beta1_T,
             beta2_T,
-            iter);
+            static_cast<std::size_t>(iter));
         // transform hyperparameter to constrained form
         hyperparameters[param_idx] =
             hpx::dataflow(
@@ -596,14 +599,14 @@ void update_hyperparameter(
 void update_noise_variance(
     const std::vector<hpx::shared_future<std::vector<double>>> &ft_invK,
     const std::vector<hpx::shared_future<std::vector<double>>> &ft_alpha,
-    double *hyperparameters,
-    std::size_t N,
+    std::vector<double> &hyperparameters,
+    int N,
     std::size_t n_tiles,
     std::vector<hpx::shared_future<double>> &m_T,
     std::vector<hpx::shared_future<double>> &v_T,
     const std::vector<hpx::shared_future<double>> &beta1_T,
     const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter)
+    std::size_t iter)
 {
     ///////////////////////////////////////
     // part1: compute trace(inv(K) * grad_hyperparam)
@@ -616,8 +619,7 @@ void update_noise_variance(
             ft_invK[j * n_tiles + j],
             grad_left,
             hyperparameters,
-            N,
-            n_tiles);
+            N);
     }
     ///////////////////////////////////////
     /// part 2: alpha^T * grad_param * alpha
@@ -668,12 +670,11 @@ void update_noise_variance(
                                               "gradient_tiled"),
                       unconstrained_param,
                       hyperparameters,
-                      gradient,
                       m_T[2],
                       v_T[2],
                       beta1_T,
                       beta2_T,
-                      iter);
+                      static_cast<std::size_t>(iter));
     // transform hyperparameter to constrained form
     hyperparameters[2] =
         hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&to_constrained),

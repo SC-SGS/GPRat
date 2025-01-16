@@ -73,7 +73,7 @@ compute_loss_hpx(const std::vector<double> &training_input,
                  int n_tiles,
                  int n_tile_size,
                  int n_regressors,
-                 double *hyperparameters);
+                 const std::vector<double> &hyperparameters);
 
 // Perform optimization for a given number of iterations
 hpx::shared_future<std::vector<double>>
@@ -104,8 +104,8 @@ optimize_step_hpx(const std::vector<double> &training_input,
 
 // Compute Cholesky decomposition
 hpx::shared_future<std::vector<std::vector<double>>>
+// std::vector<std::vector<double>>
 cholesky_hpx(const std::vector<double> &training_input,
-             const std::vector<double> &training_output,
              int n_tiles,
              int n_tile_size,
              double lengthscale,

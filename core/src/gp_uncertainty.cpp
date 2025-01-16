@@ -25,7 +25,7 @@ std::vector<double> diag_posterior(const std::vector<double> &A,
         tile.push_back(A[i] - B[i]);
     }
 
-    return std::move(tile);
+    return tile;
 }
 
 /**
@@ -47,5 +47,5 @@ std::vector<double> diag_tile(const std::vector<double> &A, std::size_t M)
         tile.push_back(A[i * M + i]);
     }
 
-    return std::move(tile);
+    return tile;
 }

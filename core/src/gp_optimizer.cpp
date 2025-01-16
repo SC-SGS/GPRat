@@ -49,13 +49,13 @@ double compute_sigmoid(const double &parameter)
 double compute_covariance_dist_func(std::size_t i_global,
                                     std::size_t j_global,
                                     std::size_t n_regressors,
-                                    double *hyperparameters,
+                                    const std::vector<double> &hyperparameters,
                                     const std::vector<double> &i_input,
                                     const std::vector<double> &j_input)
 {
     // -0.5*lengthscale^2*(z_i-z_j)^2
 
-    double &lengthscale = hyperparameters[0];
+    double lengthscale = hyperparameters[0];
     double distance = 0.0;
     double z_ik_minus_z_jk;
 
@@ -74,7 +74,7 @@ std::vector<double> compute_cov_dist_vec(std::size_t row,
                                          std::size_t col,
                                          std::size_t N,
                                          std::size_t n_regressors,
-                                         double *hyperparameters,
+                                         const std::vector<double> &hyperparameters,
                                          const std::vector<double> &input)
 {
     std::size_t i_global, j_global;
@@ -94,7 +94,7 @@ std::vector<double> compute_cov_dist_vec(std::size_t row,
             tile[i * N + j] = cov_dist;
         }
     }
-    return std::move(tile);
+    return tile;
 }
 
 /**
@@ -104,8 +104,7 @@ std::vector<double>
 gen_tile_covariance_opt(std::size_t row,
                         std::size_t col,
                         std::size_t N,
-                        std::size_t n_regressors,
-                        double *hyperparameters,
+                        const std::vector<double> &hyperparameters,
                         const std::vector<double> &cov_dists)
 {
     std::size_t i_global, j_global;
@@ -129,17 +128,14 @@ gen_tile_covariance_opt(std::size_t row,
             tile[i * N + j] = covariance;
         }
     }
-    return std::move(tile);
+    return tile;
 }
 
 /**
  * @brief Generate a derivative tile w.r.t. vertical_lengthscale.
  */
-std::vector<double> gen_tile_grad_v(std::size_t row,
-                                    std::size_t col,
-                                    std::size_t N,
-                                    std::size_t n_regressors,
-                                    double *hyperparameters,
+std::vector<double> gen_tile_grad_v(std::size_t N,
+                                    const std::vector<double> &hyperparameters,
                                     const std::vector<double> &cov_dists)
 {
     // Initialize tile
@@ -155,17 +151,14 @@ std::vector<double> gen_tile_grad_v(std::size_t row,
             tile[i * N + j] = exp(cov_dists[i * N + j]) * hyperparam_der;
         }
     }
-    return std::move(tile);
+    return tile;
 }
 
 /**
  * @brief Generate a derivative tile w.r.t. lengthscale.
  */
-std::vector<double> gen_tile_grad_l(std::size_t row,
-                                    std::size_t col,
-                                    std::size_t N,
-                                    std::size_t n_regressors,
-                                    double *hyperparameters,
+std::vector<double> gen_tile_grad_l(std::size_t N,
+                                    const std::vector<double> &hyperparameters,
                                     const std::vector<double> &cov_dists)
 {
     // Initialize tile
@@ -181,7 +174,7 @@ std::vector<double> gen_tile_grad_l(std::size_t row,
             tile[i * N + j] = -2.0 * (hyperparameters[1] / hyperparameters[0]) * cov_dists[i * N + j] * exp(cov_dists[i * N + j]) * hyperparam_der;
         }
     }
-    return std::move(tile);
+    return tile;
 }
 
 /**
@@ -201,7 +194,7 @@ gen_tile_grad_v_trans(std::size_t N, const std::vector<double> &grad_l_tile)
             transposed[j * N + i] = grad_l_tile[i * N + j];
         }
     }
-    return std::move(transposed);
+    return transposed;
 }
 
 /**
@@ -221,13 +214,13 @@ gen_tile_grad_l_trans(std::size_t N, const std::vector<double> &grad_l_tile)
             transposed[j * N + i] = grad_l_tile[i * N + j];
         }
     }
-    return std::move(transposed);
+    return transposed;
 }
 
 /**
  * @brief Compute hyper-parameter beta_1 or beta_2 to power t.
  */
-double gen_beta_T(int t, double *hyperparameters, int param_idx)
+double gen_beta_T(int t, const std::vector<double> &hyperparameters, std::size_t param_idx)
 {
     return pow(hyperparameters[param_idx], t);
 }
@@ -241,7 +234,7 @@ double compute_loss(const std::vector<double> &K_diag_tile,
                     std::size_t N)
 {
     double l = 0.0;
-    l += dot(N, y_tile, alpha_tile);
+    l += dot(static_cast<int>(N), y_tile, alpha_tile);
     for (std::size_t i = 0; i < N; i++)
     {
         // Add the squared difference to the error
@@ -257,13 +250,15 @@ double
 add_losses(const std::vector<double> &losses, std::size_t N, std::size_t n)
 {
     double l = 0.0;
+    double Nn = static_cast<double>(N * n);
     for (std::size_t i = 0; i < n; i++)
     {
         // Add the squared difference to the error
         l += losses[i];
     }
-    l += N * n * log(2.0 * M_PI);
-    return 0.5 * l / (N * n);
+
+    l += Nn * log(2.0 * M_PI);
+    return 0.5 * l / Nn;
 }
 
 /**
@@ -275,10 +270,7 @@ double compute_gradient(const double &grad_l,
                         std::size_t N,
                         std::size_t n_tiles)
 {
-    double grad = 0.0;
-    grad = 1.0 / (2.0 * N * n_tiles) * (grad_l - grad_r);
-
-    return std::move(grad);
+    return 0.5 / static_cast<double>(N * n_tiles) * (grad_l - grad_r);
 }
 
 /**
@@ -288,7 +280,7 @@ double compute_gradient(const double &grad_l,
  * diag tiles multiplied by derivative of noise_variance.
  */
 double compute_gradient_noise(const std::vector<std::vector<double>> &ft_tiles,
-                              double *hyperparameters,
+                              const std::vector<double> &hyperparameters,
                               std::size_t N,
                               std::size_t n_tiles)
 {
@@ -304,8 +296,8 @@ double compute_gradient_noise(const std::vector<std::vector<double>> &ft_tiles,
             trace += (tile[i * N + i] * hyperparam_der);
         }
     }
-    trace = 1.0 / (2.0 * N * n_tiles) * trace;
-    return std::move(trace);
+    trace = 0.5 / static_cast<double>(N * n_tiles) * trace;
+    return trace;
 }
 
 /**
@@ -330,13 +322,12 @@ update_second_moment(const double &gradient, double v_T, const double &beta_2)
  * @brief Update hyperparameter using gradient decent.
  */
 double update_param(const double &unconstrained_hyperparam,
-                    double *hyperparameters,
-                    const double &gradient,
+                    const std::vector<double> &hyperparameters,
                     double m_T,
                     double v_T,
                     const std::vector<double> &beta1_T,
                     const std::vector<double> &beta2_T,
-                    int iter)
+                    std::size_t iter)
 {
     // Option 1:
     // double mhat = m_T / (1.0 - beta1_T[iter]);
@@ -373,7 +364,7 @@ gen_tile_identity(std::size_t row, std::size_t col, std::size_t N)
             }
         }
     }
-    return std::move(tile);
+    return tile;
 }
 
 /**
@@ -385,7 +376,7 @@ std::vector<double> gen_tile_zeros_diag(std::size_t N)
     std::vector<double> tile;
     tile.resize(N);
     std::fill(tile.begin(), tile.end(), 0.0);
-    return std::move(tile);
+    return tile;
 }
 
 /**
@@ -408,15 +399,14 @@ double sum_gradright(const std::vector<double> &inter_alpha,
                      double grad,
                      std::size_t N)
 {
-    grad += dot(N, inter_alpha, alpha);
+    grad += dot(static_cast<int>(N), inter_alpha, alpha);
     return grad;
 }
 
 double sum_noise_gradleft(const std::vector<double> &ft_invK,
                           double grad,
-                          double *hyperparameters,
-                          std::size_t N,
-                          std::size_t n_tiles)
+                          const std::vector<double> &hyperparameters,
+                          std::size_t N)
 {
     double noise_der =
         compute_sigmoid(to_unconstrained(hyperparameters[2], true));
@@ -424,16 +414,16 @@ double sum_noise_gradleft(const std::vector<double> &ft_invK,
     {
         grad += (ft_invK[i * N + i] * noise_der);
     }
-    return std::move(grad);
+    return grad;
 }
 
 double sum_noise_gradright(const std::vector<double> &alpha,
                            double grad,
-                           double *hyperparameters,
+                           const std::vector<double> &hyperparameters,
                            std::size_t N)
 {
     double noise_der =
         compute_sigmoid(to_unconstrained(hyperparameters[2], true));
-    grad += (noise_der * dot(N, alpha, alpha));
+    grad += (noise_der * dot(static_cast<int>(N), alpha, alpha));
     return grad;
 }

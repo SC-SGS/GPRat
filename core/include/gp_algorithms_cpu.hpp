@@ -5,7 +5,7 @@
 #include <vector>
 
 // compute the squared exponential kernel of two feature vectors
-double compute_covariance_function(std::size_t i_global, std::size_t j_global, std::size_t n_regressors, double *hyperparameters, const std::vector<double> &i_input, const std::vector<double> &j_input);
+double compute_covariance_function(std::size_t i_global, std::size_t j_global, std::size_t n_regressors, const std::vector<double> &hyperparameters, const std::vector<double> &i_input, const std::vector<double> &j_input);
 
 /**
  * @brief Generate a tile of the covariance matrix
@@ -17,18 +17,18 @@ double compute_covariance_function(std::size_t i_global, std::size_t j_global, s
  * @param hyperparameters hyperparameters of the covariance function
  * @param input input data
  */
-std::vector<double> gen_tile_covariance(std::size_t row, std::size_t col, std::size_t N, std::size_t n_regressors, double *hyperparameters, const std::vector<double> &input);
+std::vector<double> gen_tile_covariance(std::size_t row, std::size_t col, std::size_t N, std::size_t n_regressors, const std::vector<double> &hyperparameters, const std::vector<double> &input);
 
 // generate a tile of the prior covariance matrix
 std::vector<double> gen_tile_full_prior_covariance(
-    std::size_t row, std::size_t col, std::size_t N, std::size_t n_regressors, double *hyperparameters, const std::vector<double> &input);
+    std::size_t row, std::size_t col, std::size_t N, std::size_t n_regressors, const std::vector<double> &hyperparameters, const std::vector<double> &input);
 
 // generate a tile of the prior covariance matrix
-std::vector<double> gen_tile_prior_covariance(std::size_t row, std::size_t col, std::size_t N, std::size_t n_regressors, double *hyperparameters, const std::vector<double> &input);
+std::vector<double> gen_tile_prior_covariance(std::size_t row, std::size_t col, std::size_t N, std::size_t n_regressors, const std::vector<double> &hyperparameters, const std::vector<double> &input);
 
 // generate a tile of the cross-covariance matrix
 std::vector<double> gen_tile_cross_covariance(
-    std::size_t row, std::size_t col, std::size_t N_row, std::size_t N_col, std::size_t n_regressors, double *hyperparameters, const std::vector<double> &row_input, const std::vector<double> &col_input);
+    std::size_t row, std::size_t col, std::size_t N_row, std::size_t N_col, std::size_t n_regressors, const std::vector<double> &hyperparameters, const std::vector<double> &row_input, const std::vector<double> &col_input);
 
 // generate a tile of the cross-covariance matrix
 std::vector<double>

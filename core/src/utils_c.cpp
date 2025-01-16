@@ -16,10 +16,8 @@ int compute_train_tiles(int n_samples, int n_tile_size)
 {
     if (n_tile_size > 0)
     {
-        std::size_t _n_samples = static_cast<std::size_t>(n_samples);
-        std::size_t _n_tile_size = static_cast<std::size_t>(n_tile_size);
-        std::size_t _n_tiles = _n_samples / _n_tile_size;
-        return static_cast<int>(_n_tiles);
+        // n_tiles
+        return n_samples / n_tile_size;
     }
     else
     {
@@ -38,10 +36,8 @@ int compute_train_tile_size(int n_samples, int n_tiles)
 {
     if (n_tiles > 0)
     {
-        std::size_t _n_samples = static_cast<std::size_t>(n_samples);
-        std::size_t _n_tiles = static_cast<std::size_t>(n_tiles);
-        std::size_t _n_tile_size = _n_samples / n_tiles;
-        return static_cast<int>(_n_tile_size);
+        // n_tile_size
+        return n_samples / n_tiles;
     }
     else
     {
@@ -61,23 +57,20 @@ int compute_train_tile_size(int n_samples, int n_tiles)
  */
 std::pair<int, int> compute_test_tiles(int n_test, int n_tiles, int n_tile_size)
 {
-    std::size_t _n_test = static_cast<std::size_t>(n_test);
-    std::size_t _n_tiles = static_cast<std::size_t>(n_tiles);
-    std::size_t _n_tile_size = static_cast<std::size_t>(n_tile_size);
-    std::size_t m_tiles;
-    std::size_t m_tile_size;
+    int m_tiles;
+    int m_tile_size;
 
-    if ((_n_test % _n_tile_size) > 0)
+    if ((n_test % n_tile_size) > 0)
     {
-        m_tiles = _n_tiles;
-        m_tile_size = _n_test / m_tiles;
+        m_tiles = n_tiles;
+        m_tile_size = n_test / m_tiles;
     }
     else
     {
-        m_tiles = _n_test / _n_tile_size;
-        m_tile_size = _n_tile_size;
+        m_tiles = n_test / n_tile_size;
+        m_tile_size = n_tile_size;
     }
-    return { static_cast<int>(m_tiles), static_cast<int>(m_tile_size) };
+    return { m_tiles, m_tile_size };
 }
 
 /**
@@ -89,7 +82,7 @@ std::pair<int, int> compute_test_tiles(int n_test, int n_tiles, int n_tile_size)
 std::vector<double> load_data(const std::string &file_path, int n_samples, int offset)
 {
     std::vector<double> _data;
-    _data.resize(n_samples + offset, 0.0);
+    _data.resize(static_cast<std::size_t>(n_samples + offset), 0.0);
 
     FILE *input_file = fopen(file_path.c_str(), "r");
     if (input_file == NULL)
@@ -98,10 +91,10 @@ std::vector<double> load_data(const std::string &file_path, int n_samples, int o
     }
 
     // load data
-    std::size_t scanned_elements = 0;
+    int scanned_elements = 0;
     for (int i = 0; i < n_samples; i++)
     {
-        scanned_elements += fscanf(input_file, "%lf", &_data[i+offset]);  // scanned_elements++;
+        scanned_elements += fscanf(input_file, "%lf", &_data[static_cast<std::size_t>(i + offset)]);  // scanned_elements++;
     }
 
     fclose(input_file);
@@ -113,8 +106,7 @@ std::vector<double> load_data(const std::string &file_path, int n_samples, int o
                                  + " elements, but read "
                                  + std::to_string(scanned_elements));
     }
-
-    return std::move(_data);
+    return _data;
 }
 
 /**
@@ -130,11 +122,11 @@ void print(const std::vector<double> &vec, int start, int end, const std::string
     // Convert negative indices to positive
     if (start < 0)
     {
-        start += vec.size();
+        start += static_cast<int>(vec.size());
     }
     if (end < 0)
     {
-        end += vec.size() + 1;
+        end += static_cast<int>(vec.size()) + 1;
     }
 
     // Ensure the indices are within bounds
@@ -142,13 +134,13 @@ void print(const std::vector<double> &vec, int start, int end, const std::string
     {
         start = 0;
     }
-    if (end > vec.size())
+    if (end > static_cast<int>(vec.size()))
     {
-        end = vec.size();
+        end = static_cast<int>(vec.size());
     }
 
     // Validate the range
-    if (start >= vec.size() || start >= end)
+    if (start >= static_cast<int>(vec.size()) || start >= end)
     {
         std::cerr << "Invalid range" << std::endl;
         return;
@@ -156,7 +148,7 @@ void print(const std::vector<double> &vec, int start, int end, const std::string
 
     for (int i = start; i < end; i++)
     {
-        std::cout << vec[i];
+        std::cout << vec[static_cast<std::size_t>(i)];
         if (i < end - 1)
         {
             std::cout << separator;

@@ -2,6 +2,7 @@
 
 #include "utils_c.hpp"
 #include <cstdio>
+#include <hpx/runtime_local/run_as_hpx_thread.hpp>
 #include <iomanip>
 #include <sstream>
 
@@ -18,8 +19,9 @@ namespace gprat
  * @param n Number of samples
  */
 GP_data::GP_data(const std::string &f_path, int n, int n_reg) :
+    file_path(f_path),
     n_samples(n),
-    file_path(f_path)
+    n_regressors(n_reg)
 {
     data = utils::load_data(f_path, n, n_reg - 1);
 }
@@ -213,7 +215,7 @@ double GP::optimize_step(gprat_hyper::Hyperparameters &hyperparams,
  */
 double GP::calculate_loss()
 {
-    double hyperparameters[3];
+    std::vector<double> hyperparameters(3);
     hyperparameters[0] = lengthscale;
     hyperparameters[1] = vertical_lengthscale;
     hyperparameters[2] = noise_variance;
@@ -236,11 +238,17 @@ std::vector<std::vector<double>> GP::cholesky()
     std::vector<std::vector<double>> result;
     hpx::run_as_hpx_thread([this, &result]()
                            {
-                               result = cholesky_hpx(_training_input, _training_output, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance,
+                               result = cholesky_hpx(_training_input, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance,
                                                      n_regressors)
                                             .get();  // Wait for and get the result from the future
                            });
     return result;
+
+    // return hpx::async([this]()
+    //                     {
+    //                         return cholesky_hpx(_training_input, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance,
+    //                                                  n_regressors);
+    //                     }).get();
 }
 
 }  // namespace gprat

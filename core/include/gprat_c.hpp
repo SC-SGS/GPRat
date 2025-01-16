@@ -23,6 +23,9 @@ struct GP_data
     /** @brief Number of samples in the data */
     int n_samples;
 
+    /** @brief Number of GP regressors */
+    int n_regressors;
+
     /** @brief Vector containing the data */
     std::vector<double> data;
 

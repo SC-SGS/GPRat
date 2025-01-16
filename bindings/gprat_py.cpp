@@ -13,19 +13,24 @@ void init_gprat(py::module &m)
     // set training data with `GP_data` class
     py::class_<gprat::GP_data>(
         m, "GP_data", "Class representing Gaussian Process data.")
-        .def(py::init<std::string, int>(),
+        .def(py::init<std::string, int, int>(),
              py::arg("file_path"),
              py::arg("n_samples"),
+             py::arg("n_regressors"),
              R"pbdoc(
              Loads data for Gaussian Process from file.
 
              Parameters:
                  file_path (str): Path to the file containing the GP data.
                  n_samples (int): Number of samples in the GP data.
+                 n_regressors (int): Number of regressors to offset data
              )pbdoc")
         .def_readonly("n_samples",
                       &gprat::GP_data::n_samples,
                       "Number of samples in the GP data")
+        .def_readonly("n_regressors",
+                      &gpxpy::GP_data::n_regressors,
+                      "Number of GP regressors")
         .def_readonly(
             "file_path", &gprat::GP_data::file_path, "File path to the GP data")
         .def_readonly(

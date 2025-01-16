@@ -24,7 +24,7 @@ void start_hpx_wrapper(std::vector<std::string> args, std::size_t n_cores)
         argv.push_back(&arg[0]);
     }
     argv.push_back(nullptr);
-    int argc = args.size();
+    int argc = static_cast<int>(args.size());
     utils::start_hpx_runtime(argc, argv.data());
 }
 

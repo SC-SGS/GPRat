@@ -1,8 +1,8 @@
+#include "../install/include/gpxpy_c.hpp"
+#include "../install/include/utils_c.hpp"
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include "../install/include/gpxpy_c.hpp"
-#include "../install/include/utils_c.hpp"
 
 int main(int argc, char *argv[])
 {

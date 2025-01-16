@@ -8,7 +8,7 @@
 // BLAS operations for tiled cholkesy
 // in-place Cholesky decomposition of A -> return factorized matrix L
 std::vector<double> potrf(std::vector<double> A,
-                          std::size_t N)
+                          int N)
 {
     // use ?potrf2 recursive version for better stability
     // POTRF - caution with dpotrf
@@ -20,7 +20,7 @@ std::vector<double> potrf(std::vector<double> A,
 // in-place solve X * L^T = A where L lower triangular
 std::vector<double> trsm(std::vector<double> L,
                          std::vector<double> A,
-                         std::size_t N)
+                         int N)
 {
     // TRSM constants
     const double alpha = 1.0;
@@ -33,7 +33,7 @@ std::vector<double> trsm(std::vector<double> L,
 // A = A - B * B^T
 std::vector<double> syrk(std::vector<double> A,
                          std::vector<double> B,
-                         std::size_t N)
+                         int N)
 {
     // SYRK constants
     const double alpha = -1.0;
@@ -48,7 +48,7 @@ std::vector<double> syrk(std::vector<double> A,
 std::vector<double> gemm(std::vector<double> A,
                          std::vector<double> B,
                          std::vector<double> C,
-                         std::size_t N)
+                         int N)
 {
     // GEMM constants
     const double alpha = -1.0;
@@ -62,7 +62,7 @@ std::vector<double> gemm(std::vector<double> A,
 // in-place solve L * x = a where L lower triangular
 std::vector<double> trsv_l(std::vector<double> L,
                            std::vector<double> a,
-                           std::size_t N)
+                           int N)
 {
     // TRSV kernel
     cblas_dtrsv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit, N, L.data(), N, a.data(), 1);
@@ -74,7 +74,7 @@ std::vector<double> trsv_l(std::vector<double> L,
 std::vector<double> gemv_l(std::vector<double> A,
                            std::vector<double> a,
                            std::vector<double> b,
-                           std::size_t N)
+                           int N)
 {
     // GEMV constants
     const double alpha = -1.0;
@@ -88,7 +88,7 @@ std::vector<double> gemv_l(std::vector<double> A,
 // in-place solve L^T * x = a where L lower triangular
 std::vector<double> trsv_u(std::vector<double> L,
                            std::vector<double> a,
-                           std::size_t N)
+                           int N)
 {
     // TRSV kernel
     cblas_dtrsv(CblasRowMajor, CblasLower, CblasTrans, CblasNonUnit, N, L.data(), N, a.data(), 1);
@@ -100,7 +100,7 @@ std::vector<double> trsv_u(std::vector<double> L,
 std::vector<double> gemv_u(std::vector<double> A,
                            std::vector<double> a,
                            std::vector<double> b,
-                           std::size_t N)
+                           int N)
 {
     // GEMV constants
     const double alpha = -1.0;
@@ -115,7 +115,7 @@ std::vector<double> gemv_u(std::vector<double> A,
 std::vector<double> ger(std::vector<double> A,
                         std::vector<double> x,
                         std::vector<double> y,
-                        std::size_t N)
+                        int N)
 {
     // GER constants
     const double alpha = -1.0;
@@ -129,7 +129,7 @@ std::vector<double> ger(std::vector<double> A,
 std::vector<double> gemm_diag(std::vector<double> A,
                               std::vector<double> B,
                               std::vector<double> C,
-                              std::size_t N)
+                              int N)
 {
     // GEMM constants
     const double alpha = 1.0;
@@ -145,8 +145,8 @@ std::vector<double> gemm_diag(std::vector<double> A,
 std::vector<double> gemv_p(std::vector<double> A,
                            std::vector<double> a,
                            std::vector<double> b,
-                           std::size_t N_row,
-                           std::size_t N_col)
+                           int N_row,
+                           int N_col)
 {
     // GEMV constants
     const double alpha = 1.0;
@@ -162,8 +162,8 @@ std::vector<double> gemv_p(std::vector<double> A,
 // in-place solve X * L = A where L lower triangular
 std::vector<double> trsm_l_KcK(std::vector<double> L,
                                std::vector<double> A,
-                               std::size_t N,
-                               std::size_t M)
+                               int N,
+                               int M)
 {
     // TRSM constants
     const double alpha = 1.0;
@@ -177,8 +177,8 @@ std::vector<double> trsm_l_KcK(std::vector<double> L,
 std::vector<double> gemm_l_KcK(std::vector<double> A,
                                std::vector<double> B,
                                std::vector<double> C,
-                               std::size_t N,
-                               std::size_t M)
+                               int N,
+                               int M)
 {
     // GEMM constants
     const double alpha = -1.0;
@@ -193,8 +193,8 @@ std::vector<double> gemm_l_KcK(std::vector<double> A,
 std::vector<double> gemm_cross_tcross_matrix(std::vector<double> A,
                                              std::vector<double> B,
                                              std::vector<double> C,
-                                             std::size_t N,
-                                             std::size_t M)
+                                             int N,
+                                             int M)
 {
     // GEMM constants
     const double alpha = -1.0;
@@ -210,8 +210,8 @@ std::vector<double> gemm_cross_tcross_matrix(std::vector<double> A,
 // in-place solve L * X = A where L lower triangular
 std::vector<double> trsm_l_matrix(std::vector<double> L,
                                   std::vector<double> A,
-                                  std::size_t N,
-                                  std::size_t M)
+                                  int N,
+                                  int M)
 {
     // TRSM constants
     const double alpha = 1.0;
@@ -225,8 +225,8 @@ std::vector<double> trsm_l_matrix(std::vector<double> L,
 std::vector<double> gemm_l_matrix(std::vector<double> A,
                                   std::vector<double> B,
                                   std::vector<double> C,
-                                  std::size_t N,
-                                  std::size_t M)
+                                  int N,
+                                  int M)
 {
     // GEMM constants
     const double alpha = -1.0;
@@ -240,8 +240,8 @@ std::vector<double> gemm_l_matrix(std::vector<double> A,
 // in-place solve L^T * X = A where L upper triangular
 std::vector<double> trsm_u_matrix(std::vector<double> L,
                                   std::vector<double> A,
-                                  std::size_t N,
-                                  std::size_t M)
+                                  int N,
+                                  int M)
 {
     // TRSM constants
     const double alpha = 1.0;
@@ -255,8 +255,8 @@ std::vector<double> trsm_u_matrix(std::vector<double> L,
 std::vector<double> gemm_u_matrix(std::vector<double> A,
                                   std::vector<double> B,
                                   std::vector<double> C,
-                                  std::size_t N,
-                                  std::size_t M)
+                                  int N,
+                                  int M)
 {
     // GEMM constants
     const double alpha = -1.0;
@@ -268,7 +268,7 @@ std::vector<double> gemm_u_matrix(std::vector<double> A,
 }
 
 // Dot product used in dot calculation
-double dot(std::size_t N,
+double dot(int N,
            std::vector<double> A,
            std::vector<double> B)
 {
@@ -278,10 +278,10 @@ double dot(std::size_t N,
 // C = C - A * B
 std::vector<double> dot_uncertainty(std::vector<double> A,
                                     std::vector<double> R,
-                                    std::size_t N,
-                                    std::size_t M)
+                                    int N,
+                                    int M)
 {
-    for (int j = 0; j < M; ++j)
+    for (std::size_t j = 0; j < static_cast<std::size_t>(M); ++j)
     {
         // Extract the j-th column and compute its dot product with itself
         R[j] += cblas_ddot(N, &A[j], M, &A[j], M);
@@ -294,12 +294,12 @@ std::vector<double> dot_uncertainty(std::vector<double> A,
 std::vector<double> gemm_grad(std::vector<double> A,
                               std::vector<double> B,
                               std::vector<double> R,
-                              std::size_t N,
-                              std::size_t M)
+                              int N,
+                              int M)
 {
-    for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i)
     {
-        R[i] += cblas_ddot(M, &A[i * M], 1, &B[i], N);
+        R[i] += cblas_ddot(M, &A[i * static_cast<std::size_t>(M)], 1, &B[i], N);
     }
     return R;
 }

@@ -29,7 +29,7 @@ void init_gprat(py::module &m)
                       &gprat::GP_data::n_samples,
                       "Number of samples in the GP data")
         .def_readonly("n_regressors",
-                      &gpxpy::GP_data::n_regressors,
+                      &gprat::GP_data::n_regressors,
                       "Number of GP regressors")
         .def_readonly(
             "file_path", &gprat::GP_data::file_path, "File path to the GP data")

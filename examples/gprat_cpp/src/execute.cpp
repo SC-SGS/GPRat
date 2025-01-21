@@ -1,4 +1,4 @@
-#include "../install/include/gpxpy_c.hpp"
+#include "../install/include/gprat_c.hpp"
 #include "../install/include/utils_c.hpp"
 #include <chrono>
 #include <fstream>
@@ -56,9 +56,9 @@ int main(int argc, char *argv[])
 
                 /////////////////////
                 ////// data loading
-                gpxpy::GP_data training_input(train_path, n_train, n_reg);
-                gpxpy::GP_data training_output(out_path, n_train, n_reg);
-                gpxpy::GP_data test_input(test_path, n_test, n_reg);
+                gprat::GP_data training_input(train_path, n_train, n_reg);
+                gprat::GP_data training_output(out_path, n_train, n_reg);
+                gprat::GP_data test_input(test_path, n_test, n_reg);
 
                 /////////////////////
                 ///// GP

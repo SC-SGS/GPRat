@@ -25,7 +25,7 @@ struct Hyperparameters
 }  // namespace gprat_hyper
 
 // Compute the predictions
-hpx::shared_future<std::vector<double>>
+std::vector<double>
 predict_hpx(const std::vector<double> &training_input,
             const std::vector<double> &training_output,
             const std::vector<double> &test_data,
@@ -39,7 +39,7 @@ predict_hpx(const std::vector<double> &training_input,
             int n_regressors);
 
 // Compute the predictions and uncertainties
-hpx::shared_future<std::vector<std::vector<double>>>
+std::vector<std::vector<double>>
 predict_with_uncertainty_hpx(const std::vector<double> &training_input,
                              const std::vector<double> &training_output,
                              const std::vector<double> &test_input,
@@ -53,7 +53,7 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
                              int n_regressors);
 
 // Compute the predictions and full covariance matrix
-hpx::shared_future<std::vector<std::vector<double>>>
+std::vector<std::vector<double>>
 predict_with_full_cov_hpx(const std::vector<double> &training_input,
                           const std::vector<double> &training_output,
                           const std::vector<double> &test_data,
@@ -67,7 +67,7 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
                           int n_regressors);
 
 // Compute loss for given data and Gaussian process model
-hpx::shared_future<double>
+double
 compute_loss_hpx(const std::vector<double> &training_input,
                  const std::vector<double> &training_output,
                  int n_tiles,
@@ -76,7 +76,7 @@ compute_loss_hpx(const std::vector<double> &training_input,
                  const std::vector<double> &hyperparameters);
 
 // Perform optimization for a given number of iterations
-hpx::shared_future<std::vector<double>>
+std::vector<double>
 optimize_hpx(const std::vector<double> &training_input,
              const std::vector<double> &training_output,
              int n_tiles,
@@ -89,7 +89,7 @@ optimize_hpx(const std::vector<double> &training_input,
              std::vector<bool> trainable_params);
 
 // Perform a single optimization step
-hpx::shared_future<double>
+double
 optimize_step_hpx(const std::vector<double> &training_input,
                   const std::vector<double> &training_output,
                   int n_tiles,
@@ -103,8 +103,7 @@ optimize_step_hpx(const std::vector<double> &training_input,
                   int iter);
 
 // Compute Cholesky decomposition
-hpx::shared_future<std::vector<std::vector<double>>>
-// std::vector<std::vector<double>>
+std::vector<std::vector<double>>
 cholesky_hpx(const std::vector<double> &training_input,
              int n_tiles,
              int n_tile_size,

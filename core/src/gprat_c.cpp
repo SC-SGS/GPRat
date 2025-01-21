@@ -2,7 +2,6 @@
 
 #include "utils_c.hpp"
 #include <cstdio>
-#include <hpx/runtime_local/run_as_hpx_thread.hpp>
 #include <iomanip>
 #include <sstream>
 
@@ -106,15 +105,9 @@ std::vector<double> GP::predict(const std::vector<double> &test_data,
                                 int m_tiles,
                                 int m_tile_size)
 {
-    std::vector<double> result;
-    hpx::run_as_hpx_thread([this, &result, &test_data, m_tiles, m_tile_size]()
-                           {
-                               result =
-                                   predict_hpx(_training_input, _training_output, test_data, _n_tiles, _n_tile_size, m_tiles, m_tile_size, lengthscale, vertical_lengthscale, noise_variance,
-                                               n_regressors)
-                                       .get();  // Wait for and get the result from the future
-                           });
-    return result;
+    return hpx::async([this, &test_data, m_tiles, m_tile_size]()
+                      { return predict_hpx(_training_input, _training_output, test_data, _n_tiles, _n_tile_size, m_tiles, m_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors); })
+        .get();
 }
 
 /**
@@ -130,15 +123,10 @@ std::vector<double> GP::predict(const std::vector<double> &test_data,
 std::vector<std::vector<double>> GP::predict_with_uncertainty(
     const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
-    std::vector<std::vector<double>> result;
-    hpx::run_as_hpx_thread([this, &result, &test_input, m_tiles, m_tile_size]()
-                           {
-                               result = predict_with_uncertainty_hpx(
-                                            _training_input, _training_output, test_input, _n_tiles, _n_tile_size, m_tiles, m_tile_size, lengthscale, vertical_lengthscale, noise_variance,
-                                            n_regressors)
-                                            .get();  // Wait for and get the result from the future
-                           });
-    return result;
+    return hpx::async([this, &test_input, m_tiles, m_tile_size]()
+                      { return predict_with_uncertainty_hpx(
+                            _training_input, _training_output, test_input, _n_tiles, _n_tile_size, m_tiles, m_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors); })
+        .get();
 }
 
 /**
@@ -154,15 +142,10 @@ std::vector<std::vector<double>> GP::predict_with_uncertainty(
 std::vector<std::vector<double>> GP::predict_with_full_cov(
     const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
-    std::vector<std::vector<double>> result;
-    hpx::run_as_hpx_thread([this, &result, &test_input, m_tiles, m_tile_size]()
-                           {
-                               result = predict_with_full_cov_hpx(
-                                            _training_input, _training_output, test_input, _n_tiles, _n_tile_size, m_tiles, m_tile_size, lengthscale, vertical_lengthscale, noise_variance,
-                                            n_regressors)
-                                            .get();  // Wait for and get the result from the future
-                           });
-    return result;
+    return hpx::async([this, &test_input, m_tiles, m_tile_size]()
+                      { return predict_with_full_cov_hpx(
+                            _training_input, _training_output, test_input, _n_tiles, _n_tile_size, m_tiles, m_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors); })
+        .get();
 }
 
 /**
@@ -176,15 +159,9 @@ std::vector<std::vector<double>> GP::predict_with_full_cov(
 std::vector<double>
 GP::optimize(const gprat_hyper::Hyperparameters &hyperparams)
 {
-    std::vector<double> losses;
-    hpx::run_as_hpx_thread([this, &losses, &hyperparams]()
-                           {
-                               losses =
-                                   optimize_hpx(_training_input, _training_output, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors, hyperparams,
-                                                trainable_params)
-                                       .get();  // Wait for and get the result from the future
-                           });
-    return losses;
+    return hpx::async([this, &hyperparams]()
+                      { return optimize_hpx(_training_input, _training_output, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors, hyperparams, trainable_params); })
+        .get();
 }
 
 /**
@@ -199,15 +176,9 @@ GP::optimize(const gprat_hyper::Hyperparameters &hyperparams)
 double GP::optimize_step(gprat_hyper::Hyperparameters &hyperparams,
                          int iter)
 {
-    double loss;
-    hpx::run_as_hpx_thread([this, &loss, &hyperparams, iter]()
-                           {
-                               loss =
-                                   optimize_step_hpx(_training_input, _training_output, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors, hyperparams, trainable_params,
-                                                     iter)
-                                       .get();  // Wait for and get the result from the future
-                           });
-    return loss;
+    return hpx::async([this, &hyperparams, iter]()
+                      { return optimize_step_hpx(_training_input, _training_output, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors, hyperparams, trainable_params, iter); })
+        .get();
 }
 
 /**
@@ -220,14 +191,9 @@ double GP::calculate_loss()
     hyperparameters[1] = vertical_lengthscale;
     hyperparameters[2] = noise_variance;
 
-    double loss;
-    hpx::run_as_hpx_thread([this, &loss, &hyperparameters]()
-                           {
-                               loss = compute_loss_hpx(_training_input, _training_output, _n_tiles, _n_tile_size, n_regressors,
-                                                       hyperparameters)
-                                          .get();  // Wait for and get the result from the future
-                           });
-    return loss;
+    return hpx::async([this, &hyperparameters]()
+                      { return compute_loss_hpx(_training_input, _training_output, _n_tiles, _n_tile_size, n_regressors, hyperparameters); })
+        .get();
 }
 
 /**
@@ -235,20 +201,9 @@ double GP::calculate_loss()
  */
 std::vector<std::vector<double>> GP::cholesky()
 {
-    std::vector<std::vector<double>> result;
-    hpx::run_as_hpx_thread([this, &result]()
-                           {
-                               result = cholesky_hpx(_training_input, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance,
-                                                     n_regressors)
-                                            .get();  // Wait for and get the result from the future
-                           });
-    return result;
-
-    // return hpx::async([this]()
-    //                     {
-    //                         return cholesky_hpx(_training_input, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance,
-    //                                                  n_regressors);
-    //                     }).get();
+    return hpx::async([this]()
+                      { return cholesky_hpx(_training_input, _n_tiles, _n_tile_size, lengthscale, vertical_lengthscale, noise_variance, n_regressors); })
+        .get();
 }
 
 }  // namespace gprat

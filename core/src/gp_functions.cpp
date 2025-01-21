@@ -69,7 +69,7 @@ std::string Hyperparameters::repr() const
  * @param noise_variance noise variance hyperparameter
  * @param n_regressors number of regressors
  */
-hpx::shared_future<std::vector<double>>
+std::vector<double>
 predict_hpx(const std::vector<double> &training_input,
             const std::vector<double> &training_output,
             const std::vector<double> &test_input,
@@ -168,15 +168,11 @@ predict_hpx(const std::vector<double> &training_input,
     {
         pred.insert(pred.end(), prediction_tiles[i].get().begin(), prediction_tiles[i].get().end());
     }
-
-    // // Return computed data
-    // return hpx::async([pred]()
-    //                   { return pred; });
-    return hpx::make_ready_future(pred);
+    return pred;
 }
 
 // Compute the predictions and uncertainties
-hpx::shared_future<std::vector<std::vector<double>>>
+std::vector<std::vector<double>>
 predict_with_uncertainty_hpx(const std::vector<double> &training_input,
                              const std::vector<double> &training_output,
                              const std::vector<double> &test_input,
@@ -330,16 +326,14 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
     }
 
     // Return computed data
-    return hpx::async([pred_full, pred_var_full]()
-                      {
-        std::vector<std::vector<double>> result(2);
-        result[0] = pred_full;
-        result[1] = pred_var_full;
-        return result; });
+    std::vector<std::vector<double>> result(2);
+    result[0] = pred_full;
+    result[1] = pred_var_full;
+    return result;
 }
 
 // Compute the predictions and full covariance matrix
-hpx::shared_future<std::vector<std::vector<double>>>
+std::vector<std::vector<double>>
 predict_with_full_cov_hpx(const std::vector<double> &training_input,
                           const std::vector<double> &training_output,
                           const std::vector<double> &test_input,
@@ -499,16 +493,14 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
     }
 
     // Return computed data
-    return hpx::async([pred, pred_var]()
-                      {
-        std::vector<std::vector<double>> result(2);
-        result[0] = pred;
-        result[1] = pred_var;
-        return result; });
+    std::vector<std::vector<double>> result(2);
+    result[0] = pred;
+    result[1] = pred_var;
+    return result;
 }
 
 // Compute loss for given data and Gaussian process model
-hpx::shared_future<double>
+double
 compute_loss_hpx(const std::vector<double> &training_input,
                  const std::vector<double> &training_output,
                  int n_tiles,
@@ -565,11 +557,11 @@ compute_loss_hpx(const std::vector<double> &training_input,
     // Compute loss
     compute_loss_tiled(K_tiles, alpha_tiles, y_tiles, loss_value, n_tile_size, static_cast<std::size_t>(n_tiles));
     // Return loss
-    return loss_value;
+    return loss_value.get();
 }
 
 // Perform optimization for a given number of iterations
-hpx::shared_future<std::vector<double>>
+std::vector<double>
 optimize_hpx(const std::vector<double> &training_input,
              const std::vector<double> &training_output,
              int n_tiles,
@@ -799,12 +791,11 @@ optimize_hpx(const std::vector<double> &training_input,
     vertical_lengthscale = hyperparameters[1];
     noise_variance = hyperparameters[2];
     // Return losses
-    return hpx::async([losses]()
-                      { return losses; });
+    return losses;
 }
 
 // Perform a single optimization step
-hpx::shared_future<double>
+double
 optimize_step_hpx(const std::vector<double> &training_input,
                   const std::vector<double> &training_output,
                   int n_tiles,
@@ -994,15 +985,10 @@ optimize_step_hpx(const std::vector<double> &training_input,
         hyperparams.V_T[i] = v_T[i].get();
     }
 
-    // Return loss value
-    // double loss = loss_value.get();
-    // return hpx::async([loss]()
-    //                   { return loss; });
-    return loss_value;
+    return loss_value.get();
 }
 
-hpx::shared_future<std::vector<std::vector<double>>>
-// std::vector<std::vector<double>>
+std::vector<std::vector<double>>
 cholesky_hpx(const std::vector<double> &training_input,
              int n_tiles,
              int n_tile_size,
@@ -1055,8 +1041,5 @@ cholesky_hpx(const std::vector<double> &training_input,
             result[i * static_cast<std::size_t>(n_tiles) + j] = K_tiles[i * static_cast<std::size_t>(n_tiles) + j].get();
         }
     }
-    // return result;
-    return hpx::make_ready_future(result);
-    // return hpx::async([result]()
-    //                   { return result; });
+    return result;
 }

@@ -235,7 +235,7 @@ double compute_loss(const std::vector<double> &K_diag_tile,
 {
     double l = 0.0;
     l += dot(y_tile, alpha_tile, static_cast<int>(N));
-    for (std::size_t i = 0; i < N; i++) 
+    for (std::size_t i = 0; i < N; i++)
     {
         // Add the squared difference to the error
         l += log(K_diag_tile[i * N + i] * K_diag_tile[i * N + i]);

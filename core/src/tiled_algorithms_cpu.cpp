@@ -117,7 +117,7 @@ void backward_solve_tiled(
          k_--)  // int instead of std::size_t for last comparison
     {
         std::size_t k = static_cast<std::size_t>(k_);
-       // TRSM: Solve L^T * x = a
+        // TRSM: Solve L^T * x = a
         ft_rhs[k] =
             hpx::dataflow(hpx::annotated_function(&trsv,
                                                   "triangular_solve_tiled"),
@@ -125,8 +125,8 @@ void backward_solve_tiled(
                           ft_rhs[k],
                           N,
                           Blas_trans);
-        for (int m = k_ - 1; m >= 0;
-             m--)  // int instead of std::size_t for last comparison
+        for (int m_ = k_ - 1; m_ >= 0;
+             m_--)  // int instead of std::size_t for last comparison
         {
             std::size_t m = static_cast<std::size_t>(m_);
             // GEMV:b = b - A^T * a
@@ -210,9 +210,10 @@ void backward_solve_tiled_matrix(
                 M,
                 Blas_trans,
                 Blas_left);
-            for (int m = k_ - 1; m >= 0;
-                 m--)  // int instead of std::size_t for last comparison
+            for (int m_ = k_ - 1; m_ >= 0;
+                 m_--)  // int instead of std::size_t for last comparison
             {
+                std::size_t m = static_cast<std::size_t>(m_);
                 // GEMM: C = C - A^T * B
                 ft_rhs[m * m_tiles + c] = hpx::dataflow(
                     hpx::annotated_function(&gemm,

@@ -7,7 +7,7 @@
 // BLAS level 3 operations -------------------------------------- {{{
 
 hpx::shared_future<std::vector<float>> potrf(hpx::shared_future<std::vector<float>> f_A,
-                                             const std::size_t N)
+                                             const int N)
 {
     auto A = f_A.get();
     // POTRF: in-place Cholesky decomposition of A
@@ -19,8 +19,8 @@ hpx::shared_future<std::vector<float>> potrf(hpx::shared_future<std::vector<floa
 
 hpx::shared_future<std::vector<float>> trsm(hpx::shared_future<std::vector<float>> f_L,
                                             hpx::shared_future<std::vector<float>> f_A,
-                                            const std::size_t N,
-                                            const std::size_t M,
+                                            const int N,
+                                            const int M,
                                             const BLAS_TRANSPOSE transpose_L,
                                             const BLAS_SIDE side_L)
 
@@ -37,7 +37,7 @@ hpx::shared_future<std::vector<float>> trsm(hpx::shared_future<std::vector<float
 
 hpx::shared_future<std::vector<float>> syrk(hpx::shared_future<std::vector<float>> f_A,
                                             hpx::shared_future<std::vector<float>> f_B,
-                                            const std::size_t N)
+                                            const int N)
 {
     auto B = f_B.get();
     auto A = f_A.get();
@@ -53,9 +53,9 @@ hpx::shared_future<std::vector<float>> syrk(hpx::shared_future<std::vector<float
 hpx::shared_future<std::vector<float>> gemm(hpx::shared_future<std::vector<float>> f_A,
                                             hpx::shared_future<std::vector<float>> f_B,
                                             hpx::shared_future<std::vector<float>> f_C,
-                                            const std::size_t N,
-                                            const std::size_t M,
-                                            const std::size_t K,
+                                            const int N,
+                                            const int M,
+                                            const int K,
                                             const BLAS_TRANSPOSE transpose_A,
                                             const BLAS_TRANSPOSE transpose_B)
 {
@@ -77,7 +77,7 @@ hpx::shared_future<std::vector<float>> gemm(hpx::shared_future<std::vector<float
 
 hpx::shared_future<std::vector<float>> trsv(hpx::shared_future<std::vector<float>> f_L,
                                             hpx::shared_future<std::vector<float>> f_a,
-                                            const std::size_t N,
+                                            const int N,
                                             const BLAS_TRANSPOSE transpose_L)
 {
     auto L = f_L.get();
@@ -91,8 +91,8 @@ hpx::shared_future<std::vector<float>> trsv(hpx::shared_future<std::vector<float
 hpx::shared_future<std::vector<float>> gemv(hpx::shared_future<std::vector<float>> f_A,
                                             hpx::shared_future<std::vector<float>> f_a,
                                             hpx::shared_future<std::vector<float>> f_b,
-                                            const std::size_t N,
-                                            const std::size_t M,
+                                            const int N,
+                                            const int M,
                                             const BLAS_ALPHA alpha,
                                             const BLAS_TRANSPOSE transpose_A)
 {
@@ -111,7 +111,7 @@ hpx::shared_future<std::vector<float>> gemv(hpx::shared_future<std::vector<float
 hpx::shared_future<std::vector<float>> ger(hpx::shared_future<std::vector<float>> f_A,
                                            hpx::shared_future<std::vector<float>> f_x,
                                            hpx::shared_future<std::vector<float>> f_y,
-                                           const std::size_t N)
+                                           const int N)
 {
     auto A = f_A.get();
     auto x = f_x.get();
@@ -126,13 +126,13 @@ hpx::shared_future<std::vector<float>> ger(hpx::shared_future<std::vector<float>
 
 hpx::shared_future<std::vector<float>> dot_diag_syrk(hpx::shared_future<std::vector<float>> f_A,
                                                      hpx::shared_future<std::vector<float>> f_r,
-                                                     const std::size_t N,
-                                                     const std::size_t M)
+                                                     const int N,
+                                                     const int M)
 {
     auto A = f_A.get();
     auto r = f_r.get();
     // r = r + diag(A^T * A)
-    for (int j = 0; j < M; ++j)
+    for (std::size_t j = 0; j < static_cast<std::size_t>(M); ++j)
     {
         // Extract the j-th column and compute the dot product with itself
         r[j] += cblas_sdot(N, &A[j], M, &A[j], M);
@@ -143,16 +143,16 @@ hpx::shared_future<std::vector<float>> dot_diag_syrk(hpx::shared_future<std::vec
 hpx::shared_future<std::vector<float>> dot_diag_gemm(hpx::shared_future<std::vector<float>> f_A,
                                                      hpx::shared_future<std::vector<float>> f_B,
                                                      hpx::shared_future<std::vector<float>> f_r,
-                                                     const std::size_t N,
-                                                     const std::size_t M)
+                                                     const int N,
+                                                     const int M)
 {
     auto A = f_A.get();
     auto B = f_B.get();
     auto r = f_r.get();
     // r = r + diag(A * B)
-    for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i)
     {
-        r[i] += cblas_sdot(M, &A[i * M], 1, &B[i], N);
+        r[i] += cblas_sdot(M, &A[i * static_cast<std::size_t>(M)], 1, &B[i], N);
     }
     return hpx::make_ready_future(r);
 }
@@ -163,7 +163,7 @@ hpx::shared_future<std::vector<float>> dot_diag_gemm(hpx::shared_future<std::vec
 
 float dot(std::vector<float> a,
           std::vector<float> b,
-          const std::size_t N)
+          const int N)
 {
     // DOT: a * b
     return cblas_sdot(N, a.data(), 1, b.data(), 1);

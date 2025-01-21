@@ -293,7 +293,7 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
             m_tile_size);
     }
     // Assemble placeholder for uncertainty
-    prediction_uncertainty_tiles.resize(m_tiles);
+    prediction_uncertainty_tiles.resize(static_cast<std::size_t>(m_tiles));
 
     //////////////////////////////////////////////////////////////////////////////
     //// Compute Cholesky decomposition

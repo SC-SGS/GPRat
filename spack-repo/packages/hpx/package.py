@@ -243,7 +243,7 @@ class Hpx(CMakePackage, CudaPackage, ROCmPackage):
             self.define_from_variant("HPX_WITH_STATIC_LINKING", "static"),
             self.define("HPX_WITH_TESTS", self.run_tests),
             self.define("HPX_WITH_NETWORKING", "networking=none" not in spec),
-            self.define("HPX_WITH_DISTRIBUTED_RUNTIME", False),
+            self.define("HPX_WITH_DISTRIBUTED_RUNTIME", "networking=none" not in spec),
             self.define("HPX_WITH_PARCELPORT_TCP", spec.satisfies("networking=tcp")),
             self.define("HPX_WITH_PARCELPORT_MPI", spec.satisfies("networking=mpi")),
             self.define(
@@ -279,10 +279,11 @@ class Hpx(CMakePackage, CudaPackage, ROCmPackage):
 
         if spec.satisfies("instrumentation=apex"):
             args += [
+                self.define("HPX_WITH_DISTRIBUTED_RUNTIME", True),
                 self.define("HPX_WITH_FETCH_APEX", True),
                 self.define("APEX_WITH_OTF2", True),
                 self.define("OTF2_ROOT", spec["otf2"].prefix),
-            ]
+             ]
 
             # it seems like there was a bug in the default version of APEX in 1.5.x
             if spec.satisfies("@1.5"):

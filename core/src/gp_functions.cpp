@@ -102,7 +102,7 @@ predict_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j <= i; j++)
         {
             K_tiles[i * static_cast<std::size_t>(n_tiles) + j] =
-                hpx::async(hpx::annotated_function(&gen_tile_covariance,
+                hpx::async(hpx::annotated_function(gen_tile_covariance,
                                                    "assemble_tiled_K"),
                            i,
                            j,
@@ -117,7 +117,7 @@ predict_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         alpha_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_output, "assemble_tiled_alpha"),
+            hpx::annotated_function(gen_tile_output, "assemble_tiled_alpha"),
             i,
             n_tile_size,
             training_output);
@@ -129,7 +129,7 @@ predict_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
         {
             cross_covariance_tiles[i * static_cast<std::size_t>(n_tiles) + j] =
-                hpx::async(hpx::annotated_function(&gen_tile_cross_covariance,
+                hpx::async(hpx::annotated_function(gen_tile_cross_covariance,
                                                    "assemble_pred"),
                            i,
                            j,
@@ -146,7 +146,7 @@ predict_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(m_tiles); i++)
     {
         prediction_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_zeros, "assemble_tiled"),
+            hpx::annotated_function(gen_tile_zeros, "assemble_tiled"),
             m_tile_size);
     }
 
@@ -213,7 +213,7 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j <= i; j++)
         {
             K_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_covariance, "assemble_tiled"),
+                hpx::annotated_function(gen_tile_covariance, "assemble_tiled"),
                 i,
                 j,
                 n_tile_size,
@@ -227,14 +227,14 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         alpha_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
+            hpx::annotated_function(gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
     }
     // Assemble prior covariance matrix vector
     prior_K_tiles.resize(static_cast<std::size_t>(m_tiles));
     for (std::size_t i = 0; i < static_cast<std::size_t>(m_tiles); i++)
     {
         prior_K_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_prior_covariance,
+            hpx::annotated_function(gen_tile_prior_covariance,
                                     "assemble_tiled"),
             i,
             i,
@@ -252,7 +252,7 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
         {
             cross_covariance_tiles[i * static_cast<std::size_t>(n_tiles) + j] =
-                hpx::async(hpx::annotated_function(&gen_tile_cross_covariance,
+                hpx::async(hpx::annotated_function(gen_tile_cross_covariance,
                                                    "assemble_pred"),
                            i,
                            j,
@@ -276,7 +276,7 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(m_tiles); i++)
     {
         prior_inter_tiles[i] =
-            hpx::async(hpx::annotated_function(&gen_tile_zeros_diag,
+            hpx::async(hpx::annotated_function(gen_tile_zeros_diag,
                                                "assemble_prior_inter"),
                        m_tile_size);
     }
@@ -285,7 +285,7 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(m_tiles); i++)
     {
         prediction_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_zeros, "assemble_tiled"),
+            hpx::annotated_function(gen_tile_zeros, "assemble_tiled"),
             m_tile_size);
     }
     // Assemble placeholder for uncertainty
@@ -374,7 +374,7 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j <= i; j++)
         {
             K_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_covariance, "assemble_tiled"),
+                hpx::annotated_function(gen_tile_covariance, "assemble_tiled"),
                 i,
                 j,
                 n_tile_size,
@@ -388,7 +388,7 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         alpha_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
+            hpx::annotated_function(gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
     }
     // Assemble prior covariance matrix vector
     prior_K_tiles.resize(static_cast<std::size_t>(m_tiles * m_tiles));
@@ -397,7 +397,7 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j <= i; j++)
         {
             prior_K_tiles[i * static_cast<std::size_t>(m_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_full_prior_covariance,
+                hpx::annotated_function(gen_tile_full_prior_covariance,
                                         "assemble_prior_tiled"),
                 i,
                 j,
@@ -426,7 +426,7 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
         {
             cross_covariance_tiles[i * static_cast<std::size_t>(n_tiles) + j] =
-                hpx::async(hpx::annotated_function(&gen_tile_cross_covariance,
+                hpx::async(hpx::annotated_function(gen_tile_cross_covariance,
                                                    "assemble_pred"),
                            i,
                            j,
@@ -450,7 +450,7 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(m_tiles); i++)
     {
         prediction_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_zeros, "assemble_tiled"),
+            hpx::annotated_function(gen_tile_zeros, "assemble_tiled"),
             m_tile_size);
     }
     // Assemble placeholder for uncertainty
@@ -458,7 +458,7 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(m_tiles); i++)
     {
         prediction_uncertainty_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_zeros, "assemble_tiled"),
+            hpx::annotated_function(gen_tile_zeros, "assemble_tiled"),
             m_tile_size);
     }
     //////////////////////////////////////////////////////////////////////////////
@@ -523,7 +523,7 @@ compute_loss_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j <= i; j++)
         {
             K_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_covariance, "assemble_tiled"),
+                hpx::annotated_function(gen_tile_covariance, "assemble_tiled"),
                 i,
                 j,
                 n_tile_size,
@@ -538,14 +538,14 @@ compute_loss_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         alpha_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
+            hpx::annotated_function(gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
     }
     // Assemble y
     y_tiles.resize(static_cast<std::size_t>(n_tiles));
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         y_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
+            hpx::annotated_function(gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -606,7 +606,7 @@ optimize_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(hyperparams.opt_iter); i++)
     {
         beta1_T[i] =
-            hpx::async(hpx::annotated_function(&gen_beta_T, "assemble_tiled"),
+            hpx::async(hpx::annotated_function(gen_beta_T, "assemble_tiled"),
                        i + 1,
                        hyperparameters,
                        4);
@@ -615,7 +615,7 @@ optimize_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(hyperparams.opt_iter); i++)
     {
         beta2_T[i] =
-            hpx::async(hpx::annotated_function(&gen_beta_T, "assemble_tiled"),
+            hpx::async(hpx::annotated_function(gen_beta_T, "assemble_tiled"),
                        i + 1,
                        hyperparameters,
                        5);
@@ -626,16 +626,16 @@ optimize_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < 3; i++)
     {
         m_T[i] =
-            hpx::async(hpx::annotated_function(&gen_zero, "assemble_tiled"));
+            hpx::async(hpx::annotated_function(gen_zero, "assemble_tiled"));
         v_T[i] =
-            hpx::async(hpx::annotated_function(&gen_zero, "assemble_tiled"));
+            hpx::async(hpx::annotated_function(gen_zero, "assemble_tiled"));
     }
     // Assemble y
     y_tiles.resize(static_cast<std::size_t>(n_tiles));
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         y_tiles[i] =
-            hpx::async(hpx::annotated_function(&gen_tile_output, "assemble_y"),
+            hpx::async(hpx::annotated_function(gen_tile_output, "assemble_y"),
                        i,
                        n_tile_size,
                        training_output);
@@ -656,7 +656,7 @@ optimize_hpx(const std::vector<double> &training_input,
             for (std::size_t j = 0; j <= i; j++)
             {
                 hpx::shared_future<std::vector<double>> cov_dists =
-                    hpx::async(hpx::annotated_function(&compute_cov_dist_vec,
+                    hpx::async(hpx::annotated_function(compute_cov_dist_vec,
                                                        "assemble_cov_dist"),
                                i,
                                j,
@@ -714,7 +714,7 @@ optimize_hpx(const std::vector<double> &training_input,
             for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
             {
                 grad_K_tiles[i * static_cast<std::size_t>(n_tiles) + j] =
-                    hpx::async(hpx::annotated_function(&gen_tile_identity,
+                    hpx::async(hpx::annotated_function(gen_tile_identity,
                                                        "assemble_tiled"),
                                i,
                                j,
@@ -726,7 +726,7 @@ optimize_hpx(const std::vector<double> &training_input,
         for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
         {
             alpha_tiles[i] = hpx::async(
-                hpx::annotated_function(&gen_tile_zeros, "assemble_tiled"),
+                hpx::annotated_function(gen_tile_zeros, "assemble_tiled"),
                 n_tile_size);
         }
         // Assemble placeholder matrix for K^-1
@@ -736,7 +736,7 @@ optimize_hpx(const std::vector<double> &training_input,
             for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
             {
                 grad_I_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                    hpx::annotated_function(&gen_tile_identity,
+                    hpx::annotated_function(gen_tile_identity,
                                             "assemble_identity_matrix"),
                     i,
                     j,
@@ -846,13 +846,13 @@ optimize_step_hpx(const std::vector<double> &training_input,
     // Assemble beta1_t and beta2_t
     beta1_T.resize(1);
     beta1_T[0] =
-        hpx::async(hpx::annotated_function(&gen_beta_T, "assemble_tiled"),
+        hpx::async(hpx::annotated_function(gen_beta_T, "assemble_tiled"),
                    iter + 1,
                    hyperparameters,
                    4);
     beta2_T.resize(1);
     beta2_T[0] =
-        hpx::async(hpx::annotated_function(&gen_beta_T, "assemble_tiled"),
+        hpx::async(hpx::annotated_function(gen_beta_T, "assemble_tiled"),
                    iter + 1,
                    hyperparameters,
                    5);
@@ -863,7 +863,7 @@ optimize_step_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j <= i; j++)
         {
             K_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_covariance, "assemble_tiled"),
+                hpx::annotated_function(gen_tile_covariance, "assemble_tiled"),
                 i,
                 j,
                 n_tile_size,
@@ -880,7 +880,7 @@ optimize_step_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
         {
             grad_v_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_grad_v, "assemble_tiled"), n_tile_size, hyperparameters, training_input);
+                hpx::annotated_function(gen_tile_grad_v, "assemble_tiled"), n_tile_size, hyperparameters, training_input);
         }
     }
     // Assemble derivative of covariance matrix vector w.r.t. to lengthscale
@@ -890,7 +890,7 @@ optimize_step_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
         {
             grad_l_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_grad_l, "assemble_tiled"), n_tile_size, hyperparameters, training_input);
+                hpx::annotated_function(gen_tile_grad_l, "assemble_tiled"), n_tile_size, hyperparameters, training_input);
         }
     }
     // Assemble matrix that will be multiplied with derivates
@@ -900,7 +900,7 @@ optimize_step_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
         {
             grad_K_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_identity, "assemble_tiled"),
+                hpx::annotated_function(gen_tile_identity, "assemble_tiled"),
                 i,
                 j,
                 n_tile_size);
@@ -911,14 +911,14 @@ optimize_step_hpx(const std::vector<double> &training_input,
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         alpha_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
+            hpx::annotated_function(gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
     }
     // Assemble y
     y_tiles.resize(static_cast<std::size_t>(n_tiles));
     for (std::size_t i = 0; i < static_cast<std::size_t>(n_tiles); i++)
     {
         y_tiles[i] = hpx::async(
-            hpx::annotated_function(&gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
+            hpx::annotated_function(gen_tile_output, "assemble_tiled"), i, n_tile_size, training_output);
     }
     // Assemble placeholder matrix for K^-1
     grad_I_tiles.resize(static_cast<std::size_t>(n_tiles * n_tiles));
@@ -927,7 +927,7 @@ optimize_step_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j < static_cast<std::size_t>(n_tiles); j++)
         {
             grad_I_tiles[i * static_cast<std::size_t>(n_tiles) + j] =
-                hpx::async(hpx::annotated_function(&gen_tile_identity,
+                hpx::async(hpx::annotated_function(gen_tile_identity,
                                                    "assemble_identity_matrix"),
                            i,
                            j,
@@ -1019,7 +1019,7 @@ cholesky_hpx(const std::vector<double> &training_input,
         for (std::size_t j = 0; j <= i; j++)
         {
             K_tiles[i * static_cast<std::size_t>(n_tiles) + j] = hpx::async(
-                hpx::annotated_function(&gen_tile_covariance, "assemble_tiled"),
+                hpx::annotated_function(gen_tile_covariance, "assemble_tiled"),
                 i,
                 j,
                 n_tile_size,

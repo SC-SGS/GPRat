@@ -161,7 +161,7 @@ predict_hpx(const std::vector<double> &training_input,
     //// Compute predictions
     prediction_tiled(cross_covariance_tiles, alpha_tiles, prediction_tiles, m_tile_size, n_tile_size, static_cast<std::size_t>(n_tiles), static_cast<std::size_t>(m_tiles));
 
-    //// Get predictions and uncertainty to return them
+    //// Get predictions to return them
     std::vector<double> pred;
     pred.reserve(test_input.size());  // preallocate memory
     for (std::size_t i = 0; i < static_cast<std::size_t>(m_tiles); i++)
@@ -327,8 +327,8 @@ predict_with_uncertainty_hpx(const std::vector<double> &training_input,
 
     // Return computed data
     std::vector<std::vector<double>> result(2);
-    result[0] = pred_full;
-    result[1] = pred_var_full;
+    result[0] = std::move(pred_full);
+    result[1] = std::move(pred_var_full);
     return result;
 }
 
@@ -494,8 +494,8 @@ predict_with_full_cov_hpx(const std::vector<double> &training_input,
 
     // Return computed data
     std::vector<std::vector<double>> result(2);
-    result[0] = pred;
-    result[1] = pred_var;
+    result[0] = std::move(pred);
+    result[1] = std::move(pred_var);
     return result;
 }
 

@@ -40,6 +40,6 @@ cmake --preset $PRESET \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
       -DGPRAT_ENABLE_FORMAT_TARGETS=OFF
-cmake --build --preset $PRESET
+cmake --build --preset $PRESET -- -j
 cmake --install build/$PRESET
 # ctest --preset $PRESET

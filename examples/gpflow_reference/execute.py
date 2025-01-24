@@ -6,6 +6,7 @@ import time
 import gpflow
 import numpy as np
 import tensorflow as tf
+import tensorflow.python.util._pywrap_util_port as tf_util
 
 from config import get_config
 from gpflow_logger import setup_logging
@@ -163,4 +164,6 @@ def execute():
 
 
 if __name__ == "__main__":
+    # check if Intel oneAPI MKL is enabled
+    print("","-" * 18, "\n", "MKL enabled:", tf_util.IsMklEnabled(), "\n", "-" * 18)
     execute()

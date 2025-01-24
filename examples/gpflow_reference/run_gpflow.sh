@@ -10,6 +10,12 @@ source gpflow_env/bin/activate
 # install gpflow if not already installed
 if ! python3 -c "import gpflow"; then
     pip3 install --no-cache-dir -r requirements.txt
+    git clone https://github.com/GPflow/GPflow.git
+    cd GPflow
+    git checkout v2.9.2
+    git apply ../gpflow_mkl.patch
+    pip install -e .
+    cd ..
 fi
 
 # run on CPU or GPU

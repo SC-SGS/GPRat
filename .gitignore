@@ -193,6 +193,7 @@ cython_debug/
 # Datafiles
 examples/*/output.csv
 examples/gprat_*/include/
+examples/gpflow_reference/GPflow
 /.vscode
 
 # Editor related files

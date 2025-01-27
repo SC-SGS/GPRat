@@ -14,8 +14,10 @@ option(GPRAT_BUILD_CORE "Build the core library" ON)
 cmake_dependent_option(GPRAT_BUILD_BINDINGS "Build the Python bindings" ON
                        "GPRAT_BUILD_CORE" OFF)
 cmake_dependent_option(
-  GPRAT_ENABLE_EXAMPLES "Build example applications as well?" ON
-  "GPRAT_BUILD_CORE" OFF)
+  GPRAT_ENABLE_EXAMPLES "Build example applications as well?"
+  ${PROJECT_IS_TOP_LEVEL} "GPRAT_BUILD_CORE" OFF)
+cmake_dependent_option(GPRAT_ENABLE_TESTS "Build unit and integration tests"
+                       ${PROJECT_IS_TOP_LEVEL} "GPRAT_BUILD_CORE" OFF)
 
 option(GPRAT_ENABLE_FORMAT_TARGETS "Enable clang-format / cmake-format targets"
        ${PROJECT_IS_TOP_LEVEL})
@@ -94,4 +96,9 @@ endif()
 
 if(GPRAT_ENABLE_EXAMPLES)
   add_subdirectory(examples/gprat_cpp)
+endif()
+
+if(GPRAT_ENABLE_TESTS)
+  enable_testing()
+  add_subdirectory(test)
 endif()

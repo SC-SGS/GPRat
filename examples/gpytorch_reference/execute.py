@@ -133,6 +133,13 @@ def execute():
 
     logger.info("Completed the program.")
 
+def is_mkl_enabled():
+    torch_config = torch.__config__.show()
+    index = torch_config.index("USE_MKL")
+    value = torch_config[index+8:index+10]
+    return True if value == 'ON' else False
 
 if __name__ == "__main__":
+    # check if Intel oneAPI MKL is enabled
+    print("","-" * 18, "\n", "MKL enabled:", is_mkl_enabled(), "\n", "-" * 18)
     execute()

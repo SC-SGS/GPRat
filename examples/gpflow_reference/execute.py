@@ -162,8 +162,10 @@ def execute():
 
     # logger.info("Completed the program.")
 
+def is_mkl_enabled():
+    return tf_util.IsMklEnabled()
 
 if __name__ == "__main__":
     # check if Intel oneAPI MKL is enabled
-    print("","-" * 18, "\n", "MKL enabled:", tf_util.IsMklEnabled(), "\n", "-" * 18)
+    print("","-" * 18, "\n", "MKL enabled:", is_mkl_enabled(), "\n", "-" * 18)
     execute()

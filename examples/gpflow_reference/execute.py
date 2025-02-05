@@ -140,27 +140,26 @@ def execute():
             header = "Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Init_time,Opt_time,Pred_Uncer_time,Predict_time,N_loop\n"
             output_file.write(header)
 
-        start = config["START"]
-        end = config["END"]
-        step = config["STEP"]
-        # tf.config.threading.set_inter_op_parallelism_threads(config["N_CORES"])
         if config["PRECISION"] == "float32":
             gpflow.config.set_default_float(np.float32)
         else:
             gpflow.config.set_default_float(np.float64)
 
-        for core in range(0, config["N_CORES"]):
-            tf.config.threading.set_intra_op_parallelism_threads(
-                config["N_CORES"]
-            )
-            # tf.config.threading.set_inter_op_parallelism_threads(config["N_CORES"])
-            for data in range(start, end + step, step):
+        # runs tests on exponentially increasing number of cores and
+        # data size, for multiple loops (each loop starts with *s)
+        tf.config.threading.set_intra_op_parallelism_threads(config["N_CORES"])
+        tf.config.threading.set_inter_op_parallelism_threads(config["N_CORES"])
+        cores = 2
+        while cores <= config["N_CORES"]:
+            data_size = config["START"]
+            while data_size <= config["END"]:
                 for l in range(config["LOOP"]):
-                    # logger.info("*" * 40)
-                    # logger.info(f"Train Size: {data}, Loop: {l}")
-                    gpflow_run(config, output_file, data, l, 2**core)
-
-    # logger.info("Completed the program.")
+                    logger.info("*" * 40)
+                    logger.info(f"Core: {cores}, Train Size: {data_size}, Loop: {l}")
+                    gpflow_run(config, output_file, data_size, l, cores)
+                data_size = data_size * config["STEP"]
+            cores = cores * 2
+    logger.info("Completed the program.")
 
 def is_mkl_enabled():
     return tf_util.IsMklEnabled()

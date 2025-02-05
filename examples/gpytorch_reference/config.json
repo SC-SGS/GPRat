@@ -1,15 +1,15 @@
 {
-    "train_in_file": "../../data/training/training_input.txt",
-    "train_out_file": "../../data/training/training_output.txt",
-    "test_in_file": "../../data/test/test_input.txt",
-    "test_out_file": "../../data/test/test_output.txt",
-    "START": 1024,
+    "train_in_file": "../../data/data_1024/training_input.txt",
+    "train_out_file": "../../data/data_1024/training_output.txt",
+    "test_in_file": "../../data/data_1024/test_input.txt",
+    "test_out_file": "../../data/data_1024/test_output.txt",
+    "START": 512,
     "END": 1024,
-    "STEP": 128,
+    "STEP": 2,
     "N_CORES": 4,
     "N_TEST": 1024,
-    "N_REG": 128,
-    "LOOP": 1,
+    "N_REG": 8,
+    "LOOP": 2,
     "PRECISION": "float64",
     "OPT_ITER": 1
 }

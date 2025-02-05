@@ -8,22 +8,22 @@ int main(int argc, char *argv[])
 {
     /////////////////////
     /////// configuration
-    std::size_t START = 1024;
+    std::size_t START = 512;
     std::size_t END = 1024;
-    std::size_t STEP = 128;
-    std::size_t LOOP = 1;
+    std::size_t STEP = 2;
+    std::size_t LOOP = 2;
     const std::size_t OPT_ITER = 1;
 
     int n_test = 1024;
-    const std::size_t N_CORES = 2;  // Set this to the number of threads
-    const std::size_t n_tiles = 32;
-    const std::size_t n_reg = 128;
+    const std::size_t N_CORES = 4;
+    const std::size_t n_tiles = 16;
+    const std::size_t n_reg = 8;
 
-    std::string train_path = "../../../data/training/training_input.txt";
-    std::string out_path = "../../../data/training/training_output.txt";
-    std::string test_path = "../../../data/test/test_input.txt";
+    std::string train_path = "../../../data/data_1024/training_input.txt";
+    std::string out_path = "../../../data/data_1024/training_output.txt";
+    std::string test_path = "../../../data/data_1024/test_input.txt";
 
-    for (std::size_t core = 2; core <= static_cast<std::size_t>(pow(2, N_CORES)); core = core * 2)
+    for (std::size_t core = 2; core <= N_CORES; core = core * 2)
     {
         // Create new argc and argv to include the --hpx:threads argument
         std::vector<std::string> args(argv, argv + argc);
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
         int new_argc = static_cast<int>(cstr_args.size());
         char **new_argv = cstr_args.data();
 
-        for (std::size_t start = START; start <= END; start = start + STEP)
+        for (std::size_t start = START; start <= END; start = start * STEP)
         {
             int n_train = static_cast<int>(start);
             for (std::size_t l = 0; l < LOOP; l++)

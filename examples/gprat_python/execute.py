@@ -24,7 +24,7 @@ def gprat_run(config, output_csv_obj, n_train, l, cores):
 
     ###### GP object ######
     init_t = time.time()
-    gp = gprat.GP(train_in.data, train_out.data, config["N_TILES"], n_tile_size, trainable=[True, True, True])
+    gp = gprat.GP(train_in.data, train_out.data, config["N_TILES"], n_tile_size, n_reg=config["N_REG"], trainable=[True, True, True])
     init_t = time.time() - init_t
 
     # Init hpx runtime but do not start it yet
@@ -106,21 +106,18 @@ def execute():
                   "Pred_Var_time", "Pred_Full_time", "Predict_time", "N_loop"]
         output_csv_obj.writerow(header)
 
-    # load data_sizes used for multiple iterations of training:
-    # start, start+step, start+2*step, ..., end
-    start = config["START"]
-    end = config["END"]
-    step = config["STEP"]
-
-    # runs tests on exponentially increasing number of cores, for linearly
-    # increasing data size, for multiple loops (each loop starts with *s)
-    for core in range(1, config["N_CORES"]):
-        for data_size in range(start, end+step, step):
+    # runs tests on exponentially increasing number of cores and
+    # data size, for multiple loops (each loop starts with *s)
+    cores = 2
+    while cores <= config["N_CORES"]:
+        data_size = config["START"]
+        while data_size <= config["END"]:
             for l in range(config["LOOP"]):
                 logger.info("*" * 40)
-                logger.info(f"Core: {2**core}, Train Size: {data_size}, Loop: {l}")
-                gprat_run(config, output_csv_obj, data_size, l, 2**core)
-
+                logger.info(f"Core: {cores}, Train Size: {data_size}, Loop: {l}")
+                gprat_run(config, output_csv_obj, data_size, l, cores)
+            data_size = data_size * config["STEP"]
+        cores = cores * 2
 
 if __name__ == "__main__":
     execute()

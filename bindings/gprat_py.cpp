@@ -89,7 +89,7 @@ void init_gprat(py::module &m)
              py::arg("lengthscale") = 1.0,
              py::arg("v_lengthscale") = 1.0,
              py::arg("noise_var") = 0.1,
-             py::arg("n_reg") = 100,
+             py::arg("n_reg") = 8,
              py::arg("trainable") = std::vector<bool>{ true, true, true },
              R"pbdoc(
 Create Gaussian Process including its data, hyperparameters.

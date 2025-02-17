@@ -128,7 +128,7 @@ double update_second_moment(double gradient, double v_T, double beta_2);
  * @brief Update hyperparameter using gradient decent.
  */
 double adam_step(const double unconstrained_hyperparam,
-                 const gprat_hyper::AdamParams adam_params,
+                 const gprat_hyper::AdamParams &adam_params,
                  double m_T,
                  double v_T,
                  std::size_t iter);

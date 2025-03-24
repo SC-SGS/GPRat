@@ -8,8 +8,7 @@ set -e  # Exit immediately if a command exits with a non-zero status.
 # Configurations
 ################################################################################
 # Load GCC compiler
-spack load gcc@14.2.0
-spack load cmake
+module load gcc/14.2.0
 
 # Activate spack environment
 spack env activate gprat_cpu_gcc

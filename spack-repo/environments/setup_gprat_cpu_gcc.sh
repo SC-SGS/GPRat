@@ -2,8 +2,8 @@
 # Script to setup CPU spack environment for GPRat using a recent gcc
 set -e
 # search for gcc compiler and install if necessary
+module load gcc/14.2.0
 spack compiler find
-spack install gcc@14.2.0
 # create environment and copy config file
 export ENV_NAME=gprat_cpu_gcc
 spack env create $ENV_NAME

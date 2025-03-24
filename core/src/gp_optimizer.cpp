@@ -230,19 +230,12 @@ double compute_dot(const std::vector<double> &vector_T, const std::vector<double
     return result + dot(vector_T, vector, static_cast<int>(vector.size()));
 }
 
-double compute_trace_noise(const std::vector<double> &tile, double trace, const double noise_variance, std::size_t N)
+double compute_trace_diag(const std::vector<double> &tile, double trace, std::size_t N)
 {
     double local_trace = 0.0;
     for (std::size_t i = 0; i < N; ++i)
     {
         local_trace += tile[i * N + i];
     }
-    return trace + local_trace * compute_sigmoid(to_unconstrained(noise_variance, true));
-}
-
-double compute_dot_noise(const std::vector<double> &vector, double result, const double noise_variance)
-{
-    return result
-           + dot(vector, vector, static_cast<int>(vector.size()))
-                 * compute_sigmoid(to_unconstrained(noise_variance, true));
+    return trace + local_trace;
 }

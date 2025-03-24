@@ -219,25 +219,10 @@ double compute_dot(const std::vector<double> &vector_T, const std::vector<double
  *
  * @param tile The matrix tile
  * @param trace The current global trace
- * @param noise_variance The current nois_variance
  * @param N The dimension of the tile
  *
  * @return The updated global trace
  */
-double
-compute_trace_noise(const std::vector<double> &tile, double trace, const double noise_variance, std::size_t N);
-
-
-/**
- * @brief Add the dot product of a vector to a global result.
- *
- * @param vector The vector
- * @param noise_variance The current nois_variance
- * @param result The current global result
- *
- * @return The updated global result
- */
-double compute_dot_noise(const std::vector<double> &vector, double result, const double noise_variance);
-
+double compute_trace_diag(const std::vector<double> &tile, double trace, std::size_t N);
 
 #endif  // end of GP_OPTIMIZER_H

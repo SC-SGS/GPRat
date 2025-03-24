@@ -1,0 +1,16 @@
+diff --git a/core/src/tiled_algorithms_cpu.cpp b/core/src/tiled_algorithms_cpu.cpp
+index 72863dc..af14e25 100644
+--- a/core/src/tiled_algorithms_cpu.cpp
++++ b/core/src/tiled_algorithms_cpu.cpp
+@@ -423,8 +423,8 @@ void update_hyperparameter_tiled(
+     double gradient =
+         factor
+         * hpx::dataflow(
+-            hpx::annotated_function(hpx::unwrapping(&compute_gradient), "update_hyperparam"), trace, dot, N, n_tiles)
+-            .get();
++              hpx::annotated_function(hpx::unwrapping(&compute_gradient), "update_hyperparam"), trace, dot, N, n_tiles)
++              .get();
+ 
+     ////////////////////////////////////
+     // PART 2: Update parameter
+Built target clang-format

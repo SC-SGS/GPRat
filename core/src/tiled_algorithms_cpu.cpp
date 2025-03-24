@@ -323,6 +323,7 @@ void update_hyperparameter_tiled(
     hpx::shared_future<double> trace = hpx::make_ready_future(0.0);
     hpx::shared_future<double> dot = hpx::make_ready_future(0.0);
     bool jitter = false;
+    double factor = 1.0;
     if (param_idx == 0 || param_idx == 1)  // 0: lengthscale; 1: vertical_lengthscale
     {
         Tiled_vector diag_tiles;   // Diagonal tiles
@@ -395,21 +396,22 @@ void update_hyperparameter_tiled(
         // Step 1: Compute the trace of inv(K) * noise_variance
         for (std::size_t j = 0; j < n_tiles; ++j)
         {
-            trace = hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&compute_trace_noise), "grad_left_tiled"),
+            trace = hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&compute_trace_diag), "grad_left_tiled"),
                                   ft_invK[j * n_tiles + j],
                                   trace,
-                                  sek_params.noise_variance,
                                   N);
         }
         ////////////////////////////////////
         // Step 2: Compute the alpha^T * alpha * noise_variance
         for (std::size_t j = 0; j < n_tiles; ++j)
         {
-            dot = hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&compute_dot_noise), "grad_right_tiled"),
+            dot = hpx::dataflow(hpx::annotated_function(hpx::unwrapping(&compute_dot), "grad_right_tiled"),
                                 ft_alpha[j],
-                                dot,
-                                sek_params.noise_variance);
+                                ft_alpha[j],
+                                dot);
         }
+
+        factor = compute_sigmoid(to_unconstrained(sek_params.noise_variance, true));
     }
     else
     {
@@ -419,9 +421,10 @@ void update_hyperparameter_tiled(
 
     // Compute gradient = trace + dot
     double gradient =
-        hpx::dataflow(
-            hpx::annotated_function(hpx::unwrapping(&compute_gradient), "update_hyperparam"), trace, dot, N, n_tiles)
-            .get();
+        factor
+        * hpx::dataflow(
+              hpx::annotated_function(hpx::unwrapping(&compute_gradient), "update_hyperparam"), trace, dot, N, n_tiles)
+              .get();
 
     ////////////////////////////////////
     // PART 2: Update parameter

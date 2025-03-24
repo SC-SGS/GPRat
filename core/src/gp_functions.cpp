@@ -933,29 +933,29 @@ double optimize_step_hpx(
      * - Training ouput y
      *
      * Algorithm:
-     *   1: Compute distance for entries of covariance matrix K
-     *   2: Compute lower triangular part of K with distance
-     *   3: Compute lower triangular gradients for delta(K)/delta(v), and delta(K)/delta(l) with distance
+     * 1: Compute distance for entries of covariance matrix K
+     * 2: Compute lower triangular part of K with distance
+     * 3: Compute lower triangular gradients for delta(K)/delta(v), and delta(K)/delta(l) with distance
      *
-     *   4: Compute Cholesky factor L of K
-     *   5: Compute K^-1:
-     *       - triangular solve L * {} = I
-     *       - triangular solve L^T * K^-1 = {}
-     *   6: Compute beta = K^-1 * y
+     * 4: Compute Cholesky factor L of K
+     * 5: Compute K^-1:
+     *     - triangular solve L * {} = I
+     *     - triangular solve L^T * K^-1 = {}
+     * 6: Compute beta = K^-1 * y
      *
-     *   7: Compute negative log likelihood loss
-     *       - Calculate 0.5 sum_i^N log(L_ii^2)
-     *       - Calculate 0.5 y^T * beta
-     *       - Add constant N / 2 * log (2 * pi)
+     * 7: Compute negative log likelihood loss
+     *     - Calculate 0.5 sum_i^N log(L_ii^2)
+     *     - Calculate 0.5 y^T * beta
+     *     - Add constant N / 2 * log (2 * pi)
      *
-     *   8: Compute delta(loss)/delta(param_i)
-     *       - Compute trace(K^-1 * delta(K)/delta(theta_i))
-     *       - Compute beta^T *  delta(K)/delta(theta_i) * beta
-     *   9: Update hyperparameters theta with Adam optimizer
-     *       - m_T = beta1 * m_T-1 + (1 - beta1) * g_T
-     *       - w_T = beta2 + w_T-1 + (1 - beta2) * g_T^2
-     *       - nu_T = nu * sqrt(1 - beta2_T) / (1 - beta1_T)
-     *       - theta_T = theta_T-1 - nu_T * m_T / (sqrt(w_T) + epsilon)
+     * 8: Compute delta(loss)/delta(param_i)
+     *     - Compute trace(K^-1 * delta(K)/delta(theta_i))
+     *     - Compute beta^T * delta(K)/delta(theta_i) * beta
+     * 9: Update hyperparameters theta with Adam optimizer
+     *     - m_T = beta1 * m_T-1 + (1 - beta1) * g_T
+     *     - w_T = beta2 + w_T-1 + (1 - beta2) * g_T^2
+     *     - nu_T = nu * sqrt(1 - beta2_T) / (1 - beta1_T)
+     *     - theta_T = theta_T-1 - nu_T * m_T / (sqrt(w_T) + epsilon)
      */
 
     // data holder for loss

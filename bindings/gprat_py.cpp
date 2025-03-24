@@ -39,8 +39,7 @@ void init_gprat(py::module &m)
              py::arg("beta2") = 0.999,
              py::arg("epsilon") = 1e-8,
              py::arg("opt_iter") = 0)
-        .def_readwrite("learning_rate",
-                       &gprat_hyper::AdamParams::learning_rate)
+        .def_readwrite("learning_rate", &gprat_hyper::AdamParams::learning_rate)
         .def_readwrite("beta1", &gprat_hyper::AdamParams::beta1)
         .def_readwrite("beta2", &gprat_hyper::AdamParams::beta2)
         .def_readwrite("epsilon", &gprat_hyper::AdamParams::epsilon)

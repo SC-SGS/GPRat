@@ -27,26 +27,56 @@ int compute_train_tiles(int n_samples, int n_tile_size);
  */
 int compute_train_tile_size(int n_samples, int n_tiles);
 
-// Compute number of test tiles and the size of a test tile
-std::pair<int, int> compute_test_tiles(int m_samples, int n_tiles, int n_tile_size);
+/**
+ * @brief Compute the number of test tiles and the size of a test tile.
+ *
+ * Uses n_tiles_size if n_test is divisible by n_tile_size. Otherwise uses
+ * n_tiles for calculation.
+ *
+ * @param n_test Number of test samples
+ * @param n_tiles Number of tiles
+ * @param n_tile_size Size of each tile
+ */
+std::pair<int, int> compute_test_tiles(int n_test, int n_tiles, int n_tile_size);
 
-// Load data from file
-std::vector<double> load_data(const std::string &file_path, int n_samples, int offset = 0);
+/**
+ * @brief Load data from file
+ *
+ * @param file_path Path to the file
+ * @param n_samples Number of samples to load
+ */
+std::vector<double> load_data(const std::string &file_path, int n_samples, int offset);
 
-// Print a vector
-void print_vector(const std::vector<double> &vec, int start = 0, int end = -1, const std::string &separator = " ");
+/**
+ * @brief Print a vector
+ *
+ * @param vec Vector to print
+ * @param start Start index
+ * @param end End index
+ * @param separator Separator between elements
+ */
+void print_vector(const std::vector<double> &vec, int start, int end, const std::string &separator);
 
-// Start HPX runtime
+/**
+ * @brief Start HPX runtime
+ */
 void start_hpx_runtime(int argc, char **argv);
 
-// Resume HPX runtime
+/**
+ * @brief Resume HPX runtime
+ */
 void resume_hpx_runtime();
 
-// Wait for all tasks to finish, and suspend the HPX runtime
+/**
+ * @brief Wait for all tasks to finish, and suspend the HPX runtime
+ */
 void suspend_hpx_runtime();
 
-// Stop HPX runtime
+/**
+ * @brief Stop HPX runtime
+ */
 void stop_hpx_runtime();
+
 }  // namespace utils
 
 #endif

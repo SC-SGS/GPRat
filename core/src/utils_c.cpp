@@ -5,13 +5,6 @@
 namespace utils
 {
 
-/**
- * @brief Compute the number of tiles for training data, given the number of
- * samples and the size of each tile.
- *
- * @param n_samples Number of samples
- * @param n_tile_size Size of each tile
- */
 int compute_train_tiles(int n_samples, int n_tile_size)
 {
     if (n_tile_size > 0)
@@ -25,13 +18,6 @@ int compute_train_tiles(int n_samples, int n_tile_size)
     }
 }
 
-/**
- * @brief Compute the number of tiles for training data, given the number of
- * samples and the size of each tile.
- *
- * @param n_samples Number of samples
- * @param n_tile_size Size of each tile
- */
 int compute_train_tile_size(int n_samples, int n_tiles)
 {
     if (n_tiles > 0)
@@ -45,16 +31,6 @@ int compute_train_tile_size(int n_samples, int n_tiles)
     }
 }
 
-/**
- * @brief Compute the number of test tiles and the size of a test tile.
- *
- * Uses n_tiles_size if n_test is divisible by n_tile_size. Otherwise uses
- * n_tiles for calculation.
- *
- * @param n_test Number of test samples
- * @param n_tiles Number of tiles
- * @param n_tile_size Size of each tile
- */
 std::pair<int, int> compute_test_tiles(int n_test, int n_tiles, int n_tile_size)
 {
     int m_tiles;
@@ -73,12 +49,6 @@ std::pair<int, int> compute_test_tiles(int n_test, int n_tiles, int n_tile_size)
     return { m_tiles, m_tile_size };
 }
 
-/**
- * @brief Load data from file
- *
- * @param file_path Path to the file
- * @param n_samples Number of samples to load
- */
 std::vector<double> load_data(const std::string &file_path, int n_samples, int offset)
 {
     std::vector<double> _data;
@@ -108,14 +78,6 @@ std::vector<double> load_data(const std::string &file_path, int n_samples, int o
     return _data;
 }
 
-/**
- * @brief Print a vector
- *
- * @param vec Vector to print
- * @param start Start index
- * @param end End index
- * @param separator Separator between elements
- */
 void print_vector(const std::vector<double> &vec, int start, int end, const std::string &separator)
 {
     // Convert negative indices to positive
@@ -156,19 +118,16 @@ void print_vector(const std::vector<double> &vec, int start, int end, const std:
     std::cout << std::endl;
 }
 
-// Start HPX runtime
 void start_hpx_runtime(int argc, char **argv) { hpx::start(nullptr, argc, argv); }
 
-// Resume HPX runtime
 void resume_hpx_runtime() { hpx::resume(); }
 
-// Wait for all tasks to finish, and suspend the HPX runtime
 void suspend_hpx_runtime() { hpx::suspend(); }
 
-// Stop HPX runtime
 void stop_hpx_runtime()
 {
     hpx::post([]() { hpx::finalize(); });
     hpx::stop();
 }
+
 }  // namespace utils

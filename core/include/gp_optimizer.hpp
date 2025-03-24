@@ -75,7 +75,8 @@ std::vector<double> gen_tile_distance(
     const gprat_hyper::SEKParams &sek_params,
     const std::vector<double> &input);
 
-/* @brief Generate a tile of the covariance matrix with given distances
+/**
+ * @brief Generate a tile of the covariance matrix with given distances
  *
  * @param row The row index of the tile in the tiled matrix
  * @param col The column index of the tile in the tiled matrix
@@ -92,7 +93,8 @@ std::vector<double> gen_tile_covariance_with_distance(
     const gprat_hyper::SEKParams &sek_params,
     const std::vector<double> &distance);
 
-/* @brief  Generate a derivative tile w.r.t. vertical_lengthscale v
+/**
+ * @brief  Generate a derivative tile w.r.t. vertical_lengthscale v
  *
  * @param N The dimension of the quadratic tile (N*N elements)
  * @param hyperparameters The kernel hyperparameters
@@ -103,7 +105,8 @@ std::vector<double> gen_tile_covariance_with_distance(
 std::vector<double>
 gen_tile_grad_v(std::size_t N, const gprat_hyper::SEKParams &sek_params, const std::vector<double> &distance);
 
-/* @brief  Generate a derivative tile w.r.t. lengthscale l
+/**
+ * @brief  Generate a derivative tile w.r.t. lengthscale l
  *
  * @param N The dimension of the quadratic tile (N*N elements)
  * @param hyperparameters The kernel hyperparameters
@@ -115,17 +118,37 @@ std::vector<double>
 gen_tile_grad_l(std::size_t N, const gprat_hyper::SEKParams &sek_params, const std::vector<double> &distance);
 
 /**
- * @brief Update biased first raw moment estimate.
+ * @brief Update biased first raw moment estimate: m_T+1 = beta_1 * m_T + (1 - beta_1) * g_T.
+ *
+ * @param gradient The value of the computed gradient
+ * @param m_T The previous first moment
+ * @param beta_1 The decay rate of the first moment
+ *
+ * @return The updated first moment
  */
 double update_first_moment(double gradient, double m_T, double beta_1);
 
 /**
- * @brief Update biased second raw moment estimate.
+ * @brief Update biased second raw moment estimate: v_T+1 = beta_2 + v_T + (1 - beta_2) * g_T^2
+ *
+ * @param gradient The value of the computed gradient
+ * @param v_T The previous second moment
+ * @param beta_2 The decay rate of the second moment
+ *
+ * @return The updated second moment
  */
 double update_second_moment(double gradient, double v_T, double beta_2);
 
 /**
- * @brief Update hyperparameter using gradient decent.
+ * @brief Update hyperparameter using the Adam update.
+ *
+ * @param The hyperparameter to update
+ * @param The Adam optimization parameter
+ * @param m_T The first moment
+ * @param v_T The second moment
+ * @param iter The current iteration
+ *
+ * @return The updated hyperparameter
  */
 double adam_step(const double unconstrained_hyperparam,
                  const gprat_hyper::AdamParams &adam_params,
@@ -134,7 +157,7 @@ double adam_step(const double unconstrained_hyperparam,
                  std::size_t iter);
 
 /**
- * @brief Compute negative-log likelihood on one tile
+ * @brief Compute negative-log likelihood on one tile.
  *
  * @param K_diag_tile The Cholesky factor L (in a diagonal tile)
  * @param alpha_tile The tiled solution of K * alpha = y
@@ -148,7 +171,7 @@ double compute_loss(const std::vector<double> &K_diag_tile,
                     std::size_t N);
 
 /**
- * @brief Add up negative-log likelihood loss for all tiles
+ * @brief Add up negative-log likelihood loss for all tiles.
  *
  * @param losses A vector contianing the loss per tile
  * @param N The size of a tile
@@ -158,15 +181,63 @@ double compute_loss(const std::vector<double> &K_diag_tile,
  */
 double add_losses(const std::vector<double> &losses, std::size_t N, std::size_t n);
 
+/**
+ * @brief Compute the loss gradient.
+ *
+ * @param trace The first part of the gradient: trace(K^-1 * delta(K)/delta(theta_i))
+ * @param dot The second part of the gradient:  beta^T * delta(K)/delta(theta_i) * beta
+ * @param N The size of a tile
+ * @param n_tiles The number of tiles
+ *
+ * @return The added up loss plus the constant factor
+ */
 double compute_gradient(double trace, double dot, std::size_t N, std::size_t n_tiles);
 
+/**
+ * @brief Add the local trace of a tile to the global trace.
+ *
+ * @param diagonal The tile to compute the local trace
+ * @param trace The current global trace
+ *
+ * @return The updated global trace
+ */
 double compute_trace(const std::vector<double> &diagonal, double trace);
 
+/**
+ * @brief Add the dot product of a vector to a global result.
+ *
+ * @param vector_T The transposed vector
+ * @param vector The vector
+ * @param result The current global result
+ *
+ * @return The updated global result
+ */
 double compute_dot(const std::vector<double> &vector_T, const std::vector<double> &vector, double result);
 
+/**
+ * @brief Add the local trace of a matrix tile to the global trace
+ *
+ * @param tile The matrix tile
+ * @param trace The current global trace
+ * @param noise_variance The current nois_variance
+ * @param N The dimension of the tile
+ *
+ * @return The updated global trace
+ */
 double
-compute_trace_noise(const std::vector<double> &ft_invK, double trace, const double noise_variance, std::size_t N);
+compute_trace_noise(const std::vector<double> &tile, double trace, const double noise_variance, std::size_t N);
 
+
+/**
+ * @brief Add the dot product of a vector to a global result.
+ *
+ * @param vector The vector
+ * @param noise_variance The current nois_variance
+ * @param result The current global result
+ *
+ * @return The updated global result
+ */
 double compute_dot_noise(const std::vector<double> &vector, double result, const double noise_variance);
+
 
 #endif  // end of GP_OPTIMIZER_H

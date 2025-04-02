@@ -1,4 +1,5 @@
 # [GPRat: Gaussian Process Regression using Asynchronous Tasks]()
+[![Identifier](https://img.shields.io/badge/doi-10.18419%2Fdarus--4743-d45815.svg)](https://doi.org/10.18419/darus-4743)
 
 <img align="right" width="15%" src="/data/images/ratward_icon.jpg">
 GPRat is an open-source library for Gaussian Process Regression.

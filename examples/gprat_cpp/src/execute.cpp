@@ -7,27 +7,57 @@
 
 int main(int argc, char *argv[])
 {
+    namespace po = hpx::program_options;
+    po::options_description desc("Allowed options");
+    // clang-format off
+    desc.add_options()
+        ("help", "produce help message")
+        ("train_x_path", po::value<std::string>()->default_value("../../../data/data_1024/training_input.txt"), "training data (x)")
+        ("train_y_path", po::value<std::string>()->default_value("../../../data/data_1024/training_output.txt"), "training data (y)")
+        ("test_path", po::value<std::string>()->default_value("../../../data/data_1024/test_input.txt"), "test data")
+        ("tiles", po::value<std::size_t>()->default_value(16), "tiles per dimension")
+        ("regressors", po::value<std::size_t>()->default_value(8), "num regressors")
+        ("start-cores", po::value<std::size_t>()->default_value(2), "num CPUs to start with")
+        ("end-cores", po::value<std::size_t>()->default_value(4), "num CPUs to end with")
+        ("start", po::value<std::size_t>()->default_value(512), "Starting number of training samples")
+        ("end", po::value<std::size_t>()->default_value(1024), "End number of training samples")
+        ("step", po::value<std::size_t>()->default_value(2), "Increment of training samples")
+        ("loop", po::value<std::size_t>()->default_value(2), "Number of iterations to be performed for each number of training samples")
+        ("opt_iter", po::value<std::size_t>()->default_value(1), "Number of optimization iterations*/")
+    ;
+    // clang-format on
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help"))
+    {
+        std::cout << desc << "\n";
+        return 1;
+    }
+
     /////////////////////
     /////// configuration
-    std::size_t START = 512;
-    std::size_t END = 1024;
-    std::size_t STEP = 2;
-    std::size_t LOOP = 2;
-    const std::size_t OPT_ITER = 1;
+    std::size_t START = vm["start"].as<std::size_t>();
+    std::size_t END = vm["end"].as<std::size_t>();
+    std::size_t STEP = vm["step"].as<std::size_t>();
+    std::size_t LOOP = vm["loop"].as<std::size_t>();
+    const std::size_t OPT_ITER = vm["opt_iter"].as<std::size_t>();
 
-    const std::size_t n_test = 1024;
-    const std::size_t N_CORES = 4;
-    const std::size_t n_tiles = 16;
-    const std::size_t n_reg = 8;
+    const std::size_t n_test = START;
+    const std::size_t N_CORES = vm["end-cores"].as<std::size_t>();
+    const std::size_t n_tiles = vm["tiles"].as<std::size_t>();
+    const std::size_t n_reg = vm["regressors"].as<std::size_t>();
 
-    std::string train_path = "../../../data/data_1024/training_input.txt";
-    std::string out_path = "../../../data/data_1024/training_output.txt";
-    std::string test_path = "../../../data/data_1024/test_input.txt";
+    std::string train_path = vm["train_x_path"].as<std::string>();
+    std::string out_path = vm["train_y_path"].as<std::string>();
+    std::string test_path = vm["test_path"].as<std::string>();
 
     bool use_gpu =
         gprat::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
 
-    for (std::size_t core = 2; core <= N_CORES; core = core * 2)
+    for (std::size_t core = vm["start-cores"].as<std::size_t>(); core <= N_CORES; core = core * 2)
     {
         // Create new argc and argv to include the --hpx:threads argument
         std::vector<std::string> args(argv, argv + argc);

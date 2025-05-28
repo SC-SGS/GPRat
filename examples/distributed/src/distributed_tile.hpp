@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include <hpx/modules/actions_base.hpp>
 #include <hpx/modules/actions.hpp>
-#include <hpx/modules/components_base.hpp>
+#include <hpx/modules/actions_base.hpp>
 #include <hpx/modules/components.hpp>
+#include <hpx/modules/components_base.hpp>
 #include <hpx/modules/runtime_components.hpp>
 #include <hpx/modules/runtime_distributed.hpp>
 #include <hpx/serialization/serialize_buffer.hpp>
@@ -113,14 +113,19 @@ HPX_REGISTER_ACTION_DECLARATION(tile_server::set_data_action, set_data_action);
 ///////////////////////////////////////////////////////////////////////////////
 // This is a client side helper class allowing to hide some of the tedious
 // boilerplate while referencing a remote partition.
-struct tile_handle : hpx::components::client_base<tile_handle, tile_server>
+struct tile_handle_cache
 {
-    typedef hpx::components::client_base<tile_handle, tile_server> base_type;
+    hpx::optional<tile_data<double>> cached_data;
+};
+
+struct tile_handle : hpx::components::client_base<tile_handle, tile_server, tile_handle_cache>
+{
+    using base_type = hpx::components::client_base<tile_handle, tile_server, tile_handle_cache>;
 
     tile_handle() = default;
 
     // Create new component on locality 'where' and initialize the held data
-    tile_handle(hpx::id_type where, const tile_data<double> &data) :
+    tile_handle(const hpx::id_type &where, const tile_data<double> &data) :
         base_type(hpx::new_<tile_server>(where, data))
     { }
 
@@ -144,12 +149,27 @@ struct tile_handle : hpx::components::client_base<tile_handle, tile_server>
     { }
 
     ///////////////////////////////////////////////////////////////////////////
-    // Invoke the (remote) member function which gives us access to the data.
-    // This is a pure helper function hiding the async.
+    // tile's are immutable for now, meaning we can cache them on first use.
+    // TODO: profile whether this strategy (new components on mutation) beats mutable tile state.
     [[nodiscard]] hpx::future<tile_data<double>> get_data() const
     {
+        if (const auto data_ptr = try_get_extra_data<extra_data_type>())
+        {
+            if (data_ptr->cached_data)
+            {
+                return hpx::make_ready_future(*data_ptr->cached_data);
+            }
+        }
+
         tile_server::get_data_action act;
-        return hpx::async(act, get_id());
+        return hpx::dataflow(
+            [self = const_cast<tile_handle &>(*this)](hpx::future<tile_data<double>> f) mutable
+            {
+                auto data = f.get();
+                self.get_extra_data<extra_data_type>().cached_data = data;
+                return std::move(data);
+            },
+            hpx::async(act, get_id()));
     }
 
     [[nodiscard]] hpx::future<void> set_data(const tile_data<double> &data)

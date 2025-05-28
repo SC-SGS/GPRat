@@ -180,8 +180,9 @@ cholesky_hpx(Scheduler &sched,
     {
         for (std::size_t col = 0; col <= row; col++)
         {
-            tiles[row * n_tiles + col] = dataflow<make_covariance_tile>(
-                sched.for_tile(row, col), row, col, n_tile_size, n_regressors, sek_params, training_input);
+            tiles[row * n_tiles + col] =
+                tile_handle(sched.for_tile(row, col).where,
+                            make_covariance_tile(row, col, n_tile_size, n_regressors, sek_params, training_input));
         }
     }
 
@@ -214,33 +215,44 @@ gprat_results load_test_data_results(const std::string &filename)
     throw std::runtime_error("Failed to load " + filename);
 }
 
-void check_data(const std::vector<std::vector<double>> &expected, const std::vector<tile_data<double>> &actual)
+void validate_two_dim_result(const std::vector<std::vector<double>> &expected,
+                             const std::vector<tile_data<double>> &actual)
 {
     if (expected.size() != actual.size())
     {
         throw std::runtime_error("expected.size() != actual.size()");
     }
-    if (expected[0].size() != actual[0].size())
-    {
-        throw std::runtime_error("expected[0].size() != actual[0].size()");
-    }
 
     constexpr double margin = 0.00001;
+    bool is_valid = true;
     for (std::size_t i = 0; i < expected.size(); i++)
     {
+        if (expected[i].size() != actual[i].size())
+        {
+            throw std::runtime_error("expected[i].size() != actual[i].size(): i = " + std::to_string(i));
+        }
+
         const std::span<const double> actual_data = actual[i];
         for (std::size_t j = 0; j < expected[i].size(); j++)
         {
             const auto &expected_value = expected[i][j];
             const auto &actual_value = actual_data[j];
 
+            // XXX: no std::abs(expected - actual) due to infinity
             const bool is_in_range =
                 (expected_value + margin >= actual_value) && (actual_value + margin >= expected_value);
             if (!is_in_range)
             {
-                std::cerr << "MISMATCH at " << i << " " << j << " " << expected_value << " !~= " << actual_value;
+                std::cerr << "MISMATCH at " << i << " " << j << " " << expected_value << " !~= " << actual_value
+                          << std::endl;
+                is_valid = false;
             }
         }
+    }
+
+    if (!is_valid)
+    {
+        throw std::runtime_error("Invalid results (see stderr for details)");
     }
 }
 
@@ -261,7 +273,15 @@ void run(hpx::program_options::variables_map &vm)
     const auto &train_path = vm["train_x_path"].as<std::string>();
     const auto &out_path = vm["train_y_path"].as<std::string>();
     const auto &test_path = vm["test_path"].as<std::string>();
-    //const auto test_results = load_test_data_results(vm["test_results_path"].as<std::string>());
+
+    std::optional<gprat_results> test_results;
+    // XXX: cannot use contains() because it's not exported by HPX program_options
+    // ReSharper disable once CppUseAssociativeContains
+    if (vm.find("test_results_path") != vm.end())
+    {
+        test_results = load_test_data_results(vm["test_results_path"].as<std::string>());
+        std::cerr << "We have comparison data!" << std::endl;
+    }
 
     tiled_cholesky_scheduler_distributed scheduler;
 
@@ -319,7 +339,10 @@ void run(hpx::program_options::variables_map &vm)
                     << cholesky_time.count() << "," << 0 << "," << 0 << "," << 0 << "," << 0 << "," << l << "\n";
             outfile.close();
 
-            //check_data(test_results.choleksy, cholesky);
+            if (test_results)
+            {
+                validate_two_dim_result(test_results->choleksy, cholesky);
+            }
         }
     }
     std::cerr << "DONE!" << std::endl;
@@ -327,6 +350,12 @@ void run(hpx::program_options::variables_map &vm)
 
 int hpx_main(hpx::program_options::variables_map &vm)
 {
+    std::cerr << "OS Threads: " << hpx::get_os_thread_count() << std::endl;
+    std::cerr << "All localities: " << hpx::get_num_localities().get() << std::endl;
+    std::cerr << "Root locality: " << hpx::find_root_locality() << std::endl;
+    std::cerr << "This locality: " << hpx::find_here() << std::endl;
+    std::cerr << "Remote localities: " << hpx::find_remote_localities().size() << std::endl;
+
     try
     {
         run(vm);
@@ -342,14 +371,14 @@ int main(int argc, char *argv[])
 {
     namespace po = hpx::program_options;
     po::options_description desc("Allowed options");
-#define BASE_DIR "../../../../"
+
     // clang-format off
     desc.add_options()
         ("help", "produce help message")
-        ("train_x_path", po::value<std::string>()->default_value(BASE_DIR "data/data_1024/training_input.txt"), "training data (x)")
-        ("train_y_path", po::value<std::string>()->default_value(BASE_DIR "data/data_1024/training_output.txt"), "training data (y)")
-        ("test_path", po::value<std::string>()->default_value(BASE_DIR "data/data_1024/test_input.txt"), "test data")
-        //("test_results_path", po::value<std::string>()->default_value(BASE_DIR "data/data_1024/output.json"), "test data results")
+        ("train_x_path", po::value<std::string>()->default_value("data/data_1024/training_input.txt"), "training data (x)")
+        ("train_y_path", po::value<std::string>()->default_value("data/data_1024/training_output.txt"), "training data (y)")
+        ("test_path", po::value<std::string>()->default_value("data/data_1024/test_input.txt"), "test data")
+        ("test_results_path", po::value<std::string>(), "test data results")
         ("tiles", po::value<std::size_t>()->default_value(16), "tiles per dimension")
         ("regressors", po::value<std::size_t>()->default_value(8), "num regressors")
         ("start", po::value<std::size_t>()->default_value(128), "Starting number of training samples")
@@ -358,8 +387,7 @@ int main(int argc, char *argv[])
         ("loop", po::value<std::size_t>()->default_value(1), "Number of iterations to be performed for each number of training samples")
         ("opt_iter", po::value<int>()->default_value(3), "Number of optimization iterations*/")
     ;
-// clang-format on
-#undef BASE_DIR
+    // clang-format on
 
     hpx::init_params init_args;
     init_args.desc_cmdline = desc;

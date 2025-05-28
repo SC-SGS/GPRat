@@ -327,7 +327,7 @@ void run(hpx::program_options::variables_map &vm)
             std::chrono::duration<double> total_time = end_total - start_total;
 
             // Save parameters and times to a .txt file with a header
-            std::ofstream outfile("output-distributed.csv", std::ios::app);  // Append mode
+            std::ofstream outfile(vm["timings_csv"].as<std::string>(), std::ios::app);
             if (outfile.tellp() == 0)
             {
                 // If file is empty, write the header
@@ -378,7 +378,8 @@ int main(int argc, char *argv[])
         ("train_x_path", po::value<std::string>()->default_value("data/data_1024/training_input.txt"), "training data (x)")
         ("train_y_path", po::value<std::string>()->default_value("data/data_1024/training_output.txt"), "training data (y)")
         ("test_path", po::value<std::string>()->default_value("data/data_1024/test_input.txt"), "test data")
-        ("test_results_path", po::value<std::string>(), "test data results")
+        ("test_results_path", po::value<std::string>(), "test data results to validate results with")
+        ("timings_csv", po::value<std::string>()->default_value("timings.csv"), "output timing reports")
         ("tiles", po::value<std::size_t>()->default_value(16), "tiles per dimension")
         ("regressors", po::value<std::size_t>()->default_value(8), "num regressors")
         ("start", po::value<std::size_t>()->default_value(128), "Starting number of training samples")

@@ -3,21 +3,6 @@
 namespace hpx::util
 {
 
-// This is explicitly instantiated to ensure that the id is stable
-// across shared libraries.
-template <>
-extra_data_id_type extra_data_helper<tile_handle_cache>::id() noexcept
-{
-    static std::uint8_t id = 0;
-    return &id;
-}
-
-template <>
-void extra_data_helper<tile_handle_cache>::reset(tile_handle_cache *data) noexcept
-{
-    data->cached_data.reset();
-}
-
 }  // namespace hpx::util
 
 // The macros below are necessary to generate the code required for exposing

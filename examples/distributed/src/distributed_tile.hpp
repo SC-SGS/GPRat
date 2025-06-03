@@ -2,6 +2,7 @@
 
 #include <hpx/modules/actions.hpp>
 #include <hpx/modules/actions_base.hpp>
+#include <hpx/modules/cache.hpp>
 #include <hpx/modules/components.hpp>
 #include <hpx/modules/components_base.hpp>
 #include <hpx/modules/runtime_components.hpp>
@@ -113,14 +114,41 @@ HPX_REGISTER_ACTION_DECLARATION(tile_server::set_data_action, set_data_action);
 ///////////////////////////////////////////////////////////////////////////////
 // This is a client side helper class allowing to hide some of the tedious
 // boilerplate while referencing a remote partition.
-struct tile_handle_cache
+
+class tile_cache
 {
-    hpx::optional<tile_data<double>> cached_data;
+  public:
+    tile_cache() :
+        cache_(16)
+    { }
+
+    bool try_get(const hpx::naming::gid_type &key, tile_data<double> &cached_data)
+    {
+        std::lock_guard g(mutex_);
+        hpx::naming::gid_type unused;
+        return cache_.get_entry(key, unused, cached_data);
+    }
+
+    void insert(const hpx::naming::gid_type &key, const tile_data<double> &data)
+    {
+        std::lock_guard g(mutex_);
+        cache_.insert(key, data);
+    }
+
+  private:
+    hpx::mutex mutex_;
+    hpx::util::cache::lru_cache<hpx::naming::gid_type, tile_data<double>> cache_;
 };
 
-struct tile_handle : hpx::components::client_base<tile_handle, tile_server, tile_handle_cache>
+inline tile_cache &get_tile_cache()
 {
-    using base_type = hpx::components::client_base<tile_handle, tile_server, tile_handle_cache>;
+    static tile_cache cache;
+    return cache;
+}
+
+struct tile_handle : hpx::components::client_base<tile_handle, tile_server>
+{
+    using base_type = hpx::components::client_base<tile_handle, tile_server>;
 
     tile_handle() = default;
 
@@ -153,20 +181,23 @@ struct tile_handle : hpx::components::client_base<tile_handle, tile_server, tile
     // TODO: profile whether this strategy (new components on mutation) beats mutable tile state.
     [[nodiscard]] hpx::future<tile_data<double>> get_data() const
     {
-        if (const auto data_ptr = try_get_extra_data<extra_data_type>())
+        hpx::naming::gid_type current_gid = get().get_gid();
         {
-            if (data_ptr->cached_data)
+            auto &cache = get_tile_cache();
+            tile_data<double> cached_data;
+            if (cache.try_get(current_gid, cached_data))
             {
-                return hpx::make_ready_future(*data_ptr->cached_data);
+                return hpx::make_ready_future(cached_data);
             }
         }
 
         tile_server::get_data_action act;
         return hpx::dataflow(
-            [self = const_cast<tile_handle &>(*this)](hpx::future<tile_data<double>> f) mutable
+            [self = *this, current_gid](hpx::future<tile_data<double>> f) mutable
             {
+                (void) self;  // need this ref-counted object to stay alive!
                 auto data = f.get();
-                self.get_extra_data<extra_data_type>().cached_data = data;
+                get_tile_cache().insert(current_gid, data);
                 return std::move(data);
             },
             hpx::async(act, get_id()));

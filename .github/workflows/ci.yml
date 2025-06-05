@@ -99,4 +99,4 @@ jobs:
         spack -e . mirror set --push --oci-username ${{ github.actor }} --oci-password "${{ secrets.GITHUB_TOKEN }}" local-buildcache
         spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
       # The owner must match the namespace in /spack-repo/environments/ci_env_settings.yaml.tpl
-      if: ${{ !cancelled() && github.repository_owner == 'constracktor' }}
+      if: ${{ !cancelled() && github.repository_owner == 'SC-SGS' }}

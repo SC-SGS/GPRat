@@ -1,4 +1,5 @@
-#include "../core/include/utils_c.hpp"
+#include "target.hpp"
+#include "utils_c.hpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -14,6 +15,12 @@ namespace py = pybind11;
  */
 void start_hpx_wrapper(std::vector<std::string> args, std::size_t n_cores)
 {
+    // If args is empty, set the first argument to "gprat"
+    if (args.empty())
+    {
+        args.push_back("gprat");
+    }
+
     // Add the --hpx:threads argument to the args vector
     args.push_back("--hpx:threads=" + std::to_string(n_cores));
 
@@ -94,4 +101,9 @@ void init_utils(py::module &m)
     m.def("resume_hpx", &utils::resume_hpx_runtime);
     m.def("suspend_hpx", &utils::suspend_hpx_runtime);
     m.def("stop_hpx", &utils::stop_hpx_runtime);
+
+    m.def("compiled_with_cuda", &utils::compiled_with_cuda, "Check if the code was compiled with CUDA support");
+
+    m.def("print_available_gpus", &gprat::print_available_gpus, "Print available GPUs with their properties");
+    m.def("gpu_count", &gprat::gpu_count, "Return the number of available GPUs");
 }

@@ -2,24 +2,27 @@
 
 <img align="right" width="15%" src="/data/images/ratward_icon.jpg">
 GPRat is an open-source library for Gaussian Process Regression.
-Leveraging the asynchronous many-task runtime HPX, we aim to combine the performance of asynchronous parallelism in C++ with the ease of use of commonly available Python libraries.
-Thus, GPRat can be conveniently integrated into Python projects without binding overheads or used directly with pure C++ code.
+Leveraging the asynchronous many-task runtime HPX, we aim to combine the performance of asynchronous parallelism in C++
+with the ease of use of commonly available Python libraries.
+Thus, GPRat can be conveniently integrated into Python projects without binding overheads or used directly with pure C++
+code.
 
 ## Dependencies
 
 GPRat depends on [HPX](https://hpx-docs.stellar-group.org/latest/html/index.html) for asynchronous task-based parallelization. 
 Furthermore, for CPU-only BLAS computation GPRat requires [OpenBLAS](http://www.openmathlib.org/OpenBLAS/) or [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html).
+A [CUDA](https://developer.nvidia.com/cuda-toolkit) installation is required for GPU-only BLAS computations.
 
 ### Install dependencies
 
 All dependencies can be installed using [Spack](https://github.com/spack/spack).
 A script to install and setup spack for `GPRat` is provided in [`spack-repo`](spack-repo).
-Spack environment configurations and setup scripts for CPU and GPU use are provided in [`spack-repo/environments`](spack-repo/environments).
+Spack environment configurations and setup scripts for CPU and GPU use are provided in
+[`spack-repo/environments`](spack-repo/environments).
 
 ## How To Compile
 
-GPRat makes use of [CMake presets][1] to simplify the process of configuring
-the project.
+GPRat makes use of [CMake presets][1] to simplify the process of configuring the project.
 
 For example, building and testing this project on a Linux machine is as easy as running the following commands:
 
@@ -31,6 +34,8 @@ ctest --preset=dev-linux
 
 As a developer, you may create a `CMakeUserPresets.json` file at the root of the project that contains additional
 presets local to your machine.
+In addition to the build configuration `dev-linux`, there are `release-linux`, `dev-linux-gpu`, and `release-linux-gpu`.
+The configurations suffixed with `-gpu` build the library with CUDA.
 
 GPRat can be build with or without Python bindings.
 The following options can be set to include / exclude parts of the project:
@@ -42,14 +47,14 @@ The following options can be set to include / exclude parts of the project:
 | GPRAT_ENABLE_FORMAT_TARGETS | Enable/Disable code formatting helper targets  | ON if top-level |
 | GPRAT_ENABLE_EXAMPLES       | Enable/Disable example projects                | ON if top-level |
 | GPRAT_USE_MKL               | Enable/Disable usage of MKL library            | OFF             |
+| GPRAT_WITH_CUDA             | Enable/disable compilation with CUDA support   | OFF             |
 
 Respective scripts can be found in this directory.
 
 ## How To Run
 
-GPRat contains several examples. One to run the C++ code, one to run the Python code as well as two
-reference implementations based on TensorFlow
-([GPflow](https://github.com/GPflow/GPflow)) and PyTorch
+GPRat contains several examples. One to run the C++ code, one to run the Python code as well as two reference
+implementations based on TensorFlow ([GPflow](https://github.com/GPflow/GPflow)) and PyTorch
 ([GPyTorch](https://github.com/cornellius-gp/gpytorch)).
 
 ### To run the GPRat C++ code
@@ -57,14 +62,15 @@ reference implementations based on TensorFlow
 - Go to [`examples/gprat_cpp`](examples/gprat_cpp/)
 - Set parameters in [`execute.cpp`](examples/gprat_cpp/src/execute.cpp)
 - The example is built as part of the main project.
-  If you want to use an installed GPrat version:
-  Run `./run_gprat_cpp.sh x86/arm/riscv` to build and run example
+  - Go to `build/` and execute `./gprat_cpp [--use_gpu]` to run the example.
+  - If you want to use an installed GPRat version:
+    Run `./run_gprat_cpp.sh cpu/gpu x86/arm/riscv` to build and run the example.
 
 ### To run GPRat with Python
 
 - Go to [`examples/gprat_python`](examples/gprat_python/)
 - Set parameters in [`config.json`](examples/gprat_python/config.json)
-- Run `./run_gprat_python.sh` to run example
+- Run `./run_gprat_python.sh [--use_gpu]` to run the example
 
 ### To run GPflow reference
 
@@ -80,11 +86,9 @@ reference implementations based on TensorFlow
 
 ## The Team
 
-The GPRat library is developed by the
-[Scientific Computing](https://www.ipvs.uni-stuttgart.de/departments/sc/)
+The GPRat library is developed by the [Scientific Computing](https://www.ipvs.uni-stuttgart.de/departments/sc/)
 department at IPVS at the University of Stuttgart.
-The project is a joined effort of multiple undergraduate, graduate, and PhD
-students under the supervision of
+The project is a joined effort of multiple undergraduate, graduate, and PhD students under the supervision of
 [Prof. Dr. Dirk Pflüger](https://www.f05.uni-stuttgart.de/en/faculty/contactpersons/Pflueger-00005/).
 We specifically thank the follow contributors:
 

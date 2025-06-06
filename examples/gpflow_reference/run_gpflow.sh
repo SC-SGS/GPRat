@@ -2,6 +2,7 @@
 # Input $1: Specify cpu/gpu/arm
 if [[ "$1" == "gpu" ]]
 then
+    module load cuda/12.0.1
     # Create & Activate python environment
     if [ ! -d "gpflow_gpu_env" ]; then
         python -m venv gpflow_gpu_env
@@ -12,11 +13,11 @@ then
         pip install --no-cache-dir -r requirements_gpu.txt
     fi
     # Run on GPU
-    module load cuda/11.8.0
     export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CUDA_HOME
     python execute.py --use-gpu
 elif [[ "$1" == "cpu" ]]
 then
+    module load python/3.10.16
     # Create & Activate python environment
     if [ ! -d "gpflow_cpu_env" ]; then
         python -m venv gpflow_cpu_env
@@ -28,7 +29,7 @@ then
         # manually install GPflow
         git clone https://github.com/GPflow/GPflow.git
         cd GPflow
-        git checkout v2.9.2
+        git checkout v2.10.0
         git apply ../gpflow_mkl.patch
         pip install -e .
         cd ..

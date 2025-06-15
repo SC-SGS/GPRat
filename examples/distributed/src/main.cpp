@@ -369,6 +369,8 @@ int hpx_main(hpx::program_options::variables_map &vm)
 
 int main(int argc, char *argv[])
 {
+    hpx::register_startup_function(&register_distributed_tile_counters);
+
     namespace po = hpx::program_options;
     po::options_description desc("Allowed options");
 

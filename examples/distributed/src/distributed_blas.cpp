@@ -2,11 +2,17 @@
 
 #include "cpu/adapter_cblas_fp64.hpp"
 #include <hpx/distribution_policies/colocating_distribution_policy.hpp>
+#include <hpx/include/performance_counters.hpp>
 
 HPX_REGISTER_ACTION_DECLARATION(potrf_distributed_action);
 HPX_REGISTER_ACTION_DECLARATION(trsm_distributed_action);
 HPX_REGISTER_ACTION_DECLARATION(syrk_distributed_action);
 HPX_REGISTER_ACTION_DECLARATION(gemm_distributed_action);
+
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&inplace::potrf);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&inplace::trsm);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&inplace::syrk);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&inplace::gemm);
 
 tile_handle potrf_distributed(const tile_handle &A, int N)
 {
@@ -72,4 +78,32 @@ tile_handle gemm_distributed(
         A.get_data(),
         B.get_data(),
         C.get_data());
+}
+
+void register_distributed_blas_counters()
+{
+    hpx::performance_counters::install_counter_type(
+        "/gprat/potrf/time",
+        get_and_reset_plain_action_elapsed<&inplace::potrf>,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
+    hpx::performance_counters::install_counter_type(
+        "/gprat/trsm/time",
+        get_and_reset_plain_action_elapsed<&inplace::trsm>,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
+    hpx::performance_counters::install_counter_type(
+        "/gprat/syrk/time",
+        get_and_reset_plain_action_elapsed<&inplace::syrk>,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
+    hpx::performance_counters::install_counter_type(
+        "/gprat/gemm/time",
+        get_and_reset_plain_action_elapsed<&inplace::gemm>,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
 }

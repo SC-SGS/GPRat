@@ -290,7 +290,7 @@ void run(hpx::program_options::variables_map &vm)
         int n_train = static_cast<int>(start);
         for (std::size_t l = 0; l < LOOP; l++)
         {
-            auto start_total = std::chrono::high_resolution_clock::now();
+            hpx::chrono::high_resolution_timer total_timer;
 
             // Compute tile sizes and number of predict tiles
             int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
@@ -307,24 +307,19 @@ void run(hpx::program_options::variables_map &vm)
 
             /////////////////////
             ///// GP
-            auto start_init = std::chrono::high_resolution_clock::now();
+            hpx::chrono::high_resolution_timer init_timer;
             std::vector<bool> trainable = { true, true, true };
             gprat::GP gp(
                 training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, trainable);
-            auto end_init = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> init_time = end_init - start_init;
+            const auto init_time = init_timer.elapsed();
 
             // Measure the time taken to execute gp.cholesky();
             auto start_cholesky = std::chrono::high_resolution_clock::now();
 
+            hpx::chrono::high_resolution_timer cholesky_timer;
             const auto cholesky =
                 cholesky_hpx(scheduler, training_input.data, { 1.0, 1.0, 0.1 }, n_tiles, tile_size, n_reg);
-
-            auto end_cholesky = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> cholesky_time = end_cholesky - start_cholesky;
-
-            auto end_total = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> total_time = end_total - start_total;
+            const auto cholesky_time = cholesky_timer.elapsed();
 
             // Save parameters and times to a .txt file with a header
             std::ofstream outfile(vm["timings_csv"].as<std::string>(), std::ios::app);
@@ -335,8 +330,8 @@ void run(hpx::program_options::variables_map &vm)
                            "Opt_time,Pred_Uncer_time,Pred_Full_time,Pred_time,N_loop\n";
             }
             outfile << hpx::get_locality_id() << "," << n_train << "," << n_test << "," << n_tiles << "," << n_reg
-                    << "," << OPT_ITER << "," << total_time.count() << "," << init_time.count() << ","
-                    << cholesky_time.count() << "," << 0 << "," << 0 << "," << 0 << "," << 0 << "," << l << "\n";
+                    << "," << OPT_ITER << "," << total_timer.elapsed() << "," << init_time << "," << cholesky_time
+                    << "," << 0 << "," << 0 << "," << 0 << "," << 0 << "," << l << "\n";
             outfile.close();
 
             if (test_results)
@@ -370,6 +365,7 @@ int hpx_main(hpx::program_options::variables_map &vm)
 int main(int argc, char *argv[])
 {
     hpx::register_startup_function(&register_distributed_tile_counters);
+    hpx::register_startup_function(&register_distributed_blas_counters);
 
     namespace po = hpx::program_options;
     po::options_description desc("Allowed options");

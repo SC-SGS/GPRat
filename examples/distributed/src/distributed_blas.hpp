@@ -24,30 +24,9 @@ HPX_DEFINE_PLAIN_ACTION(trsm_distributed);
 HPX_DEFINE_PLAIN_ACTION(syrk_distributed);
 HPX_DEFINE_PLAIN_ACTION(gemm_distributed);
 
-template <>
-struct plain_action_for<&inplace::potrf>
-{
-    using action_type = potrf_distributed_action;
-    constexpr static std::string_view name = "POTRF";
-};
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&inplace::potrf, potrf_distributed_action, "POTRF");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&inplace::trsm, trsm_distributed_action, "TRSM");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&inplace::syrk, syrk_distributed_action, "SYRK");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&inplace::gemm, gemm_distributed_action, "GEMM");
 
-template <>
-struct plain_action_for<&inplace::trsm>
-{
-    using action_type = trsm_distributed_action;
-    constexpr static std::string_view name = "TRSM";
-};
-
-template <>
-struct plain_action_for<&inplace::syrk>
-{
-    using action_type = syrk_distributed_action;
-    constexpr static std::string_view name = "SYRK";
-};
-
-template <>
-struct plain_action_for<&inplace::gemm>
-{
-    using action_type = gemm_distributed_action;
-    constexpr static std::string_view name = "GEMM";
-};
+void register_distributed_blas_counters();

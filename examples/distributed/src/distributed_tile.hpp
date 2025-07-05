@@ -11,6 +11,12 @@
 #include <hpx/serialization/serialize_buffer.hpp>
 #include <span>
 
+void register_distributed_tile_counters();
+void record_transmission_time(std::int64_t elapsed_ns);
+
+void track_tile_data_allocation(std::size_t size);
+void track_tile_data_deallocation(std::size_t size);
+
 template <typename T>
 struct tile_data
 {
@@ -29,9 +35,17 @@ struct tile_data
     };
 
     // In case we want pooling down the road...
-    static T *allocate(std::size_t n) { return new T[n]; }
+    static T *allocate(std::size_t n)
+    {
+        track_tile_data_allocation(n);
+        return new T[n];
+    }
 
-    static void deallocate(T *p) noexcept { delete[] p; }
+    static void deallocate(T *p) noexcept
+    {
+        track_tile_data_deallocation(0);  // we don't know here
+        delete[] p;
+    }
 
   public:
     tile_data() = default;
@@ -119,6 +133,7 @@ HPX_REGISTER_ACTION_DECLARATION(tile_server::set_data_action, set_data_action);
 class tile_cache
 {
     friend struct tile_cache_counters;
+
   public:
     tile_cache();
 
@@ -138,9 +153,6 @@ inline tile_cache &get_tile_cache()
     static tile_cache cache;
     return cache;
 }
-
-void register_distributed_tile_counters();
-void record_transmission_time(std::int64_t elapsed_ns);
 
 struct tile_handle : hpx::components::client_base<tile_handle, tile_server>
 {
@@ -191,7 +203,8 @@ struct tile_handle : hpx::components::client_base<tile_handle, tile_server>
 
         tile_server::get_data_action act;
         return hpx::dataflow(
-            [self = *this, current_gid, timer = hpx::chrono::high_resolution_timer()](hpx::future<tile_data<double>> f) mutable
+            [self = *this, current_gid, timer = hpx::chrono::high_resolution_timer()](
+                hpx::future<tile_data<double>> f) mutable
             {
                 (void) self;  // need this ref-counted object to stay alive!
                 auto data = f.get();

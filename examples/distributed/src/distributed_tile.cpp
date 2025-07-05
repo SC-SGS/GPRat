@@ -3,23 +3,6 @@
 #include <atomic>
 #include <hpx/include/performance_counters.hpp>
 
-tile_cache::tile_cache() :
-    cache_(16)
-{ }
-
-bool tile_cache::try_get(const hpx::naming::gid_type &key, tile_data<double> &cached_data)
-{
-    std::lock_guard g(mutex_);
-    hpx::naming::gid_type unused;
-    return cache_.get_entry(key, unused, cached_data);
-}
-
-void tile_cache::insert(const hpx::naming::gid_type &key, const tile_data<double> &data)
-{
-    std::lock_guard g(mutex_);
-    cache_.insert(key, data);
-}
-
 struct tile_cache_counters
 {
     // XXX: you can do this with templates, but it's quite a bit more complicated
@@ -40,6 +23,8 @@ struct tile_cache_counters
 };
 
 std::atomic<std::uint64_t> tile_transmission_time(0);
+std::atomic<std::uint64_t> tile_data_allocations(0);
+std::atomic<std::uint64_t> tile_data_deallocations(0);
 
 void record_transmission_time(std::int64_t elapsed_ns)
 {
@@ -47,10 +32,16 @@ void record_transmission_time(std::int64_t elapsed_ns)
     tile_transmission_time += elapsed_ns;
 }
 
-std::uint64_t get_transmission_time(bool reset)
-{
-    return hpx::util::get_and_reset_value(tile_transmission_time, reset);
-}
+void track_tile_data_allocation(std::size_t size) { tile_data_allocations += 1; }
+
+void track_tile_data_deallocation(std::size_t size) { tile_data_deallocations += 1; }
+
+#define GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(name)                                                                       \
+    std::uint64_t get_##name(bool reset) { return hpx::util::get_and_reset_value(name, reset); }
+
+GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_data_allocations)
+GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_data_deallocations)
+GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_transmission_time)
 
 void register_distributed_tile_counters()
 {
@@ -80,10 +71,39 @@ void register_distributed_tile_counters()
         hpx::performance_counters::counter_type::monotonically_increasing);
     hpx::performance_counters::install_counter_type(
         "/gprat/tile_cache/transmission_time",
-        &get_transmission_time,
+        &get_tile_transmission_time,
         "",
         "",
         hpx::performance_counters::counter_type::monotonically_increasing);
+    hpx::performance_counters::install_counter_type(
+        "/gprat/tile_data/num_allocations",
+        &get_tile_data_allocations,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
+    hpx::performance_counters::install_counter_type(
+        "/gprat/tile_data/num_deallocations",
+        &get_tile_data_deallocations,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
+}
+
+tile_cache::tile_cache() :
+    cache_(16)
+{ }
+
+bool tile_cache::try_get(const hpx::naming::gid_type &key, tile_data<double> &cached_data)
+{
+    std::lock_guard g(mutex_);
+    hpx::naming::gid_type unused;
+    return cache_.get_entry(key, unused, cached_data);
+}
+
+void tile_cache::insert(const hpx::naming::gid_type &key, const tile_data<double> &data)
+{
+    std::lock_guard g(mutex_);
+    cache_.insert(key, data);
 }
 
 // The macros below are necessary to generate the code required for exposing

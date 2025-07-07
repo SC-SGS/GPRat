@@ -17,6 +17,9 @@ void record_transmission_time(std::int64_t elapsed_ns);
 void track_tile_data_allocation(std::size_t size);
 void track_tile_data_deallocation(std::size_t size);
 
+void track_tile_server_allocation(std::size_t size);
+void track_tile_server_deallocation(std::size_t size);
+
 template <typename T>
 struct tile_data
 {
@@ -108,7 +111,14 @@ struct tile_server : hpx::components::component_base<tile_server>
 
     explicit tile_server(const tile_data<double> &data) :
         data_(data)
-    { }
+    {
+        track_tile_server_allocation(data.size());
+    }
+
+    ~tile_server()
+    {
+        track_tile_server_deallocation(data_.size());
+    }
 
     tile_data<double> get_data() const { return data_; }
 
@@ -198,8 +208,6 @@ struct tile_handle : hpx::components::client_base<tile_handle, tile_server>
                 return hpx::make_ready_future(cached_data);
             }
         }
-
-        const auto start = hpx::chrono::high_resolution_clock::now();
 
         tile_server::get_data_action act;
         return hpx::dataflow(

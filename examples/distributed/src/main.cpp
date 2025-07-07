@@ -200,6 +200,8 @@ cholesky_hpx(Scheduler &sched,
             result[i * n_tiles + j] = tiles[i * n_tiles + j].get_data().get();
         }
     }
+
+    // hpx::get_runtime_distributed().evaluate_active_counters(false, "POST cholesky");
     return result;
 }
 

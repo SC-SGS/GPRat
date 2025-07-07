@@ -25,6 +25,8 @@ struct tile_cache_counters
 std::atomic<std::uint64_t> tile_transmission_time(0);
 std::atomic<std::uint64_t> tile_data_allocations(0);
 std::atomic<std::uint64_t> tile_data_deallocations(0);
+std::atomic<std::uint64_t> tile_server_allocations(0);
+std::atomic<std::uint64_t> tile_server_deallocations(0);
 
 void record_transmission_time(std::int64_t elapsed_ns)
 {
@@ -36,12 +38,20 @@ void track_tile_data_allocation(std::size_t size) { tile_data_allocations += 1; 
 
 void track_tile_data_deallocation(std::size_t size) { tile_data_deallocations += 1; }
 
+void track_tile_server_allocation(std::size_t size) { tile_server_allocations += 1; }
+
+void track_tile_server_deallocation(std::size_t size) { tile_server_deallocations += 1; }
+
 #define GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(name)                                                                       \
     std::uint64_t get_##name(bool reset) { return hpx::util::get_and_reset_value(name, reset); }
 
+GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_transmission_time)
 GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_data_allocations)
 GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_data_deallocations)
-GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_transmission_time)
+GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_server_allocations)
+GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_server_deallocations)
+
+#undef GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR
 
 void register_distributed_tile_counters()
 {
@@ -84,6 +94,18 @@ void register_distributed_tile_counters()
     hpx::performance_counters::install_counter_type(
         "/gprat/tile_data/num_deallocations",
         &get_tile_data_deallocations,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
+    hpx::performance_counters::install_counter_type(
+        "/gprat/tile_server/num_allocations",
+        &get_tile_server_allocations,
+        "",
+        "",
+        hpx::performance_counters::counter_type::monotonically_increasing);
+    hpx::performance_counters::install_counter_type(
+        "/gprat/tile_server/num_deallocations",
+        &get_tile_server_deallocations,
         "",
         "",
         hpx::performance_counters::counter_type::monotonically_increasing);

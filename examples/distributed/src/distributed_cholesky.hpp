@@ -4,56 +4,99 @@
 #include "scheduling.hpp"
 #include <hpx/runtime_distributed/find_localities.hpp>
 
-struct tiled_cholesky_distribution_policy_paap12
+GPRAT_NS_BEGIN
+
+template <typename T>
+std::vector<hpx::shared_future<mutable_tile_data<T>>>
+make_cholesky_dataset(const tiled_scheduler_local &, std::size_t num_tiles)
 {
-    constexpr std::size_t locality_for_tile(std::size_t row, std::size_t col) const
-    {
-        return (row + col) % num_localities;
-    }
+    return { num_tiles * num_tiles };
+}
 
-    constexpr std::size_t locality_for_POTRF(std::size_t k) const { return (2 * k) % num_localities; }
+// Default implementations in case the scheduler provides none
+constexpr std::size_t cholesky_tile(...) { return 0; }
 
-    constexpr std::size_t locality_for_SYRK(std::size_t m) const { return (2 * m) % num_localities; }
+constexpr std::size_t cholesky_POTRF(...) { return 0; }
 
-    constexpr std::size_t locality_for_TRSM(std::size_t k, std::size_t m) const { return (k + m) % num_localities; }
+constexpr std::size_t cholesky_SYRK(...) { return 0; }
 
-    constexpr std::size_t locality_for_GEMM(std::size_t /*k*/, std::size_t m, std::size_t n) const
-    {
-        return (m + n) % num_localities;
-    }
+constexpr std::size_t cholesky_TRSM(...) { return 0; }
 
-    std::size_t num_localities;
+constexpr std::size_t cholesky_GEMM(...) { return 0; }
+
+constexpr std::size_t cholesky_TRSV(...) { return 0; }
+
+constexpr std::size_t cholesky_GEMV(...) { return 0; }
+
+namespace scheduler
+{
+
+struct tiled_cholesky_scheduler_paap12 : tiled_scheduler_distributed
+{
+    using tiled_scheduler_distributed::tiled_scheduler_distributed;
+
+    std::size_t num_localities = localities_.size();
 };
 
-template <typename DistPolicy = tiled_cholesky_distribution_policy_paap12>
-struct tiled_cholesky_scheduler_distributed
+template <typename T>
+tiled_dataset<T> make_cholesky_dataset(const tiled_cholesky_scheduler_paap12 &policy, std::size_t num_tiles)
 {
-    using tiled_matrix_handles = std::vector<tile_handle>;
+    std::vector<std::pair<hpx::id_type, std::size_t>> targets;
+    targets.reserve(policy.num_localities);
 
-    tiled_cholesky_scheduler_distributed() = default;
-
-    [[nodiscard]] schedule_on_locality for_tile(std::size_t row, std::size_t col) const
+    for (std::size_t i = 0; i < policy.num_localities; ++i)
     {
-        return localities[policy.locality_for_tile(row, col)];
+        targets.emplace_back(policy.localities_[i], 0);
     }
 
-    [[nodiscard]] schedule_on_locality for_POTRF(std::size_t k) const
+    for (std::size_t row = 0; row < num_tiles; row++)
     {
-        return localities[policy.locality_for_POTRF(k)];
+        for (std::size_t col = 0; col < num_tiles; col++)
+        {
+            const auto l = (row + col) % policy.num_localities;
+            ++targets[l].second;
+        }
     }
 
-    [[nodiscard]] schedule_on_locality for_SYRK(std::size_t m) const { return localities[policy.locality_for_SYRK(m)]; }
+    return tiled_dataset_accessor<T>{ targets, num_tiles * num_tiles }.to_dataset();
+}
 
-    [[nodiscard]] schedule_on_locality for_TRSM(std::size_t k, std::size_t m) const
-    {
-        return localities[policy.locality_for_TRSM(k, m)];
-    }
+constexpr std::size_t cholesky_tile(const tiled_cholesky_scheduler_paap12 &policy, std::size_t row, std::size_t col)
+{
+    return (row + col) % policy.num_localities;
+}
 
-    [[nodiscard]] schedule_on_locality for_GEMM(std::size_t k, std::size_t m, std::size_t n) const
-    {
-        return localities[policy.locality_for_GEMM(k, m, n)];
-    }
+constexpr std::size_t cholesky_POTRF(const tiled_cholesky_scheduler_paap12 &policy, std::size_t k)
+{
+    return (2 * k) % policy.num_localities;
+}
 
-    std::vector<hpx::id_type> localities = hpx::find_all_localities();
-    DistPolicy policy{ localities.size() };
-};
+constexpr std::size_t cholesky_SYRK(const tiled_cholesky_scheduler_paap12 &policy, std::size_t m)
+{
+    return (2 * m) % policy.num_localities;
+}
+
+constexpr std::size_t cholesky_TRSM(const tiled_cholesky_scheduler_paap12 &policy, std::size_t k, std::size_t m)
+{
+    return (k + m) % policy.num_localities;
+}
+
+constexpr std::size_t
+cholesky_GEMM(const tiled_cholesky_scheduler_paap12 &policy, std::size_t /*k*/, std::size_t m, std::size_t n)
+{
+    return (m + n) % policy.num_localities;
+}
+
+constexpr std::size_t cholesky_TRSV(const tiled_cholesky_scheduler_paap12 &policy, std::size_t k)
+{
+    return k % policy.num_localities;
+}
+
+constexpr std::size_t cholesky_GEMV(const tiled_cholesky_scheduler_paap12 &policy, std::size_t k)
+{
+    return k % policy.num_localities;
+}
+
+}  // namespace scheduler
+
+GPRAT_NS_END

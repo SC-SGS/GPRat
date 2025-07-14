@@ -1,13 +1,12 @@
+#include "gprat/cpu/gp_algorithms.hpp"
+#include "gprat/kernels.hpp"
+
 #include "../../test/src/test_data.hpp"
 #include "distributed_blas.hpp"
 #include "distributed_cholesky.hpp"
 #include "distributed_tile.hpp"
-#include "cpu/gp_functions.hpp"
-#include "gp_kernels.hpp"
-#include "gprat_c.hpp"
-#include "cpu/tiled_algorithms.hpp"
-#include "utils_c.hpp"
 #include <fstream>
+#include <hpx/compute.hpp>
 #include <hpx/hpx.hpp>
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx_init_params.hpp>
@@ -15,121 +14,48 @@
 
 // This is a standalone test, so including this directly is fine.
 // Better than having the whole project depend on compiled Boost.Json!
+
+#include "gprat/gprat.hpp"
+#include "gprat/utils.hpp"
+
 #include <boost/json/src.hpp>
 
-namespace gprat_hyper
-{
+GPRAT_REGISTER_TILED_DATASET(double, double);
 
-template <class Archive>
-inline void save_construct_data(Archive &ar, const SEKParams *v, const unsigned int)
-{
-    ar << v->lengthscale;
-    ar << v->vertical_lengthscale;
-    ar << v->noise_variance;
-}
+GPRAT_NS_BEGIN
 
-template <class Archive>
-inline void load_construct_data(Archive &ar, SEKParams *v, const unsigned int)
-{
-    double lengthscale, vertical_lengthscale, noise_variance;
-    ar >> lengthscale;
-    ar >> vertical_lengthscale;
-    ar >> noise_variance;
-
-    // ::new(ptr) construct new object at given address
-    hpx::construct_at(v, lengthscale, vertical_lengthscale, noise_variance);
-}
-
-template <typename Archive>
-void serialize(Archive &ar, SEKParams &pt, const unsigned int)
-{
-    ar & pt.m_T & pt.w_T;
-}
-
-}  // namespace gprat_hyper
-
-/////////////////////////////////////////////////////////
-// Tile generation
-double compute_covariance_function(std::size_t n_regressors,
-                                   const gprat_hyper::SEKParams &sek_params,
-                                   std::span<const double> i_input,
-                                   std::span<const double> j_input)
-{
-    // k(z_i,z_j) = vertical_lengthscale * exp(-0.5 / lengthscale^2 * (z_i - z_j)^2)
-    double distance = 0.0;
-    for (std::size_t k = 0; k < n_regressors; k++)
-    {
-        const double z_ik_minus_z_jk = i_input[k] - j_input[k];
-        distance += z_ik_minus_z_jk * z_ik_minus_z_jk;
-    }
-
-    return sek_params.vertical_lengthscale * exp(-0.5 / (sek_params.lengthscale * sek_params.lengthscale) * distance);
-}
-
-tile_data<double> make_covariance_tile(
+hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
+    tile_handle<double> tile,
     std::size_t row,
     std::size_t col,
     std::size_t N,
     std::size_t n_regressors,
-    const gprat_hyper::SEKParams &sek_params,
+    const SEKParams &sek_params,
     std::span<const double> input)
 {
-    tile_data<double> tile(N * N);
-    for (std::size_t i = 0; i < N; i++)
-    {
-        std::size_t i_global = N * row + i;
-        for (std::size_t j = 0; j < N; j++)
-        {
-            std::size_t j_global = N * col + j;
-
-            // compute covariance function
-            auto covariance_function = compute_covariance_function(
-                n_regressors, sek_params, input.subspan(i_global, n_regressors), input.subspan(j_global, n_regressors));
-            if (i_global == j_global)
-            {
-                // noise variance on diagonal
-                covariance_function += sek_params.noise_variance;
-            }
-
-            tile.data()[i * N + j] = covariance_function;
-        }
-    }
-    return tile;
+    return tile.set_async(cpu::gen_tile_covariance(row, col, N, n_regressors, sek_params, input));
 }
 
-tile_handle make_covariance_tile_distributed(
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    std::size_t n_regressors,
-    const gprat_hyper::SEKParams &sek_params,
-    std::span<const double> input)
-{
-    return tile_handle(hpx::find_here(), make_covariance_tile(row, col, N, n_regressors, sek_params, input));
-}
+HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_covariance_distributed);
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance,
+                               gen_tile_covariance_distributed_action,
+                               "gen_tile_covariance");
 
-HPX_PLAIN_ACTION(make_covariance_tile_distributed, make_covariance_tile_action)
-
-template <>
-struct plain_action_for<&make_covariance_tile>
-{
-    using action_type = make_covariance_tile_action;
-    constexpr static std::string_view name = "gen_tile_covariance";
-};
-
-template <typename Scheduler = tiled_cholesky_scheduler_distributed<>>
-void right_looking_cholesky_tiled(
-    Scheduler &sched, typename Scheduler::tiled_matrix_handles &ft_tiles, std::size_t N, std::size_t n_tiles)
+template <typename Tiles, typename Scheduler = tiled_scheduler_local>
+void right_looking_cholesky_tiled(Scheduler &sched, Tiles &ft_tiles, std::size_t N, std::size_t n_tiles)
 {
     for (std::size_t k = 0; k < n_tiles; k++)
     {
         // POTRF: Compute Cholesky factor L
-        ft_tiles[k * n_tiles + k] = dataflow<inplace::potrf>(sched.for_POTRF(k), ft_tiles[k * n_tiles + k], N);
+        ft_tiles[k * n_tiles + k] = detail::named_dataflow<potrf>(
+            sched, cholesky_POTRF(sched, k), "cholesky_tiled", ft_tiles[k * n_tiles + k], N);
         for (std::size_t m = k + 1; m < n_tiles; m++)
         {
             // TRSM:  Solve X * L^T = A
-            ft_tiles[m * n_tiles + k] = dataflow<inplace::trsm>(
-                sched.for_TRSM(k, m),
+            ft_tiles[m * n_tiles + k] = detail::named_dataflow<trsm>(
+                sched,
+                cholesky_TRSM(sched, k, m),
+                "cholesky_tiled",
                 ft_tiles[k * n_tiles + k],
                 ft_tiles[m * n_tiles + k],
                 N,
@@ -140,13 +66,20 @@ void right_looking_cholesky_tiled(
         for (std::size_t m = k + 1; m < n_tiles; m++)
         {
             // SYRK:  A = A - B * B^T
-            ft_tiles[m * n_tiles + m] =
-                dataflow<inplace::syrk>(sched.for_SYRK(m), ft_tiles[m * n_tiles + m], ft_tiles[m * n_tiles + k], N);
+            ft_tiles[m * n_tiles + m] = detail::named_dataflow<syrk>(
+                sched,
+                cholesky_SYRK(sched, m),
+                "cholesky_tiled",
+                ft_tiles[m * n_tiles + m],
+                ft_tiles[m * n_tiles + k],
+                N);
             for (std::size_t n = k + 1; n < m; n++)
             {
                 // GEMM: C = C - A * B^T
-                ft_tiles[m * n_tiles + n] = dataflow<inplace::gemm>(
-                    sched.for_GEMM(k, m, n),
+                ft_tiles[m * n_tiles + n] = detail::named_dataflow<gemm>(
+                    sched,
+                    cholesky_GEMM(sched, k, m, n),
+                    "cholesky_tiled",
                     ft_tiles[m * n_tiles + k],
                     ft_tiles[n * n_tiles + k],
                     ft_tiles[m * n_tiles + n],
@@ -160,29 +93,32 @@ void right_looking_cholesky_tiled(
     }
 }
 
-template <typename Scheduler = tiled_cholesky_scheduler_distributed<>>
-std::vector<tile_data<double>>
+template <typename Scheduler = tiled_scheduler_local>
+std::vector<mutable_tile_data<double>>
 cholesky_hpx(Scheduler &sched,
              std::span<const double> training_input,
-             const gprat_hyper::SEKParams &sek_params,
+             const SEKParams &sek_params,
              std::size_t n_tiles,
              std::size_t n_tile_size,
              std::size_t n_regressors)
 {
-    typename Scheduler::tiled_matrix_handles tiles(n_tiles * n_tiles);  // Tiled covariance matrix
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Launch asynchronous assembly
-    // std::vector<hpx::future<hpx::id_type>> tile_objs;
-    // tile_objs.reserve(n_tiles * n_tiles);
+    auto tiles = make_cholesky_dataset<double>(sched, n_tiles);  // Tiled covariance matrix
 
     for (std::size_t row = 0; row < n_tiles; row++)
     {
         for (std::size_t col = 0; col <= row; col++)
         {
-            tiles[row * n_tiles + col] =
-                tile_handle(sched.for_tile(row, col).where,
-                            make_covariance_tile(row, col, n_tile_size, n_regressors, sek_params, training_input));
+            tiles[row * n_tiles + col] = detail::named_dataflow<cpu::gen_tile_covariance>(
+                sched,
+                cholesky_tile(sched, row, col),
+                "cholesky init",
+                tiles[row * n_tiles + col],
+                row,
+                col,
+                n_tile_size,
+                n_regressors,
+                sek_params,
+                training_input);
         }
     }
 
@@ -192,15 +128,14 @@ cholesky_hpx(Scheduler &sched,
 
     ///////////////////////////////////////////////////////////////////////////
     // Synchronize
-    std::vector<tile_data<double>> result(n_tiles * n_tiles);
+    std::vector<mutable_tile_data<double>> result(n_tiles * n_tiles);
     for (std::size_t i = 0; i < n_tiles; i++)
     {
         for (std::size_t j = 0; j <= i; j++)
         {
-            result[i * n_tiles + j] = tiles[i * n_tiles + j].get_data().get();
+            result[i * n_tiles + j] = tiles[i * n_tiles + j].get();
         }
     }
-
     // hpx::get_runtime_distributed().evaluate_active_counters(false, "POST cholesky");
     return result;
 }
@@ -218,7 +153,7 @@ gprat_results load_test_data_results(const std::string &filename)
 }
 
 void validate_two_dim_result(const std::vector<std::vector<double>> &expected,
-                             const std::vector<tile_data<double>> &actual)
+                             const std::vector<mutable_tile_data<double>> &actual)
 {
     if (expected.size() != actual.size())
     {
@@ -285,7 +220,7 @@ void run(hpx::program_options::variables_map &vm)
         std::cerr << "We have comparison data!" << std::endl;
     }
 
-    tiled_cholesky_scheduler_distributed scheduler;
+    scheduler::tiled_cholesky_scheduler_paap12 scheduler;
 
     for (std::size_t start = START; start <= END; start = start * STEP)
     {
@@ -295,24 +230,23 @@ void run(hpx::program_options::variables_map &vm)
             hpx::chrono::high_resolution_timer total_timer;
 
             // Compute tile sizes and number of predict tiles
-            int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
-            auto result = utils::compute_test_tiles(n_test, n_tiles, tile_size);
+            int tile_size = compute_train_tile_size(n_train, n_tiles);
+            auto result = compute_test_tiles(n_test, n_tiles, tile_size);
             /////////////////////
             ///// hyperparams
-            gprat_hyper::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
+            AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
 
             /////////////////////
             ////// data loading
-            gprat::GP_data training_input(train_path, n_train, n_reg);
-            gprat::GP_data training_output(out_path, n_train, n_reg);
-            gprat::GP_data test_input(test_path, n_test, n_reg);
+            GP_data training_input(train_path, n_train, n_reg);
+            GP_data training_output(out_path, n_train, n_reg);
+            GP_data test_input(test_path, n_test, n_reg);
 
             /////////////////////
             ///// GP
             hpx::chrono::high_resolution_timer init_timer;
             std::vector<bool> trainable = { true, true, true };
-            gprat::GP gp(
-                training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, trainable);
+            GP gp(training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, trainable);
             const auto init_time = init_timer.elapsed();
 
             // Measure the time taken to execute gp.cholesky();
@@ -338,12 +272,17 @@ void run(hpx::program_options::variables_map &vm)
 
             if (test_results)
             {
+                std::cerr << "Validating results..." << std::endl;
                 validate_two_dim_result(test_results->choleksy, cholesky);
             }
         }
     }
     std::cerr << "DONE!" << std::endl;
 }
+
+GPRAT_NS_END
+
+HPX_REGISTER_ACTION(GPRAT_NS::gen_tile_covariance_distributed_action);
 
 int hpx_main(hpx::program_options::variables_map &vm)
 {
@@ -353,9 +292,10 @@ int hpx_main(hpx::program_options::variables_map &vm)
     std::cerr << "This locality: " << hpx::find_here() << std::endl;
     std::cerr << "Remote localities: " << hpx::find_remote_localities().size() << std::endl;
 
+    auto numa_domains = hpx::compute::host::numa_domains();
     try
     {
-        run(vm);
+        GPRAT_NS::run(vm);
     }
     catch (const std::exception &e)
     {
@@ -366,8 +306,8 @@ int hpx_main(hpx::program_options::variables_map &vm)
 
 int main(int argc, char *argv[])
 {
-    hpx::register_startup_function(&register_distributed_tile_counters);
-    hpx::register_startup_function(&register_distributed_blas_counters);
+    hpx::register_startup_function(&GPRAT_NS::register_distributed_tile_counters);
+    hpx::register_startup_function(&GPRAT_NS::register_distributed_blas_counters);
 
     namespace po = hpx::program_options;
     po::options_description desc("Allowed options");
@@ -378,7 +318,7 @@ int main(int argc, char *argv[])
         ("train_x_path", po::value<std::string>()->default_value("data/data_1024/training_input.txt"), "training data (x)")
         ("train_y_path", po::value<std::string>()->default_value("data/data_1024/training_output.txt"), "training data (y)")
         ("test_path", po::value<std::string>()->default_value("data/data_1024/test_input.txt"), "test data")
-        ("test_results_path", po::value<std::string>(), "test data results to validate results with")
+        ("test_results_path", po::value<std::string>()->default_value("data/data_1024/output.json"), "test data results to validate results with")
         ("timings_csv", po::value<std::string>()->default_value("timings.csv"), "output timing reports")
         ("tiles", po::value<std::size_t>()->default_value(16), "tiles per dimension")
         ("regressors", po::value<std::size_t>()->default_value(8), "num regressors")

@@ -1,7 +1,7 @@
-#include "test_data.hpp"
 #include "gprat/gprat.hpp"
 #include "gprat/utils.hpp"
 
+#include "test_data.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 

@@ -1,5 +1,9 @@
-#ifndef UTILS_C_H
-#define UTILS_C_H
+#ifndef GPRAT_UTILS_C_H
+#define GPRAT_UTILS_C_H
+
+#pragma once
+
+#include "gprat/detail/config.hpp"
 
 #include <hpx/future.hpp>
 #include <hpx/hpx_start.hpp>
@@ -7,8 +11,8 @@
 #include <string>
 #include <vector>
 
-namespace utils
-{
+GPRAT_NS_BEGIN
+
 /**
  * @brief Compute the number of tiles for training data, given the number of
  * samples and the size of each tile.
@@ -85,6 +89,6 @@ void stop_hpx_runtime();
  */
 bool compiled_with_cuda();
 
-}  // namespace utils
+GPRAT_NS_END
 
 #endif

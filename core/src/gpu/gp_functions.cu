@@ -1,13 +1,16 @@
-#include "gpu/gp_functions.cuh"
+#include "gprat/gpu/gp_functions.cuh"
 
-#include "gp_kernels.hpp"
-#include "gpu/cuda_utils.cuh"
-#include "gpu/gp_algorithms.cuh"
-#include "gpu/tiled_algorithms.cuh"
-#include "target.hpp"
+#include "gprat/gp_kernels.hpp"
+#include "gprat/gpu/cuda_utils.cuh"
+#include "gprat/gpu/gp_algorithms.cuh"
+#include "gprat/gpu/tiled_algorithms.cuh"
+#include "gprat/target.hpp"
+
 #include <cuda_runtime.h>
 #include <hpx/algorithm.hpp>
 #include <hpx/async_cuda/cuda_exception.hpp>
+
+GPRAT_NS_BEGIN
 
 namespace gpu
 {
@@ -16,13 +19,13 @@ std::vector<double>
 predict(const std::vector<double> &h_training_input,
         const std::vector<double> &h_training_output,
         const std::vector<double> &h_test_input,
-        const gprat_hyper::SEKParams &sek_params,
+        const SEKParams &sek_params,
         int n_tiles,
         int n_tile_size,
         int m_tiles,
         int m_tile_size,
         int n_regressors,
-        gprat::CUDA_GPU &gpu)
+        CUDA_GPU &gpu)
 {
     gpu.create();
 
@@ -65,13 +68,13 @@ std::vector<std::vector<double>> predict_with_uncertainty(
     const std::vector<double> &h_training_input,
     const std::vector<double> &h_training_output,
     const std::vector<double> &h_test_input,
-    const gprat_hyper::SEKParams &sek_params,
+    const SEKParams &sek_params,
     int n_tiles,
     int n_tile_size,
     int m_tiles,
     int m_tile_size,
     int n_regressors,
-    gprat::CUDA_GPU &gpu)
+    CUDA_GPU &gpu)
 {
     gpu.create();
 
@@ -150,13 +153,13 @@ std::vector<std::vector<double>> predict_with_full_cov(
     const std::vector<double> &h_training_input,
     const std::vector<double> &h_training_output,
     const std::vector<double> &h_test_input,
-    const gprat_hyper::SEKParams &sek_params,
+    const SEKParams &sek_params,
     int n_tiles,
     int n_tile_size,
     int m_tiles,
     int m_tile_size,
     int n_regressors,
-    gprat::CUDA_GPU &gpu)
+    CUDA_GPU &gpu)
 {
     gpu.create();
 
@@ -229,11 +232,11 @@ std::vector<std::vector<double>> predict_with_full_cov(
 
 double compute_loss(const std::vector<double> &h_training_input,
                     const std::vector<double> &h_training_output,
-                    const gprat_hyper::SEKParams &sek_params,
+                    const SEKParams &sek_params,
                     int n_tiles,
                     int n_tile_size,
                     int n_regressors,
-                    gprat::CUDA_GPU &gpu)
+                    CUDA_GPU &gpu)
 {
     gpu.create();
 
@@ -279,10 +282,10 @@ optimize(const std::vector<double> &training_input,
          int n_tiles,
          int n_tile_size,
          int n_regressors,
-         const gprat_hyper::AdamParams &adam_params,
-         const gprat_hyper::SEKParams &sek_params,
+         const AdamParams &adam_params,
+         const SEKParams &sek_params,
          std::vector<bool> trainable_params,
-         gprat::CUDA_GPU &gpu)
+         CUDA_GPU &gpu)
 {
     throw std::logic_error("Function not implemented for GPU");
     // return std::vector<double>>();
@@ -293,11 +296,11 @@ double optimize_step(const std::vector<double> &training_input,
                      int n_tiles,
                      int n_tile_size,
                      int n_regressors,
-                     gprat_hyper::AdamParams &adam_params,
-                     gprat_hyper::SEKParams &sek_params,
+                     AdamParams &adam_params,
+                     SEKParams &sek_params,
                      std::vector<bool> trainable_params,
                      int iter,
-                     gprat::CUDA_GPU &gpu)
+                     CUDA_GPU &gpu)
 {
     throw std::logic_error("Function not implemented for GPU");
     // return 0.0;
@@ -305,11 +308,11 @@ double optimize_step(const std::vector<double> &training_input,
 
 std::vector<std::vector<double>>
 cholesky(const std::vector<double> &h_training_input,
-         const gprat_hyper::SEKParams &sek_params,
+         const SEKParams &sek_params,
          int n_tiles,
          int n_tile_size,
          int n_regressors,
-         gprat::CUDA_GPU &gpu)
+         CUDA_GPU &gpu)
 {
     gpu.create();
 
@@ -333,3 +336,5 @@ cholesky(const std::vector<double> &h_training_input,
 }
 
 }  // end of namespace gpu
+
+GPRAT_NS_END

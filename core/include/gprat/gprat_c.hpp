@@ -1,16 +1,18 @@
-#ifndef GPRAT_C_H
-#define GPRAT_C_H
+#ifndef GPRAT_C_HPP
+#define GPRAT_C_HPP
 
-#include "gp_hyperparameters.hpp"
-#include "gp_kernels.hpp"
-#include "target.hpp"
+#pragma once
+
+#include "gprat/detail/config.hpp"
+#include "gprat/gp_hyperparameters.hpp"
+#include "gprat/gp_kernels.hpp"
+#include "gprat/target.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
 
-// namespace for GPRat library entities
-namespace gprat
-{
+GPRAT_NS_BEGIN
 
 /**
  * @brief Data structure for Gaussian Process data
@@ -84,7 +86,7 @@ class GP
     /**
      * @brief Hyperarameters of the squared exponential kernel
      */
-    gprat_hyper::SEKParams kernel_params;
+    SEKParams kernel_params;
 
     /**
      * @brief Constructs a Gaussian Process (GP)
@@ -203,7 +205,7 @@ class GP
      *
      * @return losses
      */
-    std::vector<double> optimize(const gprat_hyper::AdamParams &adam_params);
+    std::vector<double> optimize(const AdamParams &adam_params);
 
     /**
      * @brief Perform a single optimization step
@@ -214,7 +216,7 @@ class GP
      *
      * @return loss
      */
-    double optimize_step(gprat_hyper::AdamParams &adam_params, int iter);
+    double optimize_step(AdamParams &adam_params, int iter);
 
     /**
      * @brief Calculate loss for given data and Gaussian process model
@@ -226,6 +228,7 @@ class GP
      */
     std::vector<std::vector<double>> cholesky();
 };
-}  // namespace gprat
 
-#endif  // end of GPRAT_C_H
+GPRAT_NS_END
+
+#endif

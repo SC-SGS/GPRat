@@ -1,5 +1,6 @@
-#include "gprat_c.hpp"
-#include "utils_c.hpp"
+#include "gprat/gprat_c.hpp"
+#include "gprat/utils_c.hpp"
+
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -24,7 +25,7 @@ int main(int argc, char *argv[])
     std::string test_path = "../../../data/data_1024/test_input.txt";
 
     bool use_gpu =
-        utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
+        gprat::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
 
     for (std::size_t core = 2; core <= N_CORES; core = core * 2)
     {
@@ -52,11 +53,11 @@ int main(int argc, char *argv[])
             for (std::size_t l = 0; l < LOOP; l++)
             {
                 // Compute tile sizes and number of predict tiles
-                int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
-                auto result = utils::compute_test_tiles(n_test, n_tiles, tile_size);
+                int tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+                auto result = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
                 /////////////////////
                 ///// hyperparams
-                gprat_hyper::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
+                gprat::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
 
                 /////////////////////
                 ////// data loading
@@ -93,7 +94,7 @@ int main(int argc, char *argv[])
                     init_time = end_init - start_init;
 
                     // Initialize HPX with the new arguments, don't run hpx_main
-                    utils::start_hpx_runtime(new_argc, new_argv);
+                    gprat::start_hpx_runtime(new_argc, new_argv);
 
                     // Measure the time taken to execute gp.cholesky();
                     auto start_cholesky = std::chrono::high_resolution_clock::now();
@@ -143,7 +144,7 @@ int main(int argc, char *argv[])
                     init_time = end_init - start_init;
 
                     // Initialize HPX with the new arguments, don't run hpx_main
-                    utils::start_hpx_runtime(new_argc, new_argv);
+                    gprat::start_hpx_runtime(new_argc, new_argv);
 
                     auto start_cholesky = std::chrono::high_resolution_clock::now();
                     std::vector<std::vector<double>> choleksy_gpu = gp_gpu.cholesky();
@@ -172,7 +173,7 @@ int main(int argc, char *argv[])
                 }
 
                 // Stop the HPX runtime
-                utils::stop_hpx_runtime();
+                gprat::stop_hpx_runtime();
 
                 auto end_total = std::chrono::high_resolution_clock::now();
                 auto total_time = end_total - start_total;

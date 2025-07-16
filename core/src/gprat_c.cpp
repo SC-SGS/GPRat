@@ -1,23 +1,22 @@
-#include "gprat_c.hpp"
+#include "gprat/gprat_c.hpp"
 
-#include "cpu/gp_functions.hpp"
-#include "utils_c.hpp"
-#include <cstdio>
+#include "gprat/cpu/gp_functions.hpp"
+#include "gprat/utils_c.hpp"
 
 #if GPRAT_WITH_CUDA
 #include "gpu/gp_functions.cuh"
 #endif
 
-// namespace for GPRat library entities
-namespace gprat
-{
+#include <cstdio>
+
+GPRAT_NS_BEGIN
 
 GP_data::GP_data(const std::string &f_path, int n, int n_reg) :
     file_path(f_path),
     n_samples(n),
     n_regressors(n_reg)
 {
-    data = utils::load_data(f_path, n, n_reg - 1);
+    data = load_data(f_path, n, n_reg - 1);
 }
 
 GP::GP(std::vector<double> input,
@@ -121,7 +120,7 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
                            m_tiles,
                            m_tile_size,
                            n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+                           *std::dynamic_pointer_cast<CUDA_GPU>(target_));
                    }
                    else
                    {
@@ -171,7 +170,7 @@ GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles,
                            m_tiles,
                            m_tile_size,
                            n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+                           *std::dynamic_pointer_cast<CUDA_GPU>(target_));
                    }
                    else
                    {
@@ -221,7 +220,7 @@ GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, in
                            m_tiles,
                            m_tile_size,
                            n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+                           *std::dynamic_pointer_cast<CUDA_GPU>(target_));
                    }
                    else
                    {
@@ -252,7 +251,7 @@ GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, in
         .get();
 }
 
-std::vector<double> GP::optimize(const gprat_hyper::AdamParams &adam_params)
+std::vector<double> GP::optimize(const AdamParams &adam_params)
 {
     return hpx::async(
                [this, &adam_params]()
@@ -277,7 +276,7 @@ std::vector<double> GP::optimize(const gprat_hyper::AdamParams &adam_params)
         .get();
 }
 
-double GP::optimize_step(gprat_hyper::AdamParams &adam_params, int iter)
+double GP::optimize_step(AdamParams &adam_params, int iter)
 {
     return hpx::async(
                [this, &adam_params, iter]()
@@ -318,7 +317,7 @@ double GP::calculate_loss()
                            n_tiles_,
                            n_tile_size_,
                            n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+                           *std::dynamic_pointer_cast<CUDA_GPU>(target_));
                    }
                    else
                    {
@@ -347,7 +346,7 @@ std::vector<std::vector<double>> GP::cholesky()
                            n_tiles_,
                            n_tile_size_,
                            n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+                           *std::dynamic_pointer_cast<CUDA_GPU>(target_));
                    }
                    else
                    {
@@ -360,4 +359,4 @@ std::vector<std::vector<double>> GP::cholesky()
         .get();
 }
 
-}  // namespace gprat
+GPRAT_NS_END

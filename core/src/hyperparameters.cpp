@@ -1,9 +1,9 @@
-#include "gp_hyperparameters.hpp"
+#include "gprat/hyperparameters.hpp"
 
 #include <iomanip>
+#include <sstream>
 
-namespace gprat_hyper
-{
+GPRAT_NS_BEGIN
 
 AdamParams::AdamParams(double lr, double b1, double b2, double eps, int opt_i) :
     learning_rate(lr),
@@ -29,4 +29,4 @@ std::string AdamParams::repr() const
     return oss.str();
 }
 
-}  // namespace gprat_hyper
+GPRAT_NS_END

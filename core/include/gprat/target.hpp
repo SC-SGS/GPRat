@@ -1,5 +1,9 @@
-#ifndef TARGET_H
-#define TARGET_H
+#ifndef GPRAT_TARGET_H
+#define GPRAT_TARGET_H
+
+#pragma once
+
+#include "gprat/detail/config.hpp"
 
 #include <string>
 
@@ -8,8 +12,7 @@
 #include <hpx/async_cuda/cublas_executor.hpp>
 #endif
 
-namespace gprat
-{
+GPRAT_NS_BEGIN
 
 /**
  * @brief This class represents the target on which to perform the Gaussian
@@ -203,6 +206,6 @@ void print_available_gpus();
  */
 int gpu_count();
 
-}  // namespace gprat
+GPRAT_NS_END
 
-#endif  // end of TARGET_H
+#endif

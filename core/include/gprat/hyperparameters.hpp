@@ -1,10 +1,14 @@
-#ifndef GP_HYPERPARAMETERS_H
-#define GP_HYPERPARAMETERS_H
+#ifndef GPRAT_GPHYPERPARAMETERS_HPP
+#define GPRAT_GPHYPERPARAMETERS_HPP
 
+#pragma once
+
+#include "gprat/detail/config.hpp"
+
+#include <memory>
 #include <string>
 
-namespace gprat_hyper
-{
+GPRAT_NS_BEGIN
 
 /**
  * @brief Hyperparameters for the Adam optimizer
@@ -55,6 +59,30 @@ struct AdamParams
     std::string repr() const;
 };
 
-}  // namespace gprat_hyper
+template <class Archive>
+void save_construct_data(Archive &ar, const AdamParams *v, const unsigned int)
+{
+    ar << v->learning_rate;
+    ar << v->beta1;
+    ar << v->beta2;
+    ar << v->epsilon;
+    ar << v->opt_iter;
+}
 
-#endif  // GP_HYPERPARAMETERS_H
+template <class Archive>
+void load_construct_data(Archive &ar, AdamParams *v, const unsigned int)
+{
+    double learning_rate, beta1, beta2, epsilon;
+    int opt_iter;
+    ar >> learning_rate;
+    ar >> beta1;
+    ar >> beta2;
+    ar >> epsilon;
+    ar >> opt_iter;
+
+    std::construct_at(v, learning_rate, beta1, beta2, epsilon, opt_iter);
+}
+
+GPRAT_NS_END
+
+#endif

@@ -1,5 +1,6 @@
-#include "gprat_c.hpp"
-#include "utils_c.hpp"
+#include "gprat/gprat.hpp"
+#include "gprat/utils.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -73,11 +74,11 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
     const std::size_t n_reg = 8;
 
     // Compute tile sizes and number of predict tiles
-    const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
-    const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
+    const int tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+    const auto test_tiles = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
 
     // hyperparams
-    gprat_hyper::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
+    gprat::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
 
     // data loading
     gprat::GP_data training_input(train_path, n_train, n_reg);
@@ -90,7 +91,7 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
         training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, trainable);
 
     // Initialize HPX with no arguments, don't run hpx_main
-    utils::start_hpx_runtime(0, nullptr);
+    gprat::start_hpx_runtime(0, nullptr);
 
     gprat_results results_cpu;
 
@@ -105,7 +106,7 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
     results_cpu.pred = gp_cpu.predict(test_input.data, test_tiles.first, test_tiles.second);
 
     // Stop the HPX runtime
-    utils::stop_hpx_runtime();
+    gprat::stop_hpx_runtime();
 
     return results_cpu;
 }
@@ -120,8 +121,8 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
     const int gpu_id = 0;
     const int n_streams = 1;
 
-    const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
-    const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
+    const int tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+    const auto test_tiles = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
 
     gprat::GP_data training_input(train_path, n_train, n_reg);
     gprat::GP_data training_output(out_path, n_train, n_reg);
@@ -139,7 +140,7 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
         gpu_id,
         n_streams);
 
-    utils::start_hpx_runtime(0, nullptr);
+    gprat::start_hpx_runtime(0, nullptr);
 
     gprat_results results_gpu;
     results_gpu.choleksy = gp_gpu.cholesky();
@@ -148,7 +149,7 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
     results_gpu.full_no_optimize = gp_gpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
     results_gpu.pred_no_optimize = gp_gpu.predict(test_input.data, test_tiles.first, test_tiles.second);
 
-    utils::stop_hpx_runtime();
+    gprat::stop_hpx_runtime();
 
     return results_gpu;
 }
@@ -256,7 +257,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
 // NOTE: using higher tolerance than for CPU
 TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu]")
 {
-    if (!utils::compiled_with_cuda())
+    if (!gprat::compiled_with_cuda())
     {
         WARN("CUDA not available — skipping GPU test.");
         return;

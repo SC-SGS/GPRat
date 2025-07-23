@@ -20,9 +20,6 @@ GPRAT_NS_BEGIN
 void register_distributed_tile_counters();
 void record_transmission_time(std::int64_t elapsed_ns);
 
-void track_tile_data_allocation(std::size_t size);
-void track_tile_data_deallocation(std::size_t size);
-
 void track_tile_server_allocation(std::size_t size);
 void track_tile_server_deallocation(std::size_t size);
 
@@ -91,7 +88,10 @@ namespace server
 template <typename T>
 struct tile_server : hpx::components::locking_hook<hpx::components::component_base<tile_server<T>>>
 {
-    tile_server() = default;
+    tile_server()
+    {
+        track_tile_server_allocation(0);
+    }
 
     explicit tile_server(const mutable_tile_data<double> &data) :
         data_(data)

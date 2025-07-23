@@ -39,10 +39,6 @@ void record_transmission_time(std::int64_t elapsed_ns)
     tile_transmission_time += elapsed_ns;
 }
 
-void track_tile_data_allocation(std::size_t size) { tile_data_allocations += 1; }
-
-void track_tile_data_deallocation(std::size_t size) { tile_data_deallocations += 1; }
-
 void track_tile_server_allocation(std::size_t size) { tile_server_allocations += 1; }
 
 void track_tile_server_deallocation(std::size_t size) { tile_server_deallocations += 1; }
@@ -51,8 +47,6 @@ void track_tile_server_deallocation(std::size_t size) { tile_server_deallocation
     std::uint64_t get_##name(bool reset) { return hpx::util::get_and_reset_value(name, reset); }
 
 GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_transmission_time)
-GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_data_allocations)
-GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_data_deallocations)
 GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_server_allocations)
 GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_server_deallocations)
 
@@ -88,18 +82,6 @@ void register_distributed_tile_counters()
     hpx::performance_counters::install_counter_type(
         "/gprat/tile_cache/transmission_time",
         &get_tile_transmission_time,
-        "",
-        "",
-        hpx::performance_counters::counter_type::monotonically_increasing);
-    hpx::performance_counters::install_counter_type(
-        "/gprat/tile_data/num_allocations",
-        &get_tile_data_allocations,
-        "",
-        "",
-        hpx::performance_counters::counter_type::monotonically_increasing);
-    hpx::performance_counters::install_counter_type(
-        "/gprat/tile_data/num_deallocations",
-        &get_tile_data_deallocations,
         "",
         "",
         hpx::performance_counters::counter_type::monotonically_increasing);

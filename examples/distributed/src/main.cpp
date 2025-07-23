@@ -306,6 +306,7 @@ int hpx_main(hpx::program_options::variables_map &vm)
 
 int main(int argc, char *argv[])
 {
+    hpx::register_startup_function(&GPRAT_NS::register_performance_counters);
     hpx::register_startup_function(&GPRAT_NS::register_distributed_tile_counters);
     hpx::register_startup_function(&GPRAT_NS::register_distributed_blas_counters);
 

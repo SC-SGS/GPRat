@@ -36,6 +36,7 @@ HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_covariance_distributed);
 GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance,
                                gen_tile_covariance_distributed_action,
                                "gen_tile_covariance");
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance);
 
 hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
     tile_handle<double> tile,

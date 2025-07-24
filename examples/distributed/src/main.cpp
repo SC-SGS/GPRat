@@ -31,7 +31,7 @@ hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
     std::size_t N,
     std::size_t n_regressors,
     const SEKParams &sek_params,
-    std::span<const double> input)
+    const std::vector<double>& input)
 {
     return tile.set_async(cpu::gen_tile_covariance(row, col, N, n_regressors, sek_params, input));
 }
@@ -96,7 +96,7 @@ void right_looking_cholesky_tiled(Scheduler &sched, Tiles &ft_tiles, std::size_t
 template <typename Scheduler = tiled_scheduler_local>
 std::vector<mutable_tile_data<double>>
 cholesky_hpx(Scheduler &sched,
-             std::span<const double> training_input,
+             const std::vector<double> &training_input,
              const SEKParams &sek_params,
              std::size_t n_tiles,
              std::size_t n_tile_size,

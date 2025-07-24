@@ -257,16 +257,17 @@ class tiled_dataset_accessor
     hpx::future<tile_handle<T>>
     set_tile_data(std::size_t tile_index, std::size_t generation, const mutable_tile_data<T> &data) const
     {
+        auto self = base_type::get();
         if (tiles_[tile_index].local_data)
         {
             tiles_[tile_index].local_data->set_data(data);
-            return hpx::make_ready_future(tile_handle<T>{ base_type::get(), tile_index, generation + 1 });
+            return hpx::make_ready_future(tile_handle<T>{ std::move(self), tile_index, generation + 1 });
         }
 
         typename server::tile_server<T>::set_data_action act;
         return hpx::async(act, tiles_[tile_index].tile, data)
-            .then([this, tile_index, generation](const hpx::future<void> &)
-                  { return tile_handle<T>{ base_type::get(), tile_index, generation + 1 }; });
+            .then([self = std::move(self), tile_index, generation](const hpx::future<void> &)
+                  { return tile_handle<T>{ std::move(self), tile_index, generation + 1 }; });
     }
 
     // TRANSITION

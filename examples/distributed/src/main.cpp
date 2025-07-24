@@ -300,7 +300,7 @@ GPRAT_NS_END
 
 HPX_REGISTER_ACTION(GPRAT_NS::gen_tile_covariance_distributed_action);
 
-HPX_REGISTER_STARTUP_MODULE_DYNAMIC(GPRAT_NS::check_startup)
+HPX_REGISTER_STARTUP_MODULE(GPRAT_NS::check_startup)
 
 int hpx_main(hpx::program_options::variables_map &vm)
 {

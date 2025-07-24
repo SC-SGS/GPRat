@@ -31,7 +31,7 @@ hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
     std::size_t N,
     std::size_t n_regressors,
     const SEKParams &sek_params,
-    const std::vector<double>& input)
+    const std::vector<double> &input)
 {
     return tile.set_async(cpu::gen_tile_covariance(row, col, N, n_regressors, sek_params, input));
 }
@@ -280,9 +280,27 @@ void run(hpx::program_options::variables_map &vm)
     std::cerr << "DONE!" << std::endl;
 }
 
+// startup function for PAPI counter component
+void startup()
+{
+    register_performance_counters();
+    register_distributed_tile_counters();
+    register_distributed_blas_counters();
+}
+
+bool check_startup(hpx::startup_function_type &startup_func, bool &pre_startup)
+{
+    // perform full module startup (counters will be used)
+    startup_func = startup;
+    pre_startup = true;
+    return true;
+}
+
 GPRAT_NS_END
 
 HPX_REGISTER_ACTION(GPRAT_NS::gen_tile_covariance_distributed_action);
+
+HPX_REGISTER_STARTUP_MODULE_DYNAMIC(GPRAT_NS::check_startup)
 
 int hpx_main(hpx::program_options::variables_map &vm)
 {
@@ -306,10 +324,6 @@ int hpx_main(hpx::program_options::variables_map &vm)
 
 int main(int argc, char *argv[])
 {
-    hpx::register_startup_function(&GPRAT_NS::register_performance_counters);
-    hpx::register_startup_function(&GPRAT_NS::register_distributed_tile_counters);
-    hpx::register_startup_function(&GPRAT_NS::register_distributed_blas_counters);
-
     namespace po = hpx::program_options;
     po::options_description desc("Allowed options");
 

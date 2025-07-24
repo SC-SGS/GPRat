@@ -21,12 +21,11 @@ hpx::future<tile_handle<double>> potrf_distributed(const tile_handle<double> &A,
 {
     return hpx::dataflow(
         hpx::launch::async,
-        hpx::unwrapping(
-            [A, N](const mutable_tile_data<double> &tile)
-            {
-                GPRAT_TIME_PLAIN_ACTION(potrf);
-                return A.set_async(potrf(tile, N));
-            }),
+        [A, N](hpx::future<mutable_tile_data<double>> &&tile)
+        {
+            GPRAT_TIME_PLAIN_ACTION(potrf);
+            return A.set_async(potrf(tile.get(), N));
+        },
         A.get_async());
 }
 
@@ -40,12 +39,12 @@ hpx::future<tile_handle<double>> trsm_distributed(
 {
     return hpx::dataflow(
         hpx::launch::async,
-        hpx::unwrapping(
-            [A, N, M, transpose_L, side_L](const mutable_tile_data<double> &Ld, mutable_tile_data<double> Ad)
-            {
-                GPRAT_TIME_PLAIN_ACTION(trsm);
-                return A.set_async(trsm(Ld, Ad, N, M, transpose_L, side_L));
-            }),
+        [A, N, M, transpose_L, side_L](
+            hpx::future<mutable_tile_data<double>> &&Ld, hpx::future<mutable_tile_data<double>> &&Ad)
+        {
+            GPRAT_TIME_PLAIN_ACTION(trsm);
+            return A.set_async(trsm(Ld.get(), Ad.get(), N, M, transpose_L, side_L));
+        },
         L.get_async(),
         A.get_async());
 }
@@ -54,12 +53,11 @@ hpx::future<tile_handle<double>> syrk_distributed(const tile_handle<double> &A, 
 {
     return hpx::dataflow(
         hpx::launch::async,
-        hpx::unwrapping(
-            [A, N](mutable_tile_data<double> Ad, const mutable_tile_data<double> &Bd)
-            {
-                GPRAT_TIME_PLAIN_ACTION(syrk);
-                return A.set_async(syrk(Ad, Bd, N));
-            }),
+        [A, N](hpx::future<mutable_tile_data<double>> &&Ad, hpx::future<mutable_tile_data<double>> &&Bd)
+        {
+            GPRAT_TIME_PLAIN_ACTION(syrk);
+            return A.set_async(syrk(Ad.get(), Bd.get(), N));
+        },
         A.get_async(),
         B.get_async());
 }
@@ -76,13 +74,13 @@ hpx::future<tile_handle<double>> gemm_distributed(
 {
     return hpx::dataflow(
         hpx::launch::async,
-        hpx::unwrapping(
-            [C, N, M, K, transpose_A, transpose_B](
-                const mutable_tile_data<double> &Ad, const mutable_tile_data<double> &Bd, mutable_tile_data<double> Cd)
-            {
-                GPRAT_TIME_PLAIN_ACTION(gemm);
-                return C.set_async(gemm(Ad, Bd, Cd, N, M, K, transpose_A, transpose_B));
-            }),
+        [C, N, M, K, transpose_A, transpose_B](hpx::future<mutable_tile_data<double>> &&Ad,
+                                               hpx::future<mutable_tile_data<double>> &&Bd,
+                                               hpx::future<mutable_tile_data<double>> &&Cd)
+        {
+            GPRAT_TIME_PLAIN_ACTION(gemm);
+            return C.set_async(gemm(Ad.get(), Bd.get(), Cd.get(), N, M, K, transpose_A, transpose_B));
+        },
         A.get_async(),
         B.get_async(),
         C.get_async());

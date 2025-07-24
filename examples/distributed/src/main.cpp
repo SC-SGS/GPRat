@@ -31,15 +31,24 @@ hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
     std::size_t N,
     std::size_t n_regressors,
     const SEKParams &sek_params,
-    const std::vector<double> &input)
-{
-    return tile.set_async(cpu::gen_tile_covariance(row, col, N, n_regressors, sek_params, input));
-}
-
+    const std::vector<double> &input);
 HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_covariance_distributed);
 GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance,
                                gen_tile_covariance_distributed_action,
                                "gen_tile_covariance");
+
+hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
+    tile_handle<double> tile,
+    std::size_t row,
+    std::size_t col,
+    std::size_t N,
+    std::size_t n_regressors,
+    const SEKParams &sek_params,
+    const std::vector<double> &input)
+{
+    GPRAT_TIME_PLAIN_ACTION(cpu::gen_tile_covariance);
+    return tile.set_async(cpu::gen_tile_covariance(row, col, N, n_regressors, sek_params, input));
+}
 
 template <typename Tiles, typename Scheduler = tiled_scheduler_local>
 void right_looking_cholesky_tiled(Scheduler &sched, Tiles &ft_tiles, std::size_t N, std::size_t n_tiles)
@@ -304,6 +313,7 @@ HPX_REGISTER_STARTUP_MODULE(GPRAT_NS::check_startup)
 
 int hpx_main(hpx::program_options::variables_map &vm)
 {
+    hpx::get_runtime().get_config().dump(0, std::cerr);
     std::cerr << "OS Threads: " << hpx::get_os_thread_count() << std::endl;
     std::cerr << "All localities: " << hpx::get_num_localities().get() << std::endl;
     std::cerr << "Root locality: " << hpx::find_root_locality() << std::endl;
@@ -311,6 +321,8 @@ int hpx_main(hpx::program_options::variables_map &vm)
     std::cerr << "Remote localities: " << hpx::find_remote_localities().size() << std::endl;
 
     auto numa_domains = hpx::compute::host::numa_domains();
+    std::cerr << "Local NUMA domains: " << numa_domains.size() << std::endl;
+
     try
     {
         GPRAT_NS::run(vm);

@@ -365,8 +365,6 @@ template <typename T>
 tiled_dataset<T>
 create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targets, std::size_t num_tiles)
 {
-    using data_type = server::tile_manager_shared_data<T>;
-
     // First, create the actual tile data holders
     std::vector<hpx::future<std::vector<hpx::id_type>>> holders;
     holders.reserve(targets.size());
@@ -376,17 +374,16 @@ create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targe
     }
 
     // Next we prepare our shared data for the manager components
-    data_type manager_data;
-    manager_data.tiles.resize(num_tiles);
+    server::tile_manager_shared_data<T> manager_data;
+    manager_data.tiles.reserve(num_tiles);
 
-    std::size_t l = 0;
     for (std::size_t i = 0; i < targets.size(); ++i)
     {
         const auto locality = hpx::naming::get_locality_id_from_id(targets[i].first);
         for (hpx::id_type &id : holders[i].get())
         {
-            manager_data.tiles[l++] = data_type::tile_entry(std::move(id), locality);
-            if (l == num_tiles)
+            manager_data.tiles.emplace_back(std::move(id), locality);
+            if (manager_data.tiles.size() == num_tiles)
             {
                 break;
             }

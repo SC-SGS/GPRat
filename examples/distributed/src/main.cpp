@@ -16,6 +16,7 @@
 // Better than having the whole project depend on compiled Boost.Json!
 
 #include "gprat/gprat.hpp"
+#include "gprat/performance_counters.hpp"
 #include "gprat/utils.hpp"
 
 #include <boost/json/src.hpp>
@@ -52,22 +53,22 @@ hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
 }
 
 template <typename Tiles, typename Scheduler = tiled_scheduler_local>
-void right_looking_cholesky_tiled(Scheduler &sched, Tiles &ft_tiles, std::size_t N, std::size_t n_tiles)
+void right_looking_cholesky_tiled(Scheduler &sched, Tiles &tiles, std::size_t N, std::size_t n_tiles)
 {
     for (std::size_t k = 0; k < n_tiles; k++)
     {
         // POTRF: Compute Cholesky factor L
-        ft_tiles[k * n_tiles + k] = detail::named_dataflow<potrf>(
-            sched, cholesky_POTRF(sched, k), "cholesky_tiled", ft_tiles[k * n_tiles + k], N);
+        tiles[k * n_tiles + k] = detail::named_dataflow<potrf>(
+            sched, cholesky_POTRF(sched, n_tiles, k), "cholesky_tiled", tiles[k * n_tiles + k], N);
         for (std::size_t m = k + 1; m < n_tiles; m++)
         {
             // TRSM:  Solve X * L^T = A
-            ft_tiles[m * n_tiles + k] = detail::named_dataflow<trsm>(
+            tiles[m * n_tiles + k] = detail::named_dataflow<trsm>(
                 sched,
                 cholesky_TRSM(sched, k, m),
                 "cholesky_tiled",
-                ft_tiles[k * n_tiles + k],
-                ft_tiles[m * n_tiles + k],
+                tiles[k * n_tiles + k],
+                tiles[m * n_tiles + k],
                 N,
                 N,
                 Blas_trans,
@@ -76,23 +77,23 @@ void right_looking_cholesky_tiled(Scheduler &sched, Tiles &ft_tiles, std::size_t
         for (std::size_t m = k + 1; m < n_tiles; m++)
         {
             // SYRK:  A = A - B * B^T
-            ft_tiles[m * n_tiles + m] = detail::named_dataflow<syrk>(
+            tiles[m * n_tiles + m] = detail::named_dataflow<syrk>(
                 sched,
-                cholesky_SYRK(sched, m),
+                cholesky_SYRK(sched, n_tiles, m),
                 "cholesky_tiled",
-                ft_tiles[m * n_tiles + m],
-                ft_tiles[m * n_tiles + k],
+                tiles[m * n_tiles + m],
+                tiles[m * n_tiles + k],
                 N);
             for (std::size_t n = k + 1; n < m; n++)
             {
                 // GEMM: C = C - A * B^T
-                ft_tiles[m * n_tiles + n] = detail::named_dataflow<gemm>(
+                tiles[m * n_tiles + n] = detail::named_dataflow<gemm>(
                     sched,
-                    cholesky_GEMM(sched, k, m, n),
+                    cholesky_GEMM(sched, n_tiles, k, m, n),
                     "cholesky_tiled",
-                    ft_tiles[m * n_tiles + k],
-                    ft_tiles[n * n_tiles + k],
-                    ft_tiles[m * n_tiles + n],
+                    tiles[m * n_tiles + k],
+                    tiles[n * n_tiles + k],
+                    tiles[m * n_tiles + n],
                     N,
                     N,
                     N,
@@ -120,7 +121,7 @@ cholesky_hpx(Scheduler &sched,
         {
             tiles[row * n_tiles + col] = detail::named_dataflow<cpu::gen_tile_covariance>(
                 sched,
-                cholesky_tile(sched, row, col),
+                cholesky_tile(sched, n_tiles, row, col),
                 "cholesky init",
                 tiles[row * n_tiles + col],
                 row,

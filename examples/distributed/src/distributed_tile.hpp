@@ -23,62 +23,30 @@ void record_transmission_time(std::int64_t elapsed_ns);
 void track_tile_server_allocation(std::size_t size);
 void track_tile_server_deallocation(std::size_t size);
 
-namespace server
+namespace detail
 {
-struct tiled_dataset_config_data
+hpx::util::cache::statistics::local_full_statistics &get_global_statistics();
+
+///////////////////////////////////////////////////////////////////////////
+class global_full_statistics
 {
-    struct tile_entry
-    {
-        tile_entry() :
-            locality_id(hpx::naming::invalid_locality_id),
-            generation(0)
-        { }
+  public:
+    using update_on_exit = hpx::util::cache::statistics::local_full_statistics::update_on_exit;
 
-        tile_entry(hpx::id_type tile, std::uint32_t locality_id, std::uint64_t generation) :
-            tile(std::move(tile)),
-            locality_id(locality_id),
-            generation(generation)
-        { }
+    // ReSharper disable once CppNonExplicitConversionOperator
+    operator hpx::util::cache::statistics::local_full_statistics &() const { return get_global_statistics(); }
 
-        hpx::id_type tile;
-        std::uint32_t locality_id;
-        std::uint64_t generation;
+    void got_hit() noexcept { get_global_statistics().got_hit(); }
 
-      private:
-        friend class hpx::serialization::access;
+    void got_miss() noexcept { get_global_statistics().got_miss(); }
 
-        template <typename Archive>
-        void serialize(Archive &ar, unsigned)
-        {
-            ar & tile & locality_id & generation;
-        }
-    };
+    void got_insertion() noexcept { get_global_statistics().got_insertion(); }
 
-    tiled_dataset_config_data() = default;
+    void got_eviction() noexcept { get_global_statistics().got_eviction(); }
 
-    tiled_dataset_config_data(std::vector<tile_entry> &&tiles) :
-        tiles(std::move(tiles))
-    { }
-
-    std::vector<tile_entry> tiles;
-
-  private:
-    friend class hpx::serialization::access;
-
-    template <typename Archive>
-    void serialize(Archive &ar, unsigned)
-    {
-        ar & tiles;
-    }
+    void clear() noexcept { get_global_statistics().clear(); }
 };
-}  // namespace server
-
-GPRAT_NS_END
-
-HPX_DISTRIBUTED_METADATA_DECLARATION(GPRAT_NS::server::tiled_dataset_config_data,
-                                     gprat_server_tiled_dataset_config_data)
-
-GPRAT_NS_BEGIN
+}  // namespace detail
 
 template <typename T>
 class tile_cache
@@ -114,6 +82,8 @@ class tile_cache
         cache_.insert(key, entry{ data, generation });
     }
 
+    void clear() { cache_.clear(); }
+
   private:
     struct entry
     {
@@ -122,34 +92,30 @@ class tile_cache
     };
 
     hpx::mutex mutex_;
-    hpx::util::cache::lru_cache<hpx::naming::gid_type, entry, hpx::util::cache::statistics::local_full_statistics>
-        cache_;
+    hpx::util::cache::lru_cache<hpx::naming::gid_type, entry, detail::global_full_statistics> cache_;
 };
-
-template <typename T>
-tile_cache<T> &get_tile_cache()
-{
-    static tile_cache<T> cache;
-    return cache;
-}
 
 namespace server
 {
-// This is the server side representation of the data. We expose this as a HPX
-// component which allows for it to be created and accessed remotely through
-// a global address (hpx::id_type).
-template <typename T>
-struct tile_server : hpx::components::locking_hook<hpx::components::component_base<tile_server<T>>>
-{
-    tile_server() { track_tile_server_allocation(0); }
 
-    explicit tile_server(const mutable_tile_data<double> &data) :
+/**
+ * Server component owning a single tile's data.
+ *
+ * @tparam T Element type of the tile. Usually some numeric type like double or float. This class currently only
+ * requires T to be serializable by HPX.
+ */
+template <typename T>
+struct tile_holder : hpx::components::locking_hook<hpx::components::component_base<tile_holder<T>>>
+{
+    tile_holder() { track_tile_server_allocation(0); }
+
+    explicit tile_holder(const mutable_tile_data<double> &data) :
         data_(data)
     {
         track_tile_server_allocation(data.size());
     }
 
-    ~tile_server() { track_tile_server_deallocation(data_.size()); }
+    ~tile_holder() { track_tile_server_deallocation(data_.size()); }
 
     [[nodiscard]] mutable_tile_data<double> get_data() const { return data_; }
 
@@ -157,145 +123,91 @@ struct tile_server : hpx::components::locking_hook<hpx::components::component_ba
 
     // Every member function that has to be invoked remotely needs to be
     // wrapped into a component action.
-    HPX_DEFINE_COMPONENT_DIRECT_ACTION(tile_server, get_data)
-    HPX_DEFINE_COMPONENT_DIRECT_ACTION(tile_server, set_data)
+    HPX_DEFINE_COMPONENT_DIRECT_ACTION(tile_holder, get_data)
+    HPX_DEFINE_COMPONENT_DIRECT_ACTION(tile_holder, set_data)
 
   private:
     mutable_tile_data<double> data_;
 };
 
-}  // namespace server
-
-#define GPRAT_REGISTER_TILED_DATASET_DECLARATION_IMPL(type, name)                                                      \
-    HPX_REGISTER_ACTION_DECLARATION(type::get_data_action, HPX_PP_CAT(_tiled_dataset_get_data_action_, name))          \
-    HPX_REGISTER_ACTION_DECLARATION(type::set_data_action, HPX_PP_CAT(_tiled_dataset_set_data_action_, name))          \
-    /**/
-
-#define GPRAT_REGISTER_TILED_DATASET_DECLARATION(type, name)                                                           \
-    typedef ::GPRAT_NS::server::tile_server<type> HPX_PP_CAT(_tiled_dataset_server_, HPX_PP_CAT(type, name));          \
-    GPRAT_REGISTER_TILED_DATASET_DECLARATION_IMPL(HPX_PP_CAT(_tiled_dataset_server_, HPX_PP_CAT(type, name)), name)
-
-#define GPRAT_REGISTER_TILED_DATASET_IMPL(type, name)                                                                  \
-    HPX_REGISTER_ACTION(type::get_data_action, HPX_PP_CAT(_tiled_dataset_get_data_action_, name))                      \
-    HPX_REGISTER_ACTION(type::set_data_action, HPX_PP_CAT(_tiled_dataset_set_data_action_, name))                      \
-    typedef ::hpx::components::component<type> HPX_PP_CAT(_tiled_dataset_server_component_, name);                     \
-    HPX_REGISTER_COMPONENT(HPX_PP_CAT(_tiled_dataset_server_component_, name))                                         \
-    /**/
-
-#define GPRAT_REGISTER_TILED_DATASET(type, name)                                                                       \
-    typedef ::GPRAT_NS::server::tile_server<type> HPX_PP_CAT(_tiled_dataset_server_, HPX_PP_CAT(type, name));          \
-    GPRAT_REGISTER_TILED_DATASET_IMPL(HPX_PP_CAT(_tiled_dataset_server_, HPX_PP_CAT(type, name)), name)
-
 template <typename T>
-class tiled_dataset_accessor;
-
-template <typename T>
-class tile_handle
+struct tile_manager_shared_data
 {
-  public:
-    tile_handle() = default;
-
-    tile_handle(const hpx::id_type &id, std::size_t tile_index, std::size_t generation) :
-        ds_(id),
-        tile_index_(tile_index),
-        generation_(generation)
-    { }
-
-    operator mutable_tile_data<T>() const { return get(); }
-
-    mutable_tile_data<T> get() const
+    struct tile_entry
     {
-        tiled_dataset_accessor<T> ds(ds_);  // TRANSITION
-        return ds.get_tile_data(tile_index_, generation_).get();
-    }
+        tile_entry() :
+            locality_id(hpx::naming::invalid_locality_id)
+        { }
 
-    hpx::future<mutable_tile_data<T>> get_async() const
-    {
-        tiled_dataset_accessor<T> ds(ds_);  // TRANSITION
-        return ds.get_tile_data(tile_index_, generation_);
-    }
+        tile_entry(hpx::id_type tile, std::uint32_t locality_id) :
+            tile(std::move(tile)),
+            locality_id(locality_id)
+        { }
 
-    hpx::future<tile_handle> set_async(const mutable_tile_data<T> &data) const
-    {
-        tiled_dataset_accessor<T> ds(ds_);  // TRANSITION
-        return ds.set_tile_data(tile_index_, generation_ + 1, data);
-    }
+        hpx::id_type tile;
+        std::uint32_t locality_id;
+        std::shared_ptr<tile_holder<T>> local_data;
 
-  private:
+      private:
+        friend class hpx::serialization::access;
+
+        template <typename Archive>
+        void serialize(Archive &ar, unsigned)
+        {
+            ar & tile & locality_id;
+        }
+    };
+
+    std::vector<tile_entry> tiles;
+
+private:
     friend class hpx::serialization::access;
 
     template <typename Archive>
     void serialize(Archive &ar, unsigned)
     {
-        ar & ds_ & tile_index_ & generation_;
+        ar & tiles;
     }
-
-    // we need this instead of the actual tile_handle because per-locality caches
-    // reside in the accessor.
-    hpx::id_type ds_;
-    std::size_t tile_index_;
-    std::size_t generation_;
 };
 
 template <typename T>
-using tiled_dataset = std::vector<hpx::shared_future<tile_handle<T>>>;
-
-template <typename T>
-class tiled_dataset_accessor
-    : public hpx::components::client_base<
-          tiled_dataset_accessor<T>,
-          hpx::components::server::distributed_metadata_base<server::tiled_dataset_config_data>>
+struct tile_manager : hpx::components::component_base<tile_manager<T>>
 {
-    using server_type = hpx::components::server::distributed_metadata_base<server::tiled_dataset_config_data>;
-    using base_type = hpx::components::client_base<tiled_dataset_accessor<T>, server_type>;
+    tile_manager(tile_manager_shared_data<T> &&data) :
+        data_(std::move(data))
+    { }
 
-    using tile_server = server::tile_server<T>;
-
-    struct tile_entry : server::tiled_dataset_config_data::tile_entry
+    mutable_tile_data<T> get_tile_data(std::size_t tile_index, std::size_t generation)
     {
-        using base_type = server::tiled_dataset_config_data::tile_entry;
+        const auto &target_tile = data_.tiles[tile_index];
 
-        tile_entry() = default;
+        // Best is always to rely on local data
+        if (target_tile.local_data)
+        {
+            return target_tile.local_data->get_data();
+        }
 
-        tile_entry(const hpx::id_type &part, std::uint32_t locality_id, std::size_t version) :
-            base_type(part, locality_id, version)
-        { }
+        // Next, try the tile cache - maybe we have current data
+        {
+            mutable_tile_data<T> cached_data;
+            if (cache_.try_get(target_tile.tile.get_gid(), generation, cached_data))
+            {
+                return cached_data;
+            }
+        }
 
-        tile_entry(const base_type &base) noexcept :
-            base_type(base)
-        { }
+        hpx::chrono::high_resolution_timer timer;
+        auto data = hpx::async(typename tile_holder<T>::get_data_action{}, target_tile.tile).get();
 
-        tile_entry(base_type &&base) noexcept :
-            base_type(HPX_MOVE(base))
-        { }
+        record_transmission_time(timer.elapsed_nanoseconds());
+        cache_.insert(target_tile.tile.get_gid(), generation, data);
 
-        std::shared_ptr<tile_server> local_data;
-    };
-
-    // The list of partitions belonging to this vector.
-    // Each partition is described by its corresponding client object, its
-    // size, and locality id.
-    using tiles_vector_type = std::vector<tile_entry>;
-
-  public:
-    explicit tiled_dataset_accessor(const hpx::id_type &id) { connect_to(id).get(); }
-
-    explicit tiled_dataset_accessor(std::span<const std::pair<hpx::id_type, std::size_t>> targets,
-                                    std::size_t num_tiles)
-    {
-        create(targets, num_tiles);
+        return data;
     }
 
-    hpx::future<void> connect_to(const hpx::id_type &id)
+    hpx::future<mutable_tile_data<T>> get_tile_data_async(std::size_t tile_index, std::size_t generation)
     {
-        return hpx::async(server_type::get_action(), id)
-            .then([this, id](hpx::future<server::tiled_dataset_config_data> &&f) -> void
-                  { return assign_existing(id, f.get()); });
-    }
-
-    hpx::future<mutable_tile_data<T>> get_tile_data(std::size_t tile_index, std::size_t generation) const
-    {
-        const auto &target_tile = tiles_[tile_index];
+        const auto &target_tile = data_.tiles[tile_index];
 
         // Best is always to rely on local data
         if (target_tile.local_data)
@@ -306,192 +218,198 @@ class tiled_dataset_accessor
         // Next, try the tile cache - maybe we have current data
         {
             mutable_tile_data<T> cached_data;
-            if (get_tile_cache<T>().try_get(target_tile.tile.get_gid(), generation, cached_data))
+            if (cache_.try_get(target_tile.tile.get_gid(), generation, cached_data))
             {
                 return hpx::make_ready_future(cached_data);
             }
         }
 
-        typename server::tile_server<T>::get_data_action act;
-        return hpx::async(act, target_tile.tile)
+        return hpx::async(typename tile_holder<T>::get_data_action{}, target_tile.tile)
             .then(
-                [generation, gid = target_tile.tile.get_gid(), timer = hpx::chrono::high_resolution_timer()](
+                [this, generation, gid = target_tile.tile.get_gid(), timer = hpx::chrono::high_resolution_timer()](
                     hpx::future<mutable_tile_data<T>> &&f)
                 {
                     record_transmission_time(timer.elapsed_nanoseconds());
                     auto data = f.get();
-                    get_tile_cache<T>().insert(gid, generation, data);
+                    cache_.insert(gid, generation, data);
                     return data;
                 });
     }
 
-    hpx::future<tile_handle<T>>
-    set_tile_data(std::size_t tile_index, std::size_t generation, const mutable_tile_data<T> &data) const
+    hpx::future<void>
+    set_tile_data_async(std::size_t tile_index, std::size_t generation, const mutable_tile_data<T> &data)
     {
-        const auto &target_tile = tiles_[tile_index];
+        const auto &target_tile = data_.tiles[tile_index];
 
-        auto self = base_type::get();
         if (target_tile.local_data)
         {
             target_tile.local_data->set_data(data);
-            return hpx::make_ready_future(tile_handle<T>{ std::move(self), tile_index, generation + 1 });
+            return hpx::make_ready_future();
         }
 
         // We'd lose this tile after writing it, best to put it in the cache for now
-        get_tile_cache<T>().insert(target_tile.tile.get_gid(), generation, data);
+        cache_.insert(target_tile.tile.get_gid(), generation, data);
 
-        typename server::tile_server<T>::set_data_action act;
-        return hpx::async(act, target_tile.tile, data)
-            .then([self = std::move(self), tile_index, generation](const hpx::future<void> &)
-                  { return tile_handle<T>{ std::move(self), tile_index, generation + 1 }; });
-    }
-
-    // TRANSITION
-    tiled_dataset<T> to_dataset()
-    {
-        tiled_dataset<T> result;
-        result.reserve(tiles_.size());
-        for (std::size_t i = 0; i < tiles_.size(); ++i)
-        {
-            result.emplace_back(hpx::make_ready_future(tile_handle<T>{ base_type::get(), i, tiles_[i].generation }));
-        }
-        return result;
+        typename tile_holder<T>::set_data_action act;
+        return hpx::async(act, target_tile.tile, data);
     }
 
   private:
-    void assign_existing(const hpx::id_type &id, server::tiled_dataset_config_data &&config)
-    {
-        tiles_.clear();
-        tiles_.insert(tiles_.end(), config.tiles.begin(), config.tiles.end());
-
-        const auto here = hpx::get_locality_id();
-        for (auto &tile : tiles_)
-        {
-            if (tile.locality_id == here && !tile.local_data)
-            {
-                tile.local_data = hpx::get_ptr<tile_server>(hpx::launch::sync, tile.tile);
-            }
-        }
-
-        return base_type::reset(id);
-    }
-
-    void create(std::span<const std::pair<hpx::id_type, std::size_t>> targets, std::size_t num_tiles)
-    {
-        std::vector<hpx::future<std::vector<hpx::id_type>>> objs;
-        objs.reserve(targets.size());
-        for (const auto &target : targets)
-        {
-            objs.emplace_back(hpx::components::bulk_create_async<tile_server>(target.first, target.second));
-        }
-
-        const auto here = hpx::get_locality_id();
-        tiles_.resize(num_tiles);
-
-        std::size_t l = 0;
-        for (std::size_t i = 0; i < targets.size(); ++i)
-        {
-            const auto locality = hpx::naming::get_locality_id_from_id(targets[i].first);
-            for (const hpx::id_type &id : objs[i].get())
-            {
-                tiles_[l] = tile_entry(id, locality, 0);
-
-                if (locality == here)
-                {
-                    tiles_[l].local_data = hpx::get_ptr<tile_server>(hpx::launch::sync, id);
-                }
-
-                if (++l == num_tiles)
-                {
-                    break;
-                }
-            }
-        }
-        HPX_ASSERT(l == num_tiles);
-
-        std::vector<server::tiled_dataset_config_data::tile_entry> data{ tiles_.begin(), tiles_.end() };
-        base_type::reset(
-            hpx::new_<hpx::components::server::distributed_metadata_base<server::tiled_dataset_config_data>>(
-                hpx::find_here(), server::tiled_dataset_config_data{ std::move(data) }));
-    }
-
-    tiles_vector_type tiles_;
+    tile_manager_shared_data<T> data_;
+    tile_cache<T> cache_;
 };
 
-// partitioned_vector_partition => tile_handle?
-// server::partitioned_vector => tile_server?
+}  // namespace server
 
-/*template <typename T>
-class tiled_dataset
-{
+// DECLARATION macros (use in a single header)
 
+#define GPRAT_REGISTER_TILE_HOLDER_DECLARATION_IMPL(type, name)                                                        \
+    HPX_REGISTER_ACTION_DECLARATION(type::get_data_action, HPX_PP_CAT(_tile_holder_get_data_action_, name))            \
+    HPX_REGISTER_ACTION_DECLARATION(type::set_data_action, HPX_PP_CAT(_tile_holder_set_data_action_, name))            \
+    /**/
 
-  hpx::future<tile_reference<T>>& operator[](std::size_t index)
-  {
-    return
-  }
-  // operator[] => future[tile_reference]&
-};*/
+#define GPRAT_REGISTER_TILED_DATASET_DECLARATION(type, name)                                                           \
+    typedef ::GPRAT_NS::server::tile_holder<type> HPX_PP_CAT(_server_tile_holder_, HPX_PP_CAT(type, name));            \
+    GPRAT_REGISTER_TILE_HOLDER_DECLARATION_IMPL(HPX_PP_CAT(_server_tile_holder_, HPX_PP_CAT(type, name)), name)
 
-// OLD:
-/*
-///////////////////////////////////////////////////////////////////////////////
-// This is a client side helper class allowing to hide some of the tedious
-// boilerplate while referencing a remote partition.
+// REGISTRATION macros (use in a single .cpp file)
+
+#define GPRAT_REGISTER_TILE_HOLDER_IMPL(type, name)                                                                    \
+    HPX_REGISTER_ACTION(type::get_data_action, HPX_PP_CAT(_tile_holder_get_data_action_, name))                        \
+    HPX_REGISTER_ACTION(type::set_data_action, HPX_PP_CAT(_tile_holder_set_data_action_, name))                        \
+    typedef ::hpx::components::component<type> HPX_PP_CAT(_server_tile_holder_component_, name);                       \
+    HPX_REGISTER_COMPONENT(HPX_PP_CAT(_server_tile_holder_component_, name))                                           \
+    /**/
+
+#define GPRAT_REGISTER_TILE_MANAGER_IMPL(type, name)                                                                   \
+    typedef ::hpx::components::component<type> HPX_PP_CAT(_server_tile_manager_component_, name);                      \
+    HPX_REGISTER_COMPONENT(HPX_PP_CAT(_server_tile_manager_component_, name))                                          \
+    /**/
+
+#define GPRAT_REGISTER_TILED_DATASET(type, name)                                                                       \
+    typedef ::GPRAT_NS::server::tile_holder<type> HPX_PP_CAT(_server_tile_holder_, HPX_PP_CAT(type, name));            \
+    GPRAT_REGISTER_TILE_HOLDER_IMPL(HPX_PP_CAT(_server_tile_holder_, HPX_PP_CAT(type, name)), name)                    \
+    typedef ::GPRAT_NS::server::tile_manager<type> HPX_PP_CAT(_server_tile_manager_, HPX_PP_CAT(type, name));          \
+    GPRAT_REGISTER_TILE_MANAGER_IMPL(HPX_PP_CAT(_server_tile_manager_, HPX_PP_CAT(type, name)), name)
 
 template <typename T>
-struct tile_handle : hpx::components::client_base<tile_handle<T>, server::tile_server<T>>
-{
-    using base_type = hpx::components::client_base<tile_handle, server::tile_server<T>>;
+class tiled_dataset_accessor;
 
+template <typename T>
+class tile_handle
+{
+  public:
     tile_handle() = default;
 
-    // Create new component on locality 'where' and initialize the held data
-    tile_handle(const hpx::id_type &where, const mutable_tile_data<T> &data) :
-        base_type(hpx::new_<server::tile_server<T>>(where, data))
+    tile_handle(std::vector<hpx::id_type> managers, std::size_t tile_index, std::size_t generation) :
+        managers_(std::move(managers)),
+        tile_index_(tile_index),
+        generation_(generation)
     { }
 
-    // Create new component on locality 'where' and initialize the held data
-    template <typename T>
-    requires hpx::traits::is_distribution_policy_v<T> tile_handle(const T &policy, const mutable_tile_data<T> &data) :
-        base_type(hpx::new_<server::tile_server<T>>(policy, data))
-    { }
+    operator mutable_tile_data<T>() const { return get(); }
 
-    // Attach a future representing a (possibly remote) partition.
-    // ReSharper disable once CppNonExplicitConvertingConstructor
-    tile_handle(hpx::future<hpx::id_type> &&id) noexcept :
-        base_type(std::move(id))
-    { }
+    mutable_tile_data<T> get() const { return get_local_manager()->get_tile_data(tile_index_, generation_); }
 
-    // Unwrap a future<tile_handle> (a tile_handle already is a future to the
-    // id of the referenced object, thus unwrapping accesses this inner future).
-    // ReSharper disable once CppNonExplicitConvertingConstructor
-    tile_handle(hpx::future<tile_handle> &&c) noexcept :
-        base_type(std::move(c))
-    { }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // tile's are immutable for now, meaning we can cache them on first use.
-    [[nodiscard]] hpx::future<mutable_tile_data<double>> get_data() const
+    hpx::future<mutable_tile_data<T>> get_async() const
     {
-        typename server::tile_server<T>::get_data_action act;
-        return hpx::async(act, base_type::get_id());
+        return get_local_manager()->get_tile_data_async(tile_index_, generation_);
     }
 
-    [[nodiscard]] hpx::future<void> set_data(const mutable_tile_data<double> &data)
+    hpx::future<tile_handle> set_async(const mutable_tile_data<T> &data) const
     {
-        typename server::tile_server<T>::set_data_action act;
-        return hpx::async(act, base_type::get_id(), data);
+        return get_local_manager()
+            ->set_tile_data_async(tile_index_, generation_ + 1, data)
+            .then(
+                [self = *this](hpx::future<void> &&) mutable
+                {
+                    ++self.generation_;
+                    return self;
+                });
     }
+
+  private:
+    friend class hpx::serialization::access;
+
+    template <typename Archive>
+    void serialize(Archive &ar, unsigned)
+    {
+        ar & managers_ & tile_index_ & generation_;
+    }
+
+    std::shared_ptr<server::tile_manager<T>> get_local_manager() const
+    {
+        const auto here = hpx::get_locality_id();
+        for (const auto &id : managers_)
+        {
+            if (here == hpx::naming::get_locality_id_from_id(id))
+            {
+                return hpx::get_ptr<server::tile_manager<T>>(hpx::launch::sync, id);
+            }
+        }
+
+        throw std::runtime_error("This locality is not known");
+    }
+
+    // TODO: It would be best if the caller could give us the right manager already,
+    // but since the amount of localities is somewhat limited, this will do for now.
+    std::vector<hpx::id_type> managers_;
+    std::size_t tile_index_;
+    std::size_t generation_;
 };
-*/
+
+template <typename T>
+using tiled_dataset = std::vector<hpx::shared_future<tile_handle<T>>>;
+
+template <typename T>
+tiled_dataset<T>
+create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targets, std::size_t num_tiles)
+{
+    using data_type = server::tile_manager_shared_data<T>;
+
+    // First, create the actual tile data holders
+    std::vector<hpx::future<std::vector<hpx::id_type>>> holders;
+    holders.reserve(targets.size());
+    for (const auto &target : targets)
+    {
+        holders.emplace_back(hpx::components::bulk_create_async<server::tile_holder<T>>(target.first, target.second));
+    }
+
+    // Next we prepare our shared data for the manager components
+    data_type manager_data;
+    manager_data.tiles.resize(num_tiles);
+
+    std::size_t l = 0;
+    for (std::size_t i = 0; i < targets.size(); ++i)
+    {
+        const auto locality = hpx::naming::get_locality_id_from_id(targets[i].first);
+        for (hpx::id_type &id : holders[i].get())
+        {
+            manager_data.tiles[l++] = data_type::tile_entry(std::move(id), locality);
+            if (l == num_tiles)
+            {
+                break;
+            }
+        }
+    }
+    HPX_ASSERT(l == num_tiles);
+
+    // Now we move on to the manager components
+    std::vector<hpx::id_type> managers;
+    managers.reserve(targets.size());
+    for (const auto &target : targets)
+    {
+        managers.emplace_back(hpx::components::create<server::tile_manager<T>>(target.first, manager_data));
+    }
+
+    // Finally, we create our fat tile_handles
+    tiled_dataset<T> tiles;
+    tiles.reserve(num_tiles);
+    for (std::size_t i = 0; i < num_tiles; ++i)
+    {
+        tiles.push_back(hpx::make_ready_future(tile_handle<T>{managers, i, 0}));
+    }
+    return tiles;
+}
 
 GPRAT_NS_END
-
-/*
-// serialization of partitioned_vector requires special handling
-template <typename T>
-struct hpx::traits::needs_reference_semantics<GPRAT_NS::tiled_dataset_accessor<T>>
-  : std::true_type
-{
-};*/

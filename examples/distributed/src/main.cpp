@@ -65,7 +65,7 @@ void right_looking_cholesky_tiled(Scheduler &sched, Tiles &tiles, std::size_t N,
             // TRSM:  Solve X * L^T = A
             tiles[m * n_tiles + k] = detail::named_dataflow<trsm>(
                 sched,
-                cholesky_TRSM(sched, k, m),
+                cholesky_TRSM(sched, n_tiles, k, m),
                 "cholesky_tiled",
                 tiles[k * n_tiles + k],
                 tiles[m * n_tiles + k],

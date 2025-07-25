@@ -2,7 +2,6 @@
 
 #include "distributed_tile.hpp"
 #include "scheduling.hpp"
-#include <hpx/runtime_distributed/find_localities.hpp>
 
 GPRAT_NS_BEGIN
 
@@ -54,7 +53,7 @@ tiled_dataset<T> make_cholesky_dataset(const tiled_cholesky_scheduler_paap12 &sc
         }
     }
 
-    return tiled_dataset_accessor<T>{ targets, num_tiles * num_tiles }.to_dataset();
+    return create_tiled_dataset<T>(targets, num_tiles * num_tiles);
 }
 
 constexpr std::size_t
@@ -119,7 +118,7 @@ tiled_dataset<T> make_cholesky_dataset(const tiled_cholesky_scheduler_cyclic &sc
         }
     }
 
-    return tiled_dataset_accessor<T>{ targets, num_tiles * num_tiles }.to_dataset();
+    return create_tiled_dataset<T>(targets, num_tiles * num_tiles);
 }
 
 constexpr std::size_t
@@ -128,14 +127,12 @@ cholesky_tile(const tiled_cholesky_scheduler_cyclic &sched, std::size_t n_tiles,
     return (row * n_tiles + col) % sched.num_localities;
 }
 
-constexpr std::size_t
-cholesky_POTRF(const tiled_cholesky_scheduler_cyclic &sched, std::size_t n_tiles, std::size_t k)
+constexpr std::size_t cholesky_POTRF(const tiled_cholesky_scheduler_cyclic &sched, std::size_t n_tiles, std::size_t k)
 {
     return (k * n_tiles + k) % sched.num_localities;
 }
 
-constexpr std::size_t
-cholesky_SYRK(const tiled_cholesky_scheduler_cyclic &sched, std::size_t n_tiles, std::size_t m)
+constexpr std::size_t cholesky_SYRK(const tiled_cholesky_scheduler_cyclic &sched, std::size_t n_tiles, std::size_t m)
 {
     return (m * n_tiles + m) % sched.num_localities;
 }
@@ -146,11 +143,8 @@ cholesky_TRSM(const tiled_cholesky_scheduler_cyclic &sched, std::size_t n_tiles,
     return (m * n_tiles + k) % sched.num_localities;
 }
 
-constexpr std::size_t cholesky_GEMM(const tiled_cholesky_scheduler_cyclic &sched,
-                                    std::size_t n_tiles,
-                                    std::size_t /*k*/,
-                                    std::size_t m,
-                                    std::size_t n)
+constexpr std::size_t cholesky_GEMM(
+    const tiled_cholesky_scheduler_cyclic &sched, std::size_t n_tiles, std::size_t /*k*/, std::size_t m, std::size_t n)
 {
     return (m * n_tiles + n) % sched.num_localities;
 }

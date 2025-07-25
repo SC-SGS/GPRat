@@ -290,12 +290,19 @@ void run(hpx::program_options::variables_map &vm)
     std::cerr << "DONE!" << std::endl;
 }
 
-// startup function for PAPI counter component
 void startup()
 {
-    register_performance_counters();
-    register_distributed_tile_counters();
-    register_distributed_blas_counters();
+    std::cerr << "startup() called" << std::endl;
+
+    static struct once_dummy_struct
+    {
+        once_dummy_struct()
+        {
+            register_performance_counters();
+            register_distributed_tile_counters();
+            register_distributed_blas_counters();
+        }
+    } once_dummy;
 }
 
 bool check_startup(hpx::startup_function_type &startup_func, bool &pre_startup)
@@ -323,6 +330,11 @@ int hpx_main(hpx::program_options::variables_map &vm)
 
     auto numa_domains = hpx::compute::host::numa_domains();
     std::cerr << "Local NUMA domains: " << numa_domains.size() << std::endl;
+    for (const auto &domain : numa_domains)
+    {
+        const auto &num_pus = domain.num_pus();
+        std::cerr << " Domain: " << num_pus.first << " " << num_pus.second << std::endl;
+    }
 
     try
     {

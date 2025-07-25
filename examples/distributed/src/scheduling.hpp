@@ -35,7 +35,8 @@ struct plain_action_timer
     {
         const auto elapsed = timer.elapsed_nanoseconds();
         HPX_ASSERT(elapsed >= 0);
-        total += elapsed;
+        if (elapsed > 0)
+            total += static_cast<std::uint64_t>(elapsed);
     }
 
     std::atomic<std::uint64_t> &total;

@@ -7,14 +7,13 @@ HPX_DISTRIBUTED_METADATA(GPRAT_NS::server::tiled_dataset_config_data, gprat_serv
 
 GPRAT_NS_BEGIN
 
-/*
 struct tile_cache_counters
 {
     // XXX: you can do this with templates, but it's quite a bit more complicated
 #define GPRAT_MAKE_STATISTICS_ACCESSOR(name)                                                                           \
     static std::uint64_t get_cache_##name(bool reset)                                                                  \
     {                                                                                                                  \
-        auto &cache = get_tile_cache();                                                                                \
+        auto &cache = get_tile_cache<double>();                                                                                \
         std::lock_guard lock(cache.mutex_);                                                                            \
         return cache.cache_.get_statistics().name(reset);                                                              \
     }
@@ -26,7 +25,7 @@ struct tile_cache_counters
 
 #undef GPRAT_MAKE_STATISTICS_ACCESSOR
 };
-*/
+
 std::atomic<std::uint64_t> tile_transmission_time(0);
 std::atomic<std::uint64_t> tile_data_allocations(0);
 std::atomic<std::uint64_t> tile_data_deallocations(0);
@@ -53,7 +52,7 @@ GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(tile_server_deallocations)
 #undef GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR
 
 void register_distributed_tile_counters()
-{ /*
+{
      hpx::performance_counters::install_counter_type(
          "/gprat/tile_cache/hits",
          &tile_cache_counters::get_cache_hits,
@@ -78,13 +77,14 @@ void register_distributed_tile_counters()
          "",
          "",
          hpx::performance_counters::counter_type::monotonically_increasing);
- */
     hpx::performance_counters::install_counter_type(
         "/gprat/tile_cache/transmission_time",
         &get_tile_transmission_time,
         "",
         "",
         hpx::performance_counters::counter_type::monotonically_increasing);
+
+
     hpx::performance_counters::install_counter_type(
         "/gprat/tile_server/num_allocations",
         &get_tile_server_allocations,
@@ -98,23 +98,5 @@ void register_distributed_tile_counters()
         "",
         hpx::performance_counters::counter_type::monotonically_increasing);
 }
-
-/*
-tile_cache::tile_cache() :
-    cache_(16)
-{ }
-
-bool tile_cache::try_get(const hpx::naming::gid_type &key, tile_data<double> &cached_data)
-{
-    std::lock_guard g(mutex_);
-    hpx::naming::gid_type unused;
-    return cache_.get_entry(key, unused, cached_data);
-}
-
-void tile_cache::insert(const hpx::naming::gid_type &key, const tile_data<double> &data)
-{
-    std::lock_guard g(mutex_);
-    cache_.insert(key, data);
-}*/
 
 GPRAT_NS_END

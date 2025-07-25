@@ -80,6 +80,59 @@ HPX_DISTRIBUTED_METADATA_DECLARATION(GPRAT_NS::server::tiled_dataset_config_data
 
 GPRAT_NS_BEGIN
 
+template <typename T>
+class tile_cache
+{
+    friend struct tile_cache_counters;
+
+  public:
+    tile_cache() :
+        cache_(16)
+    { }
+
+    bool try_get(const hpx::naming::gid_type &key, std::size_t generation, mutable_tile_data<T> &cached_data)
+    {
+        std::lock_guard g(mutex_);
+        hpx::naming::gid_type unused;
+        entry e;
+        if (cache_.get_entry(key, unused, e))
+        {
+            if (e.generation == generation)
+            {
+                cached_data = e.data;
+                return true;
+            }
+            // Erase the obsolete entry
+            cache_.erase([&](const auto &p) { return p.first == key; });
+        }
+        return false;
+    }
+
+    void insert(const hpx::naming::gid_type &key, std::size_t generation, const mutable_tile_data<T> &data)
+    {
+        std::lock_guard g(mutex_);
+        cache_.insert(key, entry{ data, generation });
+    }
+
+  private:
+    struct entry
+    {
+        mutable_tile_data<T> data;
+        std::size_t generation = 0;
+    };
+
+    hpx::mutex mutex_;
+    hpx::util::cache::lru_cache<hpx::naming::gid_type, entry, hpx::util::cache::statistics::local_full_statistics>
+        cache_;
+};
+
+template <typename T>
+tile_cache<T> &get_tile_cache()
+{
+    static tile_cache<T> cache;
+    return cache;
+}
+
 namespace server
 {
 // This is the server side representation of the data. We expose this as a HPX
@@ -88,10 +141,7 @@ namespace server
 template <typename T>
 struct tile_server : hpx::components::locking_hook<hpx::components::component_base<tile_server<T>>>
 {
-    tile_server()
-    {
-        track_tile_server_allocation(0);
-    }
+    tile_server() { track_tile_server_allocation(0); }
 
     explicit tile_server(const mutable_tile_data<double> &data) :
         data_(data)
@@ -243,29 +293,55 @@ class tiled_dataset_accessor
                   { return assign_existing(id, f.get()); });
     }
 
-    hpx::future<mutable_tile_data<T>> get_tile_data(std::size_t tile_index, std::size_t /*generation*/) const
+    hpx::future<mutable_tile_data<T>> get_tile_data(std::size_t tile_index, std::size_t generation) const
     {
-        if (tiles_[tile_index].local_data)
+        const auto &target_tile = tiles_[tile_index];
+
+        // Best is always to rely on local data
+        if (target_tile.local_data)
         {
-            return hpx::make_ready_future(tiles_[tile_index].local_data->get_data());
+            return hpx::make_ready_future(target_tile.local_data->get_data());
+        }
+
+        // Next, try the tile cache - maybe we have current data
+        {
+            mutable_tile_data<T> cached_data;
+            if (get_tile_cache<T>().try_get(target_tile.tile.get_gid(), generation, cached_data))
+            {
+                return hpx::make_ready_future(cached_data);
+            }
         }
 
         typename server::tile_server<T>::get_data_action act;
-        return hpx::async(act, tiles_[tile_index].tile);
+        return hpx::async(act, target_tile.tile)
+            .then(
+                [generation, gid = target_tile.tile.get_gid(), timer = hpx::chrono::high_resolution_timer()](
+                    hpx::future<mutable_tile_data<T>> &&f)
+                {
+                    record_transmission_time(timer.elapsed_nanoseconds());
+                    auto data = f.get();
+                    get_tile_cache<T>().insert(gid, generation, data);
+                    return data;
+                });
     }
 
     hpx::future<tile_handle<T>>
     set_tile_data(std::size_t tile_index, std::size_t generation, const mutable_tile_data<T> &data) const
     {
+        const auto &target_tile = tiles_[tile_index];
+
         auto self = base_type::get();
-        if (tiles_[tile_index].local_data)
+        if (target_tile.local_data)
         {
-            tiles_[tile_index].local_data->set_data(data);
+            target_tile.local_data->set_data(data);
             return hpx::make_ready_future(tile_handle<T>{ std::move(self), tile_index, generation + 1 });
         }
 
+        // We'd lose this tile after writing it, best to put it in the cache for now
+        get_tile_cache<T>().insert(target_tile.tile.get_gid(), generation, data);
+
         typename server::tile_server<T>::set_data_action act;
-        return hpx::async(act, tiles_[tile_index].tile, data)
+        return hpx::async(act, target_tile.tile, data)
             .then([self = std::move(self), tile_index, generation](const hpx::future<void> &)
                   { return tile_handle<T>{ std::move(self), tile_index, generation + 1 }; });
     }

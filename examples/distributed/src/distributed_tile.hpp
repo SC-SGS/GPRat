@@ -34,10 +34,7 @@ class global_full_statistics
     using update_on_exit = hpx::util::cache::statistics::local_full_statistics::update_on_exit;
 
     // ReSharper disable once CppNonExplicitConversionOperator
-    operator hpx::util::cache::statistics::local_full_statistics &() const
-    {
-        return get_global_statistics();
-    }
+    operator hpx::util::cache::statistics::local_full_statistics &() const { return get_global_statistics(); }
 
     void got_hit() noexcept { get_global_statistics().got_hit(); }
 
@@ -397,7 +394,12 @@ create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targe
     holders.reserve(targets.size());
     for (const auto &target : targets)
     {
+#if (HPX_VERSION_FULL >= 0x011100)
+        holders.emplace_back(
+            hpx::components::bulk_create_async<false, server::tile_holder<T>>(target.first, target.second));
+#else
         holders.emplace_back(hpx::components::bulk_create_async<server::tile_holder<T>>(target.first, target.second));
+#endif
     }
 
     // Next, we prepare our shared data for the manager components

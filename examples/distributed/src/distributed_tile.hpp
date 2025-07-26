@@ -34,7 +34,10 @@ class global_full_statistics
     using update_on_exit = hpx::util::cache::statistics::local_full_statistics::update_on_exit;
 
     // ReSharper disable once CppNonExplicitConversionOperator
-    operator hpx::util::cache::statistics::local_full_statistics &() const { return get_global_statistics(); }
+    operator hpx::util::cache::statistics::local_full_statistics &() const
+    {
+        return get_global_statistics();
+    }
 
     void got_hit() noexcept { get_global_statistics().got_hit(); }
 
@@ -61,18 +64,24 @@ class tile_cache
     bool try_get(const hpx::naming::gid_type &key, std::size_t generation, mutable_tile_data<T> &cached_data)
     {
         std::lock_guard g(mutex_);
-        hpx::naming::gid_type unused;
+
         entry e;
-        if (cache_.get_entry(key, unused, e))
         {
-            if (e.generation == generation)
+            hpx::naming::gid_type unused;
+            if (!cache_.get_entry(key, unused, e))
             {
-                cached_data = e.data;
-                return true;
+                return false;
             }
-            // Erase the obsolete entry
-            cache_.erase([&](const auto &p) { return p.first == key; });
         }
+
+        if (e.generation == generation)
+        {
+            cached_data = e.data;
+            return true;
+        }
+
+        // Erase the obsolete entry
+        cache_.erase([&](const auto &p) { return p.first == key; });
         return false;
     }
 
@@ -169,7 +178,7 @@ struct tile_manager_shared_data
 
     std::vector<tile_entry> tiles;
 
-private:
+  private:
     friend class hpx::serialization::access;
 
     template <typename Archive>
@@ -186,7 +195,7 @@ struct tile_manager : hpx::components::component_base<tile_manager<T>>
         data_(std::move(data))
     {
         const auto here = hpx::get_locality_id();
-        for (auto& tile : data_.tiles)
+        for (auto &tile : data_.tiles)
         {
             if (tile.locality_id == here)
             {
@@ -324,7 +333,8 @@ class tile_handle
         generation_(generation)
     { }
 
-    operator mutable_tile_data<T>() const { return get(); }
+    // ReSharper disable once CppNonExplicitConversionOperator
+    operator mutable_tile_data<T>() const { return get(); }  // NOLINT(*-explicit-constructor)
 
     mutable_tile_data<T> get() const { return get_local_manager()->get_tile_data(tile_index_, generation_); }
 
@@ -371,8 +381,8 @@ class tile_handle
     // TODO: It would be best if the caller could give us the right manager already,
     // but since the amount of localities is somewhat limited, this will do for now.
     std::vector<hpx::id_type> managers_;
-    std::size_t tile_index_;
-    std::size_t generation_;
+    std::size_t tile_index_ = 0;
+    std::size_t generation_ = 0;
 };
 
 template <typename T>
@@ -420,7 +430,7 @@ create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targe
     tiles.reserve(num_tiles);
     for (std::size_t i = 0; i < num_tiles; ++i)
     {
-        tiles.push_back(hpx::make_ready_future(tile_handle<T>{managers, i, 0}));
+        tiles.push_back(hpx::make_ready_future(tile_handle<T>{ managers, i, 0 }));
     }
     return tiles;
 }

@@ -105,7 +105,7 @@ namespace server
  * requires T to be serializable by HPX.
  */
 template <typename T>
-struct tile_holder : hpx::components::locking_hook<hpx::components::component_base<tile_holder<T>>>
+struct tile_holder : hpx::components::component_base<tile_holder<T>>
 {
     tile_holder() { track_tile_server_allocation(0); }
 
@@ -117,9 +117,17 @@ struct tile_holder : hpx::components::locking_hook<hpx::components::component_ba
 
     ~tile_holder() { track_tile_server_deallocation(data_.size()); }
 
-    [[nodiscard]] mutable_tile_data<double> get_data() const { return data_; }
+    [[nodiscard]] mutable_tile_data<double> get_data() const
+    {
+        std::shared_lock lock(mutex_);
+        return data_;
+    }
 
-    void set_data(const mutable_tile_data<double> &data) { data_ = data; }
+    void set_data(const mutable_tile_data<double> &data)
+    {
+        std::unique_lock lock(mutex_);
+        data_ = data;
+    }
 
     // Every member function that has to be invoked remotely needs to be
     // wrapped into a component action.
@@ -127,6 +135,7 @@ struct tile_holder : hpx::components::locking_hook<hpx::components::component_ba
     HPX_DEFINE_COMPONENT_DIRECT_ACTION(tile_holder, set_data)
 
   private:
+    hpx::shared_mutex mutex_;
     mutable_tile_data<double> data_;
 };
 
@@ -173,7 +182,7 @@ private:
 template <typename T>
 struct tile_manager : hpx::components::component_base<tile_manager<T>>
 {
-    tile_manager(tile_manager_shared_data<T> &&data) :
+    explicit tile_manager(tile_manager_shared_data<T> &&data) :
         data_(std::move(data))
     { }
 
@@ -250,8 +259,7 @@ struct tile_manager : hpx::components::component_base<tile_manager<T>>
         // We'd lose this tile after writing it, best to put it in the cache for now
         cache_.insert(target_tile.tile.get_gid(), generation, data);
 
-        typename tile_holder<T>::set_data_action act;
-        return hpx::async(act, target_tile.tile, data);
+        return hpx::async(typename tile_holder<T>::set_data_action{}, target_tile.tile, data);
     }
 
   private:
@@ -389,7 +397,6 @@ create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targe
             }
         }
     }
-    HPX_ASSERT(l == num_tiles);
 
     // Now we move on to the manager components
     std::vector<hpx::id_type> managers;

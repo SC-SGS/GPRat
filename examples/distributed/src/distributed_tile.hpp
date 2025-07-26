@@ -135,7 +135,7 @@ struct tile_holder : hpx::components::component_base<tile_holder<T>>
     HPX_DEFINE_COMPONENT_DIRECT_ACTION(tile_holder, set_data)
 
   private:
-    hpx::shared_mutex mutex_;
+    mutable hpx::shared_mutex mutex_;
     mutable_tile_data<double> data_;
 };
 
@@ -184,7 +184,16 @@ struct tile_manager : hpx::components::component_base<tile_manager<T>>
 {
     explicit tile_manager(tile_manager_shared_data<T> &&data) :
         data_(std::move(data))
-    { }
+    {
+        const auto here = hpx::get_locality_id();
+        for (auto& tile : data_.tiles)
+        {
+            if (tile.locality_id == here)
+            {
+                tile.local_data = hpx::get_ptr<tile_holder<T>>(hpx::launch::sync, tile.tile);
+            }
+        }
+    }
 
     mutable_tile_data<T> get_tile_data(std::size_t tile_index, std::size_t generation)
     {
@@ -381,7 +390,7 @@ create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targe
         holders.emplace_back(hpx::components::bulk_create_async<server::tile_holder<T>>(target.first, target.second));
     }
 
-    // Next we prepare our shared data for the manager components
+    // Next, we prepare our shared data for the manager components
     server::tile_manager_shared_data<T> manager_data;
     manager_data.tiles.reserve(num_tiles);
 

@@ -104,7 +104,7 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
     const std::size_t n_reg = 8;
 
     // Compute tile sizes and number of predict tiles
-    const int tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+    const auto tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
     const auto test_tiles = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
 
     // hyperparams
@@ -146,7 +146,7 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
     const int gpu_id = 0;
     const int n_streams = 1;
 
-    const int tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+    const auto tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
     const auto test_tiles = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
 
     gprat::GP_data training_input(train_path, n_train, n_reg);

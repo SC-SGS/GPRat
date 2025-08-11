@@ -7,11 +7,9 @@
 #include "gpu/gp_functions.cuh"
 #endif
 
-#include <cstdio>
-
 GPRAT_NS_BEGIN
 
-GP_data::GP_data(const std::string &f_path, int n, int n_reg) :
+GP_data::GP_data(const std::string &f_path, std::size_t n, std::size_t n_reg) :
     file_path(f_path),
     n_samples(n),
     n_regressors(n_reg)
@@ -21,34 +19,34 @@ GP_data::GP_data(const std::string &f_path, int n, int n_reg) :
 
 GP::GP(std::vector<double> input,
        std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
+       std::size_t n_tiles,
+       std::size_t n_tile_size,
+       std::size_t n_regressors,
+       const std::vector<double> &kernel_hyperparams,
        std::vector<bool> trainable_bool,
        std::shared_ptr<Target> target) :
-    training_input_(input),
-    training_output_(output),
+    training_input_(std::move(input)),
+    training_output_(std::move(output)),
     n_tiles_(n_tiles),
     n_tile_size_(n_tile_size),
-    trainable_params_(trainable_bool),
-    target_(target),
+    trainable_params_(std::move(trainable_bool)),
+    target_(std::move(target)),
     n_reg(n_regressors),
     kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
 { }
 
 GP::GP(std::vector<double> input,
        std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
+       std::size_t n_tiles,
+       std::size_t n_tile_size,
+       std::size_t n_regressors,
+       const std::vector<double> &kernel_hyperparams,
        std::vector<bool> trainable_bool) :
-    training_input_(input),
-    training_output_(output),
+    training_input_(std::move(input)),
+    training_output_(std::move(output)),
     n_tiles_(n_tiles),
     n_tile_size_(n_tile_size),
-    trainable_params_(trainable_bool),
+    trainable_params_(std::move(trainable_bool)),
     target_(std::make_shared<CPU>()),
     n_reg(n_regressors),
     kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
@@ -56,18 +54,18 @@ GP::GP(std::vector<double> input,
 
 GP::GP(std::vector<double> input,
        std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
+       std::size_t n_tiles,
+       std::size_t n_tile_size,
+       std::size_t n_regressors,
+       const std::vector<double> &kernel_hyperparams,
        std::vector<bool> trainable_bool,
        int gpu_id,
        int n_streams) :
-    training_input_(input),
-    training_output_(output),
+    training_input_(std::move(input)),
+    training_output_(std::move(output)),
     n_tiles_(n_tiles),
     n_tile_size_(n_tile_size),
-    trainable_params_(trainable_bool),
+    trainable_params_(std::move(trainable_bool)),
 #if GPRAT_WITH_CUDA
     target_(std::make_shared<CUDA_GPU>(CUDA_GPU(gpu_id, n_streams))),
 #else
@@ -102,7 +100,7 @@ std::vector<double> GP::get_training_input() const { return training_input_; }
 
 std::vector<double> GP::get_training_output() const { return training_output_; }
 
-std::vector<double> GP::predict(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
+std::vector<double> GP::predict(const std::vector<double> &test_input, std::size_t m_tiles, std::size_t m_tile_size)
 {
     return hpx::async(
                [this, &test_input, m_tiles, m_tile_size]()
@@ -152,7 +150,7 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
 }
 
 std::vector<std::vector<double>>
-GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
+GP::predict_with_uncertainty(const std::vector<double> &test_input, std::size_t m_tiles, std::size_t m_tile_size)
 {
     return hpx::async(
                [this, &test_input, m_tiles, m_tile_size]()
@@ -202,7 +200,7 @@ GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles,
 }
 
 std::vector<std::vector<double>>
-GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
+GP::predict_with_full_cov(const std::vector<double> &test_input, std::size_t m_tiles, std::size_t m_tile_size)
 {
     return hpx::async(
                [this, &test_input, m_tiles, m_tile_size]()
@@ -276,7 +274,7 @@ std::vector<double> GP::optimize(const AdamParams &adam_params)
         .get();
 }
 
-double GP::optimize_step(AdamParams &adam_params, int iter)
+double GP::optimize_step(AdamParams &adam_params, std::size_t iter)
 {
     return hpx::async(
                [this, &adam_params, iter]()

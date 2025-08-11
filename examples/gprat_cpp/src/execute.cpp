@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     std::size_t LOOP = 2;
     const std::size_t OPT_ITER = 1;
 
-    int n_test = 1024;
+    const std::size_t n_test = 1024;
     const std::size_t N_CORES = 4;
     const std::size_t n_tiles = 16;
     const std::size_t n_reg = 8;
@@ -49,12 +49,12 @@ int main(int argc, char *argv[])
 
         for (std::size_t start = START; start <= END; start = start * STEP)
         {
-            int n_train = static_cast<int>(start);
+            const auto n_train = start;
             for (std::size_t l = 0; l < LOOP; l++)
             {
                 // Compute tile sizes and number of predict tiles
-                int tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
-                auto result = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
+                const auto tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+                const auto result = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
                 /////////////////////
                 ///// hyperparams
                 gprat::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };

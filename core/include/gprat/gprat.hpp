@@ -27,10 +27,10 @@ struct GP_data
     std::string file_path;
 
     /** @brief Number of samples in the data */
-    int n_samples;
+    std::size_t n_samples;
 
     /** @brief Number of GP regressors */
-    int n_regressors;
+    std::size_t n_regressors;
 
     /** @brief Vector containing the data */
     std::vector<double> data;
@@ -41,10 +41,10 @@ struct GP_data
      *
      * The file specified by `f_path` must contain `n` samples.
      *
-     * @param f_path Path to the file
+     * @param file_path Path to the file
      * @param n Number of samples
      */
-    GP_data(const std::string &file_path, int n, int n_reg);
+    GP_data(const std::string &file_path, std::size_t n, std::size_t n_reg);
 };
 
 /**
@@ -64,10 +64,10 @@ class GP
     std::vector<double> training_output_;
 
     /** @brief Number of tiles */
-    int n_tiles_;
+    std::size_t n_tiles_;
 
     /** @brief Size of each tile in each dimension */
-    int n_tile_size_;
+    std::size_t n_tile_size_;
 
     /**
      * @brief List of bools indicating trainable parameters: lengthscale,
@@ -82,7 +82,7 @@ class GP
 
   public:
     /** @brief Number of regressors */
-    int n_reg;
+    std::size_t n_reg;
 
     /**
      * @brief Hyperarameters of the squared exponential kernel
@@ -105,10 +105,10 @@ class GP
      */
     GP(std::vector<double> input,
        std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
+       std::size_t n_tiles,
+       std::size_t n_tile_size,
+       std::size_t n_regressors,
+       const std::vector<double> &kernel_hyperparams,
        std::vector<bool> trainable_bool,
        std::shared_ptr<Target> target);
 
@@ -127,10 +127,10 @@ class GP
      */
     GP(std::vector<double> input,
        std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
+       std::size_t n_tiles,
+       std::size_t n_tile_size,
+       std::size_t n_regressors,
+       const std::vector<double> &kernel_hyperparams,
        std::vector<bool> trainable_bool);
 
     /**
@@ -150,10 +150,10 @@ class GP
      */
     GP(std::vector<double> input,
        std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
+       std::size_t n_tiles,
+       std::size_t n_tile_size,
+       std::size_t n_regressors,
+       const std::vector<double> &kernel_hyperparams,
        std::vector<bool> trainable_bool,
        int gpu_id,
        int n_streams);
@@ -176,14 +176,14 @@ class GP
     /**
      * @brief Predict output for test input
      */
-    std::vector<double> predict(const std::vector<double> &test_data, int m_tiles, int m_tile_size);
+    std::vector<double> predict(const std::vector<double> &test_data, std::size_t m_tiles, std::size_t m_tile_size);
 
     /**
      * @brief Predict output for test input and additionally provide
      * uncertainty for the predictions.
      */
     std::vector<std::vector<double>>
-    predict_with_uncertainty(const std::vector<double> &test_data, int m_tiles, int m_tile_size);
+    predict_with_uncertainty(const std::vector<double> &test_data, std::size_t m_tiles, std::size_t m_tile_size);
 
     /**
      * @brief Predict output for test input and additionally compute full
@@ -196,7 +196,7 @@ class GP
      * @return Full covariance matrix
      */
     std::vector<std::vector<double>>
-    predict_with_full_cov(const std::vector<double> &test_data, int m_tiles, int m_tile_size);
+    predict_with_full_cov(const std::vector<double> &test_data, std::size_t m_tiles, std::size_t m_tile_size);
 
     /**
      * @brief Optimize hyperparameters
@@ -217,7 +217,7 @@ class GP
      *
      * @return loss
      */
-    double optimize_step(AdamParams &adam_params, int iter);
+    double optimize_step(AdamParams &adam_params, std::size_t iter);
 
     /**
      * @brief Calculate loss for given data and Gaussian process model

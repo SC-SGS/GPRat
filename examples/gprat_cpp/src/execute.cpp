@@ -1,5 +1,6 @@
-#include "gprat_c.hpp"
-#include "utils_c.hpp"
+#include "gprat/gprat.hpp"
+#include "gprat/utils.hpp"
+
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -14,7 +15,7 @@ int main(int argc, char *argv[])
     std::size_t LOOP = 2;
     const std::size_t OPT_ITER = 1;
 
-    int n_test = 1024;
+    const std::size_t n_test = 1024;
     const std::size_t N_CORES = 4;
     const std::size_t n_tiles = 16;
     const std::size_t n_reg = 8;
@@ -24,7 +25,7 @@ int main(int argc, char *argv[])
     std::string test_path = "../../../data/data_1024/test_input.txt";
 
     bool use_gpu =
-        utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
+        gprat::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
 
     for (std::size_t core = 2; core <= N_CORES; core = core * 2)
     {
@@ -48,15 +49,15 @@ int main(int argc, char *argv[])
 
         for (std::size_t start = START; start <= END; start = start * STEP)
         {
-            int n_train = static_cast<int>(start);
+            const auto n_train = start;
             for (std::size_t l = 0; l < LOOP; l++)
             {
                 // Compute tile sizes and number of predict tiles
-                int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
-                auto result = utils::compute_test_tiles(n_test, n_tiles, tile_size);
+                const auto tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+                const auto result = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
                 /////////////////////
                 ///// hyperparams
-                gprat_hyper::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
+                gprat::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
 
                 /////////////////////
                 ////// data loading
@@ -93,34 +94,32 @@ int main(int argc, char *argv[])
                     init_time = end_init - start_init;
 
                     // Initialize HPX with the new arguments, don't run hpx_main
-                    utils::start_hpx_runtime(new_argc, new_argv);
+                    gprat::start_hpx_runtime(new_argc, new_argv);
 
                     // Measure the time taken to execute gp.cholesky();
                     auto start_cholesky = std::chrono::high_resolution_clock::now();
-                    std::vector<std::vector<double>> choleksy_cpu = gp_cpu.cholesky();
+                    const auto choleksy_cpu = gp_cpu.cholesky();
                     auto end_cholesky = std::chrono::high_resolution_clock::now();
                     cholesky_time = end_cholesky - start_cholesky;
 
                     // Measure the time taken to execute gp.optimize(hpar);
                     auto start_opt = std::chrono::high_resolution_clock::now();
-                    std::vector<double> losses = gp_cpu.optimize(hpar);
+                    const auto losses = gp_cpu.optimize(hpar);
                     auto end_opt = std::chrono::high_resolution_clock::now();
                     opt_time = end_opt - start_opt;
 
                     auto start_pred_uncer = std::chrono::high_resolution_clock::now();
-                    std::vector<std::vector<double>> sum_cpu =
-                        gp_cpu.predict_with_uncertainty(test_input.data, result.first, result.second);
+                    const auto sum_cpu = gp_cpu.predict_with_uncertainty(test_input.data, result.first, result.second);
                     auto end_pred_uncer = std::chrono::high_resolution_clock::now();
                     pred_uncer_time = end_pred_uncer - start_pred_uncer;
 
                     auto start_pred_full_cov = std::chrono::high_resolution_clock::now();
-                    std::vector<std::vector<double>> full_cpu =
-                        gp_cpu.predict_with_full_cov(test_input.data, result.first, result.second);
+                    const auto full_cpu = gp_cpu.predict_with_full_cov(test_input.data, result.first, result.second);
                     auto end_pred_full_cov = std::chrono::high_resolution_clock::now();
                     pred_full_cov_time = end_pred_full_cov - start_pred_full_cov;
 
                     auto start_pred = std::chrono::high_resolution_clock::now();
-                    std::vector<double> pred_cpu = gp_cpu.predict(test_input.data, result.first, result.second);
+                    const auto pred_cpu = gp_cpu.predict(test_input.data, result.first, result.second);
                     auto end_pred = std::chrono::high_resolution_clock::now();
                     pred_time = end_pred - start_pred;
                 }
@@ -143,10 +142,10 @@ int main(int argc, char *argv[])
                     init_time = end_init - start_init;
 
                     // Initialize HPX with the new arguments, don't run hpx_main
-                    utils::start_hpx_runtime(new_argc, new_argv);
+                    gprat::start_hpx_runtime(new_argc, new_argv);
 
                     auto start_cholesky = std::chrono::high_resolution_clock::now();
-                    std::vector<std::vector<double>> choleksy_gpu = gp_gpu.cholesky();
+                    const auto choleksy_gpu = gp_gpu.cholesky();
                     auto end_cholesky = std::chrono::high_resolution_clock::now();
                     cholesky_time = end_cholesky - start_cholesky;
 
@@ -154,25 +153,23 @@ int main(int argc, char *argv[])
                     opt_time = std::chrono::seconds(-1);
 
                     auto start_pred_uncer = std::chrono::high_resolution_clock::now();
-                    std::vector<std::vector<double>> sum_gpu =
-                        gp_gpu.predict_with_uncertainty(test_input.data, result.first, result.second);
+                    const auto sum_gpu = gp_gpu.predict_with_uncertainty(test_input.data, result.first, result.second);
                     auto end_pred_uncer = std::chrono::high_resolution_clock::now();
                     pred_uncer_time = end_pred_uncer - start_pred_uncer;
 
                     auto start_pred_full_cov = std::chrono::high_resolution_clock::now();
-                    std::vector<std::vector<double>> full_gpu =
-                        gp_gpu.predict_with_full_cov(test_input.data, result.first, result.second);
+                    const auto full_gpu = gp_gpu.predict_with_full_cov(test_input.data, result.first, result.second);
                     auto end_pred_full_cov = std::chrono::high_resolution_clock::now();
                     pred_full_cov_time = end_pred_full_cov - start_pred_full_cov;
 
                     auto start_pred = std::chrono::high_resolution_clock::now();
-                    std::vector<double> pred_gpu = gp_gpu.predict(test_input.data, result.first, result.second);
+                    const auto pred_gpu = gp_gpu.predict(test_input.data, result.first, result.second);
                     auto end_pred = std::chrono::high_resolution_clock::now();
                     pred_time = end_pred - start_pred;
                 }
 
                 // Stop the HPX runtime
-                utils::stop_hpx_runtime();
+                gprat::stop_hpx_runtime();
 
                 auto end_total = std::chrono::high_resolution_clock::now();
                 auto total_time = end_total - start_total;

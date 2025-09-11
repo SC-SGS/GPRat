@@ -17,5 +17,12 @@ elif [[ $(hostname) == "simcl1n1" || $(hostname) == "simcl1n2" ]]; then
 	fi
 fi
 
-# $1=--use_gpu
-python3 execute.py "$1"
+if [[ -z "$1" ]]; then
+    echo "Input parameter is missing. Using default: Run computations on CPU"
+elif [[ "$1" == "gpu" ]]; then
+    GPU="--use_gpu"
+elif [[ "$1" != "cpu" ]]; then
+    echo "Please specify input parameter: cpu/gpu"
+    exit 1
+fi
+python3 execute.py $GPU

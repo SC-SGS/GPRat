@@ -64,25 +64,25 @@ implementations based on TensorFlow ([GPflow](https://github.com/GPflow/GPflow))
 - The example is built as part of the main project.
   - Go to `build/` and execute `./gprat_cpp [--use_gpu]` to run the example.
   - If you want to use an installed GPRat version:
-    Run `./run_gprat_cpp.sh cpu/gpu x86/arm/riscv` to build and run the example.
+    Run `./run_gprat_cpp.sh [cpu/gpu] [x86/arm/riscv]` to build and run the example.
 
 ### To run GPRat with Python
 
 - Go to [`examples/gprat_python`](examples/gprat_python/)
 - Set parameters in [`config.json`](examples/gprat_python/config.json)
-- Run `./run_gprat_python.sh [--use_gpu]` to run the example
+- Run `./run_gprat_python.sh [cpu/gpu]` to run the example
 
 ### To run GPflow reference
 
 - Go to [`examples/gpflow_reference`](examples/gpflow_reference/)
 - Set parameters in [`config.json`](examples/gpflow_reference/config.json)
-- Run `./run_gpflow.sh cpu/gpu/arm` to run example
+- Run `./run_gpflow.sh [cpu/gpu/arm]` to run example
 
 ### To run GPflow reference
 
 - Go to [`examples/gpytorch_reference`](examples/gpytorch_reference/)
 - Set parameters in [`config.json`](examples/gpytorch_reference/config.json)
-- Run `./run_gpytorch.sh cpu/gpu/arm` to run example
+- Run `./run_gpytorch.sh [cpu/gpu/arm]` to run example
 
 ## The Team
 

@@ -5,9 +5,9 @@ import time
 from csv import writer
 import argparse
 
-#import lib64.gprat as gprat
-#import lib.gprat as gprat
-import gprat
+import lib.gprat as gprat
+#import lib64.gprat as gprat # depending on system
+#import gprat # if installed with pip
 
 from config import get_config
 from hpx_logger import setup_logging

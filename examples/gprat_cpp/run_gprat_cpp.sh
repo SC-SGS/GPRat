@@ -56,7 +56,7 @@ if command -v spack &> /dev/null; then
 	fi
 	GPRAT_WITH_CUDA=OFF
 	ADD=64
-    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n1" ]]; then
+    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
 	# Check if the gprat_gpu_clang environment exists
 	if spack env list | grep -q "gprat_gpu_clang"; then
 	    echo "Found gprat_gpu_clang environment, activating it."

@@ -2,8 +2,6 @@
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
-
-
 import sys
 
 from spack.package import *
@@ -12,16 +10,16 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
     """Gaussian Process Regression using Asynchronous Task."""
 
     homepage = ""
-    url = ""
+    url = "https://github.com/SC-SGS/GPRat/archive/refs/tags/v0.1.0.tar.gz"
     git = "https://github.com/SC-SGS/GPRat.git"
     maintainers("constracktor")
 
     license("MIT")
 
-    version("main", branch="main")
+    version("main", branch="main", preferred=True)
     #version("0.3.0", sha256="")
-    #version("0.2.0", sha256="")
-    #version("0.1.0", sha256="")
+    version("0.2.0", sha256="85bb1ebca89cef63304a889f9c0d57273ab32aea")
+    version("0.1.0", sha256="7dd0bdf0eb322e7d7ca0461655459e59077d0464")
 
     depends_on("cxx", type="build")
 
@@ -42,13 +40,11 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
         multi=False,
     )
 
-
     variant("bindings", default=False, description="Build Python bindings")
 
     variant("examples", default=False, description="Build examples")
 
     variant("format", default=False, description="Build formating targets")
-
 
     # Build dependencies
     depends_on("git", type="build")
@@ -68,6 +64,9 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
 
     # Only ROCm or CUDA maybe be enabled at once
     #conflicts("+rocm", when="+cuda")
+
+    # Conflicts
+    conflicts("blas=openblas", when="@0.1.0")
 
     def cmake_args(self):
         spec, args = self.spec, []

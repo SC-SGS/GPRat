@@ -17,4 +17,5 @@ elif [[ $(hostname) == "simcl1n1" || $(hostname) == "simcl1n2" ]]; then
 	fi
 fi
 
-python3 execute.py "$@"
+# $1=--use_gpu
+python3 execute.py "$1"

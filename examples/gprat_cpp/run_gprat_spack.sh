@@ -15,7 +15,8 @@ if command -v spack &> /dev/null; then
     HOSTNAME=$(hostname -s)
 
     if [[ "$HOSTNAME" == "ipvs-epyc1" ]]; then
-	spack load gprat
+	spack install gprat%gcc@14.2.0 blas=openblas
+	spack load gprat blas=openblas
 	module load gcc/14.2.0
 	export CXX=g++
 	export CC=gcc

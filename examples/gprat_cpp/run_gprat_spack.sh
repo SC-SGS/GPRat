@@ -15,11 +15,18 @@ if command -v spack &> /dev/null; then
     HOSTNAME=$(hostname -s)
 
     if [[ "$HOSTNAME" == "ipvs-epyc1" ]]; then
-	spack install gprat%gcc@14.2.0 blas=openblas
-	spack load gprat blas=openblas
 	module load gcc/14.2.0
 	export CXX=g++
 	export CC=gcc
+	spack install gprat%gcc@14.2.0 blas=openblas
+	spack load gprat blas=openblas
+    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
+	# Check if the gprat_gpu_clang environment exists
+	    module load clang/17.0.1
+	    export CXX=clang++
+	    export CC=clang
+	    spack install gprat%clang@17.0.1 blas=openblas +cuda
+	    spack load gprat blas=openblas +cuda
     else
     	echo "Hostname is $HOSTNAME — no action taken."
     fi
@@ -46,5 +53,13 @@ make -j
 ################################################################################
 # Run code
 ################################################################################
+if [[ -z "$1" ]]; then
+    echo "Input parameter is missing. Using default: Run computations on CPU"
+elif [[ "$1" == "gpu" ]]; then
+    use_gpu="--use_gpu"
+elif [[ "$1" != "cpu" ]]; then
+    echo "Please specify input parameter: cpu/gpu"
+    exit 1
+fi
 
 ./gprat_cpp $1

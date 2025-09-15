@@ -56,7 +56,7 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
     depends_on("openblas fortran=false", when="blas=openblas")
 
     # CUDA
-    depends_on("cuda +allow-unsupported-compilers", when="+cuda")
+    depends_on("cuda@12.0.1 +allow-unsupported-compilers", when="+cuda")
     depends_on("hpx@1.10.0: +cuda", when="+cuda")
 
     # ROCm not supported yet
@@ -67,6 +67,10 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
 
     # Conflicts
     conflicts("blas=openblas", when="@0.1.0")
+    # Require clang when building with +cuda
+    conflicts('+cuda', when='%gcc', msg='CUDA builds of GPRat require clang, not gcc')
+    # GPU support requires at least version 0.3.0
+    conflicts('+cuda', when='@:0.2.0')
 
     def cmake_args(self):
         spec, args = self.spec, []
@@ -78,6 +82,12 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
         ]
         if self.spec.satisfies("+cuda"):
             args += [self.define("GPRAT_WITH_CUDA", "ON")]
+            args += [self.define("CMAKE_CUDA_COMPILER", "clang++")]
+
+            cuda_arch_list = spec.variants['cuda_arch'].value
+            cuda_arch = cuda_arch_list[0]
+            if cuda_arch != 'none':
+                args.append('-DCMAKE_CUDA_ARCHITECTURES={0}'.format(cuda_arch))
         else:
             args += [self.define("GPRAT_WITH_CUDA", "OFF")]
 
@@ -85,5 +95,4 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
             args += [self.define("GPRAT_ENABLE_MKL", "ON")]
         else:
             args += [self.define("GPRAT_ENABLE_MKL", "OFF")]
-
         return args

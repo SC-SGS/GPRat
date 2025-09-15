@@ -19,13 +19,14 @@ if command -v spack &> /dev/null; then
 	export CXX=g++
 	export CC=gcc
 	spack install gprat%gcc@14.2.0 blas=openblas
-	spack load gprat blas=openblas
+	spack load gprat%gcc blas=openblas
     elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
 	# Check if the gprat_gpu_clang environment exists
 	    module load clang/17.0.1
 	    export CXX=clang++
 	    export CC=clang
-	    spack install gprat%clang@17.0.1 blas=openblas +cuda
+	    GPRAT_WITH_CUDA=ON
+	    spack install gprat%clang@17.0.1 blas=openblas +cuda cuda_arch=80 ^cmake@3.30.5
 	    spack load gprat blas=openblas +cuda
     else
     	echo "Hostname is $HOSTNAME — no action taken."
@@ -45,7 +46,7 @@ export APEX_DISABLE=1
 rm -rf build && mkdir build && cd build
 
 # Configure the project
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_BUILD_TYPE=Release -DGPRAT_WITH_CUDA=${GPRAT_WITH_CUDA}
 
 # Build the project
 make -j
@@ -56,10 +57,10 @@ make -j
 if [[ -z "$1" ]]; then
     echo "Input parameter is missing. Using default: Run computations on CPU"
 elif [[ "$1" == "gpu" ]]; then
-    use_gpu="--use_gpu"
+    GPU="--use_gpu"
 elif [[ "$1" != "cpu" ]]; then
     echo "Please specify input parameter: cpu/gpu"
     exit 1
 fi
 
-./gprat_cpp $1
+./gprat_cpp $GPU

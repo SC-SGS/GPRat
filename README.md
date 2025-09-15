@@ -51,6 +51,8 @@ The following options can be set to include / exclude parts of the project:
 
 Respective scripts can be found in this directory.
 
+We also provide a spack package for GPRat in [`spack-repo/packages`](spack-repo/packages) for portable and convenient compilation. When the repository is added to spack, GPRat can be installed with `spack install gprat~cuda~bindings~examples blas={mkl,openblas}`
+
 ## How To Run
 
 GPRat contains several examples. One to run the C++ code, one to run the Python code as well as two reference

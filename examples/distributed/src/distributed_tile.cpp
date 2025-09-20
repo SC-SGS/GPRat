@@ -66,7 +66,7 @@ void register_distributed_tile_counters()
 
     hpx::performance_counters::install_counter_type(
         "/gprat/tile_cache/transmission_count",
-        &get_tile_transmission_time,
+        &get_tile_transmission_count,
         "",
         "",
         hpx::performance_counters::counter_type::monotonically_increasing);

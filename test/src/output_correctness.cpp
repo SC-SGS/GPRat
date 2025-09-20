@@ -14,36 +14,6 @@
 #include <string>
 #include <string_view>
 
-template <typename T>
-std::vector<T> to_vector(const gprat::const_tile_data<T> &data)
-{
-    return { data.begin(), data.end() };
-}
-
-template <typename T>
-std::vector<std::vector<T>> to_vector(const std::vector<gprat::const_tile_data<T>> &data)
-{
-    std::vector<std::vector<T>> out;
-    out.reserve(data.size());
-    for (const auto &row : data)
-    {
-        out.emplace_back(to_vector<T>(row));
-    }
-    return out;
-}
-
-template <typename T>
-std::vector<std::vector<T>> to_vector(const std::vector<gprat::mutable_tile_data<T>> &data)
-{
-    std::vector<std::vector<T>> out;
-    out.reserve(data.size());
-    for (const auto &row : data)
-    {
-        out.emplace_back(to_vector<T>(row));
-    }
-    return out;
-}
-
 // This logic is basically equivalent to the GPRat C++ example (for now).
 gprat_results run_on_data_cpu(const std::string &train_path, const std::string &out_path, const std::string &test_path)
 {

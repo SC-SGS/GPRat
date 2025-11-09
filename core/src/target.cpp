@@ -3,8 +3,7 @@
 #include <iostream>
 
 #if GPRAT_WITH_CUDA
-#include "gpu/cuda_utils.cuh"
-using hpx::cuda::experimental::check_cuda_error;
+#include "gprat/gpu/cuda_utils.cuh"
 #endif
 
 GPRAT_NS_BEGIN

@@ -5,6 +5,7 @@
 #include "gprat/gpu/tiled_algorithms.cuh"
 #include "gprat/kernels.hpp"
 #include "gprat/target.hpp"
+#include "gprat/tile_data.hpp"
 
 #include <cuda_runtime.h>
 #include <hpx/algorithm.hpp>
@@ -306,7 +307,7 @@ double optimize_step(const std::vector<double> &training_input,
     // return 0.0;
 }
 
-std::vector<std::vector<double>>
+std::vector<mutable_tile_data<double>>
 cholesky(const std::vector<double> &h_training_input,
          const SEKParams &sek_params,
          int n_tiles,
@@ -326,7 +327,7 @@ cholesky(const std::vector<double> &h_training_input,
     right_looking_cholesky_tiled(d_tiles, n_tile_size, n_tiles, gpu, cusolver);
 
     // Copy tiled matrix to host
-    std::vector<std::vector<double>> h_tiles = move_lower_tiled_matrix_to_host(d_tiles, n_tile_size, n_tiles, gpu);
+    auto h_tiles = move_lower_tiled_matrix_to_host(d_tiles, n_tile_size, n_tiles, gpu);
 
     cudaFree(d_training_input);
     destroy(cusolver);

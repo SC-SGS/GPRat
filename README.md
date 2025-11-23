@@ -21,6 +21,9 @@ A script to install and setup spack for `GPRat` is provided in [`spack-repo`](sp
 Spack environment configurations and setup scripts for CPU and GPU use are provided in
 [`spack-repo/environments`](spack-repo/environments).
 
+Since Spack is not available on Windows, we also support dependency installation using vcpkg.
+For now, vcpkg builds are only tested on Windows.
+
 ## How To Compile
 
 GPRat makes use of [CMake presets][1] to simplify the process of configuring the project.
@@ -36,6 +39,7 @@ ctest --preset=dev-linux
 As a developer, you may create a `CMakeUserPresets.json` file at the root of the project that contains additional
 presets local to your machine.
 In addition to the build configuration `dev-linux`, there are `release-linux`, `dev-linux-gpu`, `release-linux-gpu`, `dev-linux-sycl`, and `release-linux-sycl`.
+For Windows, we have similar presets called `dev-windows` and `release-windows`.
 The configurations suffixed with `-gpu` build the library with CUDA for NVIDIA GPUs, and those suffixed with `-sycl` build it with SYCL support for Intel and AMD GPUs.
 
 GPRat can be build with or without Python bindings.

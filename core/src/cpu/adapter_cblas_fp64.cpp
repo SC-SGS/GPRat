@@ -1,4 +1,10 @@
-#include "cpu/adapter_cblas_fp64.hpp"
+#include "gprat/cpu/adapter_cblas_fp64.hpp"
+
+#include "gprat/performance_counters.hpp"
+
+#ifdef HPX_HAVE_MODULE_PERFORMANCE_COUNTERS
+#include <hpx/performance_counters/manage_counter_type.hpp>
+#endif
 
 #ifdef GPRAT_ENABLE_MKL
 // MKL CBLAS and LAPACKE
@@ -9,28 +15,32 @@
 #include "lapacke.h"
 #endif
 
+GPRAT_NS_BEGIN
+
 // BLAS level 3 operations
 
-vector_future potrf(vector_future f_A, const int N)
+mutable_tile_data<double> potrf(const mutable_tile_data<double> &A, const int N)
 {
-    auto A = f_A.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(A.as_span());
+    GPRAT_TIME_FUNCTION(&potrf);
     // POTRF: in-place Cholesky decomposition of A
     // use dpotrf2 recursive version for better stability
     LAPACKE_dpotrf2(LAPACK_ROW_MAJOR, 'L', N, A.data(), N);
     // return factorized matrix L
-    return hpx::make_ready_future(A);
+    return A;
 }
 
-vector_future trsm(vector_future f_L,
-                   vector_future f_A,
-                   const int N,
-                   const int M,
-                   const BLAS_TRANSPOSE transpose_L,
-                   const BLAS_SIDE side_L)
-
+mutable_tile_data<double>
+trsm(const const_tile_data<double> &L,
+     const mutable_tile_data<double> &A,
+     const int N,
+     const int M,
+     const BLAS_TRANSPOSE transpose_L,
+     const BLAS_SIDE side_L)
 {
-    auto L = f_L.get();
-    auto A = f_A.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(L.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(A.as_span());
+    GPRAT_TIME_FUNCTION(&trsm);
     // TRSM constants
     const double alpha = 1.0;
     // TRSM: in-place solve L(^T) * X = A or X * L(^T) = A where L lower triangular
@@ -48,35 +58,37 @@ vector_future trsm(vector_future f_L,
         A.data(),
         M);
     // return vector
-    return hpx::make_ready_future(A);
+    return A;
 }
 
-vector_future syrk(vector_future f_A, vector_future f_B, const int N)
+mutable_tile_data<double> syrk(const mutable_tile_data<double> &A, const const_tile_data<double> &B, const int N)
 {
-    auto B = f_B.get();
-    auto A = f_A.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(A.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(B.as_span());
+    GPRAT_TIME_FUNCTION(&syrk);
     // SYRK constants
     const double alpha = -1.0;
     const double beta = 1.0;
     // SYRK:A = A - B * B^T
     cblas_dsyrk(CblasRowMajor, CblasLower, CblasNoTrans, N, N, alpha, B.data(), N, beta, A.data(), N);
     // return updated matrix A
-    return hpx::make_ready_future(A);
+    return A;
 }
 
-vector_future
-gemm(vector_future f_A,
-     vector_future f_B,
-     vector_future f_C,
+mutable_tile_data<double>
+gemm(const const_tile_data<double> &A,
+     const const_tile_data<double> &B,
+     const mutable_tile_data<double> &C,
      const int N,
      const int M,
      const int K,
      const BLAS_TRANSPOSE transpose_A,
      const BLAS_TRANSPOSE transpose_B)
 {
-    auto C = f_C.get();
-    auto B = f_B.get();
-    auto A = f_A.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(A.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(B.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(C.as_span());
+    GPRAT_TIME_FUNCTION(&gemm);
     // GEMM constants
     const double alpha = -1.0;
     const double beta = 1.0;
@@ -97,15 +109,17 @@ gemm(vector_future f_A,
         C.data(),
         M);
     // return updated matrix C
-    return hpx::make_ready_future(C);
+    return C;
 }
 
 // BLAS level 2 operations
 
-vector_future trsv(vector_future f_L, vector_future f_a, const int N, const BLAS_TRANSPOSE transpose_L)
+mutable_tile_data<double> trsv(
+    const const_tile_data<double> &L, const mutable_tile_data<double> &a, const int N, const BLAS_TRANSPOSE transpose_L)
 {
-    auto L = f_L.get();
-    auto a = f_a.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(L.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(a.as_span());
+    GPRAT_TIME_FUNCTION(&trsv);
     // TRSV: In-place solve L(^T) * x = a where L lower triangular
     cblas_dtrsv(CblasRowMajor,
                 CblasLower,
@@ -117,20 +131,22 @@ vector_future trsv(vector_future f_L, vector_future f_a, const int N, const BLAS
                 a.data(),
                 1);
     // return solution vector x
-    return hpx::make_ready_future(a);
+    return a;
 }
 
-vector_future gemv(vector_future f_A,
-                   vector_future f_a,
-                   vector_future f_b,
-                   const int N,
-                   const int M,
-                   const BLAS_ALPHA alpha,
-                   const BLAS_TRANSPOSE transpose_A)
+mutable_tile_data<double>
+gemv(const const_tile_data<double> &A,
+     const const_tile_data<double> &a,
+     const mutable_tile_data<double> &b,
+     const int N,
+     const int M,
+     const BLAS_ALPHA alpha,
+     const BLAS_TRANSPOSE transpose_A)
 {
-    auto A = f_A.get();
-    auto a = f_a.get();
-    auto b = f_b.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(A.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(a.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(b.as_span());
+    GPRAT_TIME_FUNCTION(&gemv);
     // GEMV constants
     // const double alpha = -1.0;
     const double beta = 1.0;
@@ -149,47 +165,102 @@ vector_future gemv(vector_future f_A,
         b.data(),
         1);
     // return updated vector b
-    return hpx::make_ready_future(b);
+    return b;
 }
 
-vector_future dot_diag_syrk(vector_future f_A, vector_future f_r, const int N, const int M)
+mutable_tile_data<double>
+dot_diag_syrk(const const_tile_data<double> &A, const mutable_tile_data<double> &r, const int N, const int M)
 {
-    auto A = f_A.get();
-    auto r = f_r.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(A.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(r.as_span());
+    GPRAT_TIME_FUNCTION(&dot_diag_syrk);
+    auto r_p = r.data();
+    auto A_p = A.data();
     // r = r + diag(A^T * A)
     for (std::size_t j = 0; j < static_cast<std::size_t>(M); ++j)
     {
         // Extract the j-th column and compute the dot product with itself
-        r[j] += cblas_ddot(N, &A[j], M, &A[j], M);
+        r_p[j] += cblas_ddot(N, &A_p[j], M, &A_p[j], M);
     }
-    return hpx::make_ready_future(r);
+    return r;
 }
 
-vector_future dot_diag_gemm(vector_future f_A, vector_future f_B, vector_future f_r, const int N, const int M)
+mutable_tile_data<double>
+dot_diag_gemm(const const_tile_data<double> &A,
+              const const_tile_data<double> &B,
+              const mutable_tile_data<double> &r,
+              const int N,
+              const int M)
 {
-    auto A = f_A.get();
-    auto B = f_B.get();
-    auto r = f_r.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(A.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(B.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(r.as_span());
+    GPRAT_TIME_FUNCTION(&dot_diag_gemm);
+    auto r_p = r.data();
+    auto A_p = A.data();
+    auto B_p = B.data();
     // r = r + diag(A * B)
     for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i)
     {
-        r[i] += cblas_ddot(M, &A[i * static_cast<std::size_t>(M)], 1, &B[i], N);
+        r_p[i] += cblas_ddot(M, &A_p[i * static_cast<std::size_t>(M)], 1, &B_p[i], N);
     }
-    return hpx::make_ready_future(r);
+    return r;
 }
 
 // BLAS level 1 operations
 
-vector_future axpy(vector_future f_y, vector_future f_x, const int N)
+mutable_tile_data<double> axpy(const mutable_tile_data<double> &y, const const_tile_data<double> &x, const int N)
 {
-    auto y = f_y.get();
-    auto x = f_x.get();
+    GPRAT_BENCHMARK_FORCE_EVICT(y.as_span());
+    GPRAT_BENCHMARK_FORCE_EVICT(x.as_span());
+    GPRAT_TIME_FUNCTION(&axpy);
     cblas_daxpy(N, -1.0, x.data(), 1, y.data(), 1);
-    return hpx::make_ready_future(y);
+    return y;
 }
 
-double dot(std::vector<double> a, std::vector<double> b, const int N)
+double dot(std::span<const double> a, std::span<const double> b, const int N)
 {
+    GPRAT_BENCHMARK_FORCE_EVICT(a);
+    GPRAT_BENCHMARK_FORCE_EVICT(b);
+    GPRAT_TIME_FUNCTION(&dot);
     // DOT: a * b
     return cblas_ddot(N, a.data(), 1, b.data(), 1);
 }
+
+#ifdef HPX_HAVE_MODULE_PERFORMANCE_COUNTERS
+namespace detail
+{
+void register_fp64_performance_counters()
+{
+    // XXX: you can do this with templates, but it's quite a bit more complicated
+#define GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR(name, fn_expr)                                                              \
+    hpx::performance_counters::install_counter_type(                                                                   \
+        name "/time",                                                                                                  \
+        get_and_reset_function_elapsed<fn_expr>,                                                                       \
+        #fn_expr,                                                                                                      \
+        "",                                                                                                            \
+        hpx::performance_counters::counter_type::monotonically_increasing);                                            \
+    hpx::performance_counters::install_counter_type(                                                                   \
+        name "/calls",                                                                                                 \
+        get_and_reset_function_calls<fn_expr>,                                                                         \
+        #fn_expr,                                                                                                      \
+        "",                                                                                                            \
+        hpx::performance_counters::counter_type::monotonically_increasing)
+
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/potrf64", &potrf);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/trsm64", &trsm);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/syrk64", &syrk);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/gemm64", &gemm);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/trsv64", &trsv);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/gemv64", &gemv);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/dot_diag_syrk64", &dot_diag_syrk);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/dot_diag_gemm64", &dot_diag_gemm);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/axpy64", &axpy);
+    GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR("/gprat/dot64", &dot);
+
+#undef GPRAT_MAKE_SIMPLE_COUNTER_ACCESSOR
+}
+}  // namespace detail
+#endif
+
+GPRAT_NS_END

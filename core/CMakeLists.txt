@@ -1,18 +1,20 @@
+# Option for GPU support with CUDA, cuSolver, cuBLAS
+option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
+
 if(GPRAT_WITH_CUDA)
+  set(CMAKE_CUDA_STANDARD 20)
+  set(CMAKE_CUDA_EXTENSIONS OFF)
   enable_language(CUDA)
 endif()
 
-# Option for GPU support with CUDA, cuSolver, cuBLAS
-option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
-# Pass variable to C++ code
-add_compile_definitions(GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>)
-
 set(SOURCE_FILES
-    src/gprat_c.cpp
-    src/utils_c.cpp
+    src/gprat.cpp
+    src/utils.cpp
+    src/performance_counters.cpp
     src/target.cpp
-    src/gp_kernels.cpp
-    src/gp_hyperparameters.cpp
+    src/tile_data.cpp
+    src/kernels.cpp
+    src/hyperparameters.cpp
     src/cpu/gp_functions.cpp
     src/cpu/gp_algorithms.cpp
     src/cpu/gp_uncertainty.cpp
@@ -54,7 +56,10 @@ target_sources(gprat_core PRIVATE ${header_files})
 target_link_libraries(gprat_core PUBLIC HPX::hpx)
 
 if(GPRAT_WITH_CUDA)
+  find_package(CUDAToolkit MODULE REQUIRED)
   target_link_libraries(gprat_core PUBLIC CUDA::cusolver CUDA::cublas)
+  # Flag not working for CLANG CUDA
+  target_compile_features(gprat_core PUBLIC cuda_std_${CMAKE_CUDA_STANDARD})
 endif()
 
 # Include directories
@@ -66,16 +71,19 @@ if(GPRAT_ENABLE_MKL)
   # Link Intel oneMKL
   target_link_libraries(gprat_core PUBLIC MKL::mkl_intel_lp64 MKL::mkl_core
                                           MKL::MKL MKL::mkl_sequential)
+  target_compile_definitions(gprat_core PUBLIC GPRAT_ENABLE_MKL)
 else()
   # Link OpenBLAS
   target_link_libraries(gprat_core PUBLIC ${OpenBLAS_LIB})
 endif()
 
-if(GPRAT_ENABLE_MKL)
-  target_compile_definitions(gprat_core PUBLIC GPRAT_ENABLE_MKL)
+target_compile_definitions(gprat_core
+                           PUBLIC GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>)
+if(GPRAT_ENABLE_BENCHMARK_CACHE_EVICTIONS)
+  target_compile_definitions(gprat_core
+                             PUBLIC GPRAT_ENABLE_BENCHMARK_CACHE_EVICTIONS)
 endif()
-
-target_compile_features(gprat_core PUBLIC cxx_std_17)
+target_compile_features(gprat_core PUBLIC cxx_std_20)
 
 set_property(TARGET gprat_core PROPERTY POSITION_INDEPENDENT_CODE ON)
 

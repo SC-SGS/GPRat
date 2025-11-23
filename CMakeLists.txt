@@ -20,11 +20,15 @@ cmake_dependent_option(GPRAT_ENABLE_TESTS "Build unit and integration tests"
                        ${PROJECT_IS_TOP_LEVEL} "GPRAT_BUILD_CORE" OFF)
 cmake_dependent_option(GPRAT_ENABLE_MKL "Enable support for Intel oneMKL"
                        ${PROJECT_IS_TOP_LEVEL} "GPRAT_BUILD_CORE" OFF)
+option(GPRAT_ENABLE_BENCHMARK_CACHE_EVICTIONS
+       "Evict data from caches before running BLAS operations" ON)
 
 option(GPRAT_ENABLE_FORMAT_TARGETS "Enable clang-format / cmake-format targets"
        ${PROJECT_IS_TOP_LEVEL})
 
 if(GPRAT_ENABLE_FORMAT_TARGETS)
+  set(CMAKE_FORMAT_EXCLUDE "^external_ports/")
+
   find_package(format QUIET)
   if(NOT format_FOUND)
     include(FetchContent)

@@ -9,7 +9,7 @@ code.
 
 ## Dependencies
 
-GPRat depends on [HPX](https://hpx-docs.stellar-group.org/latest/html/index.html) for asynchronous task-based parallelization. 
+GPRat depends on [HPX](https://hpx-docs.stellar-group.org/latest/html/index.html) for asynchronous task-based parallelization.
 Furthermore, for CPU-only BLAS computation GPRat requires [OpenBLAS](http://www.openmathlib.org/OpenBLAS/) or [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html).
 A [CUDA](https://developer.nvidia.com/cuda-toolkit) installation is required for GPU-only BLAS computations.
 
@@ -19,6 +19,9 @@ All dependencies can be installed using [Spack](https://github.com/spack/spack).
 A script to install and setup spack for `GPRat` is provided in [`spack-repo`](spack-repo).
 Spack environment configurations and setup scripts for CPU and GPU use are provided in
 [`spack-repo/environments`](spack-repo/environments).
+
+Since Spack is not available on Windows, we also support dependency installation using vcpkg.
+For now, vcpkg builds are only tested on Windows.
 
 ## How To Compile
 
@@ -35,6 +38,7 @@ ctest --preset=dev-linux
 As a developer, you may create a `CMakeUserPresets.json` file at the root of the project that contains additional
 presets local to your machine.
 In addition to the build configuration `dev-linux`, there are `release-linux`, `dev-linux-gpu`, and `release-linux-gpu`.
+For Windows, we have similar presets called `dev-windows` and `release-windows`.
 The configurations suffixed with `-gpu` build the library with CUDA.
 
 GPRat can be build with or without Python bindings.

@@ -7,6 +7,7 @@
 
 #include <hpx/async_distributed/dataflow.hpp>
 #include <hpx/naming_base/id_type.hpp>
+#include <hpx/runtime_distributed/find_here.hpp>
 #include <hpx/runtime_distributed/find_localities.hpp>
 
 GPRAT_NS_BEGIN
@@ -20,14 +21,15 @@ template <auto F>
 struct plain_action_for;
 
 #define GPRAT_DECLARE_PLAIN_ACTION_FOR(local_function, action, friendly_name)                                          \
+    HPX_REGISTER_ACTION_DECLARATION(action)                                                                            \
     template <>                                                                                                        \
-    struct plain_action_for<local_function>                                                                            \
+    struct GPRAT_NS::plain_action_for<local_function>                                                                  \
     {                                                                                                                  \
         using action_type = action;                                                                                    \
         constexpr static std::string_view name = friendly_name;                                                        \
     }
 
-#define GPRAT_DEFINE_PLAIN_ACTION_FOR(local_function)
+#define GPRAT_DEFINE_PLAIN_ACTION_FOR(local_function, action) HPX_REGISTER_ACTION(action)
 
 // =============================================================
 // distributed action-based scheduling

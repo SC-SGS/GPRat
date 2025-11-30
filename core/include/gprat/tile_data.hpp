@@ -105,7 +105,9 @@ class const_tile_data
     [[nodiscard]] const T *data() const
     {
         if (!cpu_data_.data())
+        {
             throw std::runtime_error("no data");
+        }
         return cpu_data_.data();
     }
 
@@ -155,9 +157,14 @@ class mutable_tile_data : public const_tile_data<T>
   public:
     using const_tile_data<T>::const_tile_data;
 
-    [[nodiscard]] T *data() const  {
+    [[nodiscard]] T *data() const
+    {
         if (!this->cpu_data_.data())
-            throw std::runtime_error("no data");return const_cast<T *>(this->cpu_data_.data()); }
+        {
+            throw std::runtime_error("no data");
+        }
+        return const_cast<T *>(this->cpu_data_.data());
+    }
 
     [[nodiscard]] T *begin() const noexcept { return const_cast<T *>(this->cpu_data_.data()); }
 

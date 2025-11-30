@@ -1,105 +1,25 @@
-﻿#pragma once
+﻿#ifndef GPRAT_COMPONENTS_TILED_DATASET_HPP
+#define GPRAT_COMPONENTS_TILED_DATASET_HPP
 
+#pragma once
+
+#include "gprat/detail/actions.hpp"
+#include "gprat/detail/config.hpp"
+#include "gprat/performance_counters.hpp"
+#include "gprat/tile_cache.hpp"
 #include "gprat/tile_data.hpp"
 
-#include <hpx/cache/statistics/local_full_statistics.hpp>
 #include <hpx/modules/actions.hpp>
 #include <hpx/modules/actions_base.hpp>
-#include <hpx/modules/cache.hpp>
 #include <hpx/modules/components.hpp>
 #include <hpx/modules/components_base.hpp>
 #include <hpx/modules/runtime_components.hpp>
 #include <hpx/modules/runtime_distributed.hpp>
 #include <hpx/preprocessor/cat.hpp>
-#include <hpx/serialization/serialize_buffer.hpp>
 #include <span>
 #include <utility>
 
 GPRAT_NS_BEGIN
-
-void register_distributed_tile_counters();
-void record_transmission_time(std::int64_t elapsed_ns);
-
-void track_tile_server_allocation(std::size_t size);
-void track_tile_server_deallocation(std::size_t size);
-
-namespace detail
-{
-hpx::util::cache::statistics::local_full_statistics &get_global_statistics();
-
-///////////////////////////////////////////////////////////////////////////
-class global_full_statistics
-{
-  public:
-    using update_on_exit = hpx::util::cache::statistics::local_full_statistics::update_on_exit;
-
-    // ReSharper disable once CppNonExplicitConversionOperator
-    operator hpx::util::cache::statistics::local_full_statistics &() const { return get_global_statistics(); }
-
-    void got_hit() noexcept { get_global_statistics().got_hit(); }
-
-    void got_miss() noexcept { get_global_statistics().got_miss(); }
-
-    void got_insertion() noexcept { get_global_statistics().got_insertion(); }
-
-    void got_eviction() noexcept { get_global_statistics().got_eviction(); }
-
-    void clear() noexcept { get_global_statistics().clear(); }
-};
-}  // namespace detail
-
-template <typename T>
-class tile_cache
-{
-    friend struct tile_cache_counters;
-
-  public:
-    tile_cache() :
-        cache_(16)
-    { }
-
-    bool try_get(const hpx::naming::gid_type &key, std::size_t generation, mutable_tile_data<T> &cached_data)
-    {
-        std::lock_guard g(mutex_);
-
-        entry e;
-        {
-            hpx::naming::gid_type unused;
-            if (!cache_.get_entry(key, unused, e))
-            {
-                return false;
-            }
-        }
-
-        if (e.generation == generation)
-        {
-            cached_data = e.data;
-            return true;
-        }
-
-        // Erase the obsolete entry
-        cache_.erase([&](const auto &p) { return p.first == key; });
-        return false;
-    }
-
-    void insert(const hpx::naming::gid_type &key, std::size_t generation, const mutable_tile_data<T> &data)
-    {
-        std::lock_guard g(mutex_);
-        cache_.insert(key, entry{ data, generation });
-    }
-
-    void clear() { cache_.clear(); }
-
-  private:
-    struct entry
-    {
-        mutable_tile_data<T> data;
-        std::size_t generation = 0;
-    };
-
-    hpx::mutex mutex_;
-    hpx::util::cache::lru_cache<hpx::naming::gid_type, entry, detail::global_full_statistics> cache_;
-};
 
 namespace server
 {
@@ -259,7 +179,7 @@ struct tile_manager : hpx::components::component_base<tile_manager<T>>
                     record_transmission_time(timer.elapsed_nanoseconds());
                     auto data = f.get();
                     cache_.insert(gid, generation, data);
-                    self = {}; // release our reference
+                    self = {};  // release our reference
                     return data;
                 });
     }
@@ -318,9 +238,6 @@ struct tile_manager : hpx::components::component_base<tile_manager<T>>
     GPRAT_REGISTER_TILE_HOLDER_IMPL(HPX_PP_CAT(_server_tile_holder_, HPX_PP_CAT(type, name)), name)                    \
     typedef ::GPRAT_NS::server::tile_manager<type> HPX_PP_CAT(_server_tile_manager_, HPX_PP_CAT(type, name));          \
     GPRAT_REGISTER_TILE_MANAGER_IMPL(HPX_PP_CAT(_server_tile_manager_, HPX_PP_CAT(type, name)), name)
-
-template <typename T>
-class tiled_dataset_accessor;
 
 template <typename T>
 class tile_handle
@@ -481,4 +398,30 @@ create_tiled_dataset(std::span<const std::pair<hpx::id_type, std::size_t>> targe
     return tiles;
 }
 
+template <typename T, typename Mapper>
+tiled_dataset<T> make_tiled_dataset(const tiled_scheduler_distributed &sched, std::size_t num_tiles, Mapper &&mapper)
+{
+    const auto num_localities = sched.localities_.size();
+    std::vector<std::pair<hpx::id_type, std::size_t>> targets;
+    targets.reserve(num_localities);
+
+    for (std::size_t i = 0; i < num_localities; ++i)
+    {
+        targets.emplace_back(sched.localities_[i], 0);
+    }
+
+    for (std::size_t i = 0; i < num_tiles; i++)
+    {
+        ++targets[mapper(i) % num_localities].second;
+    }
+
+    return create_tiled_dataset<T>(targets, num_tiles);
+}
+
 GPRAT_NS_END
+
+// Register the double version by default
+// Users can register custom types in the same way
+GPRAT_REGISTER_TILED_DATASET_DECLARATION(double, double);
+
+#endif

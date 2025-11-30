@@ -1,31 +1,21 @@
-﻿#include "distributed_blas.hpp"
-
-#include "gprat/cpu/adapter_cblas_fp64.hpp"
+﻿#include "gprat/cpu/adapter_cblas_fp64_actions.hpp"
 
 #include <hpx/include/performance_counters.hpp>
 
-HPX_REGISTER_ACTION(GPRAT_NS::potrf_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::trsm_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::syrk_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::gemm_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::trsv_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::gemv_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::dot_diag_syrk_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::dot_diag_gemm_distributed_action);
-HPX_REGISTER_ACTION(GPRAT_NS::axpy_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::potrf, GPRAT_NS::cpu::potrf_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::trsm, GPRAT_NS::cpu::trsm_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::syrk, GPRAT_NS::cpu::syrk_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::gemm, GPRAT_NS::cpu::gemm_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::trsv, GPRAT_NS::cpu::trsv_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::gemv, GPRAT_NS::cpu::gemv_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::dot_diag_syrk, GPRAT_NS::cpu::dot_diag_syrk_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::dot_diag_gemm, GPRAT_NS::cpu::dot_diag_gemm_distributed_action);
+GPRAT_DEFINE_PLAIN_ACTION_FOR(&GPRAT_NS::axpy, GPRAT_NS::cpu::axpy_distributed_action);
 
 GPRAT_NS_BEGIN
 
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&potrf);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&trsm);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&syrk);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&gemm);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&trsv);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&gemv);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&dot_diag_syrk);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&dot_diag_gemm);
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&axpy);
-
+namespace cpu
+{
 hpx::future<tile_handle<double>> potrf_distributed(const tile_handle<double> &A, int N)
 {
     return hpx::dataflow(
@@ -147,5 +137,6 @@ hpx::future<tile_handle<double>> axpy_distributed(const tile_handle<double> &y, 
         y.get_async(),
         x.get_async());
 }
+}  // namespace cpu
 
 GPRAT_NS_END

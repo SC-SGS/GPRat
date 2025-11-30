@@ -1,13 +1,14 @@
-#include "distributed_blas.hpp"
-#include "distributed_cholesky.hpp"
-#include "distributed_tile.hpp"
-
-#include "gprat/cpu/gp_algorithms.hpp"
+// All of these are necessary:
+#include "gprat/cpu/adapter_cblas_fp64_actions.hpp"
+#include "gprat/cpu/gp_algorithms_actions.hpp"
 #include "gprat/cpu/gp_functions.hpp"
+#include "gprat/cpu/gp_optimizer_actions.hpp"
+#include "gprat/cpu/gp_uncertainty_actions.hpp"
 #include "gprat/gprat.hpp"
 #include "gprat/kernels.hpp"
 #include "gprat/performance_counters.hpp"
-#include "gprat/scheduler.hpp"
+#include "gprat/scheduler/sma.hpp"
+#include "gprat/tiled_dataset.hpp"
 #include "gprat/utils.hpp"
 
 #include "../../test/src/test_data.hpp"
@@ -20,343 +21,11 @@
 #include <iostream>
 #include <span>
 
-// This is a standalone test, so including this directly is fine.
+// This is a standalone example, so including this directly is fine.
 // Better than having the whole project depend on compiled Boost.Json!
 #include <boost/json/src.hpp>
 
-GPRAT_REGISTER_TILED_DATASET(double, double);
-
 GPRAT_NS_BEGIN
-
-template <typename T, typename Mapper>
-tiled_dataset<T> make_tiled_dataset(const tiled_scheduler_distributed &sched, std::size_t num_tiles, Mapper &&mapper)
-{
-    const auto num_localities = sched.localities_.size();
-    std::vector<std::pair<hpx::id_type, std::size_t>> targets;
-    targets.reserve(num_localities);
-
-    for (std::size_t i = 0; i < num_localities; ++i)
-    {
-        targets.emplace_back(sched.localities_[i], 0);
-    }
-
-    for (std::size_t i = 0; i < num_tiles; i++)
-    {
-        ++targets[mapper(i) % num_localities].second;
-    }
-
-    return create_tiled_dataset<T>(targets, num_tiles);
-}
-
-hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &input);
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_covariance_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance,
-                               gen_tile_covariance_distributed_action,
-                               "gen_tile_covariance");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance);
-
-hpx::future<tile_handle<double>> gen_tile_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &input)
-{
-    return tile.set_async(cpu::gen_tile_covariance(row, col, N, n_regressors, sek_params, input));
-}
-
-hpx::future<tile_handle<double>> gen_tile_covariance_with_distance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    const SEKParams &sek_params,
-    const const_tile_data<double> &distance);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_covariance_with_distance_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance_with_distance,
-                               gen_tile_covariance_with_distance_distributed_action,
-                               "gen_tile_covariance_with_distance");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_covariance_with_distance);
-
-hpx::future<tile_handle<double>> gen_tile_covariance_with_distance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    const SEKParams &sek_params,
-    const const_tile_data<double> &distance)
-{
-    return tile.set_async(cpu::gen_tile_covariance_with_distance(row, col, N, sek_params, distance));
-}
-
-hpx::future<tile_handle<double>> gen_tile_prior_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &input);
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_prior_covariance_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_prior_covariance,
-                               gen_tile_prior_covariance_distributed_action,
-                               "gen_tile_prior_covariance");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_prior_covariance);
-
-hpx::future<tile_handle<double>> gen_tile_prior_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &input)
-{
-    return tile.set_async(cpu::gen_tile_prior_covariance(row, col, N, n_regressors, sek_params, input));
-}
-
-hpx::future<tile_handle<double>> gen_tile_full_prior_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &input);
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_full_prior_covariance_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_full_prior_covariance,
-                               gen_tile_full_prior_covariance_distributed_action,
-                               "gen_tile_full_prior_covariance");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_prior_covariance);
-
-hpx::future<tile_handle<double>> gen_tile_full_prior_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &input)
-{
-    return tile.set_async(cpu::gen_tile_full_prior_covariance(row, col, N, n_regressors, sek_params, input));
-}
-
-hpx::future<tile_handle<double>> gen_tile_cross_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N_row,
-    std::size_t N_col,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &row_input,
-    const std::vector<double> &col_input);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_cross_covariance_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_cross_covariance,
-                               gen_tile_cross_covariance_distributed_action,
-                               "gen_tile_cross_covariance");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_cross_covariance);
-
-hpx::future<tile_handle<double>> gen_tile_cross_covariance_distributed(
-    const tile_handle<double> &tile,
-    std::size_t row,
-    std::size_t col,
-    std::size_t N_row,
-    std::size_t N_col,
-    std::size_t n_regressors,
-    const SEKParams &sek_params,
-    const std::vector<double> &row_input,
-    const std::vector<double> &col_input)
-{
-    return tile.set_async(
-        cpu::gen_tile_cross_covariance(row, col, N_row, N_col, n_regressors, sek_params, row_input, col_input));
-}
-
-hpx::future<tile_handle<double>> gen_tile_transpose_distributed(
-    const tile_handle<double> &tile, std::size_t N_row, std::size_t N_col, const tile_handle<double> &src);
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_transpose_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_transpose, gen_tile_transpose_distributed_action, "gen_tile_transpose");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_transpose);
-
-hpx::future<tile_handle<double>> gen_tile_transpose_distributed(
-    const tile_handle<double> &tile, std::size_t N_row, std::size_t N_col, const tile_handle<double> &src)
-{
-    return hpx::dataflow(
-        hpx::launch::async,
-        [=](hpx::future<mutable_tile_data<double>> &&tiled)
-        { return tile.set_async(cpu::gen_tile_transpose(N_row, N_col, tiled.get())); },
-        src.get_async());
-}
-
-hpx::future<tile_handle<double>> gen_tile_output_distributed(
-    const tile_handle<double> &tile, std::size_t row, std::size_t N, const std::vector<double> &output);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_output_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_output, gen_tile_output_distributed_action, "gen_tile_output");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_output);
-
-hpx::future<tile_handle<double>> gen_tile_output_distributed(
-    const tile_handle<double> &tile, std::size_t row, std::size_t N, const std::vector<double> &output)
-{
-    return tile.set_async(cpu::gen_tile_output(row, N, output));
-}
-
-hpx::future<tile_handle<double>> gen_tile_grad_l_distributed(
-    const tile_handle<double> &tile,
-    std::size_t N,
-    const SEKParams &sek_params,
-    const const_tile_data<double> &distance);
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_grad_l_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_grad_l, gen_tile_grad_l_distributed_action, "gen_tile_grad_l");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_grad_l);
-
-hpx::future<tile_handle<double>> gen_tile_grad_l_distributed(
-    const tile_handle<double> &tile,
-    std::size_t N,
-    const SEKParams &sek_params,
-    const const_tile_data<double> &distance)
-{
-    return tile.set_async(cpu::gen_tile_grad_l(N, sek_params, distance));
-}
-
-hpx::future<tile_handle<double>> gen_tile_grad_v_distributed(
-    const tile_handle<double> &tile,
-    std::size_t N,
-    const SEKParams &sek_params,
-    const const_tile_data<double> &distance);
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_grad_v_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_grad_v, gen_tile_grad_v_distributed_action, "gen_tile_grad_v");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_grad_l);
-
-hpx::future<tile_handle<double>> gen_tile_grad_v_distributed(
-    const tile_handle<double> &tile,
-    std::size_t N,
-    const SEKParams &sek_params,
-    const const_tile_data<double> &distance)
-{
-    return tile.set_async(cpu::gen_tile_grad_v(N, sek_params, distance));
-}
-
-hpx::future<tile_handle<double>> gen_tile_zeros_distributed(const tile_handle<double> &tile, std::size_t N);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_zeros_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_zeros, gen_tile_zeros_distributed_action, "gen_tile_output");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_zeros);
-
-hpx::future<tile_handle<double>> gen_tile_zeros_distributed(const tile_handle<double> &tile, std::size_t N)
-{
-    return tile.set_async(cpu::gen_tile_zeros(N));
-}
-
-hpx::future<tile_handle<double>> gen_tile_identity_distributed(const tile_handle<double> &tile, std::size_t N);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(gen_tile_identity_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::gen_tile_identity, gen_tile_identity_distributed_action, "gen_tile_identity");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::gen_tile_identity);
-
-hpx::future<tile_handle<double>> gen_tile_identity_distributed(const tile_handle<double> &tile, std::size_t N)
-{
-    return tile.set_async(cpu::gen_tile_identity(N));
-}
-
-hpx::future<tile_handle<double>> get_matrix_diagonal_distributed(const tile_handle<double> &A, std::size_t M);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(get_matrix_diagonal_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::get_matrix_diagonal,
-                               get_matrix_diagonal_distributed_action,
-                               "get_matrix_diagonal");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::get_matrix_diagonal);
-
-hpx::future<tile_handle<double>> get_matrix_diagonal_distributed(const tile_handle<double> &A, std::size_t M)
-{
-    return hpx::dataflow(
-        hpx::launch::async,
-        [A, M](hpx::future<mutable_tile_data<double>> &&Ad)
-        { return A.set_async(cpu::get_matrix_diagonal(Ad.get(), M)); },
-        A.get_async());
-}
-
-hpx::future<double> compute_loss_distributed(const tile_handle<double> &K_diag_tile,
-                                             const tile_handle<double> &alpha_tile,
-                                             const tile_handle<double> &y_tile,
-                                             std::size_t N);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(compute_loss_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::compute_loss, compute_loss_distributed_action, "compute_loss");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::get_matrix_diagonal);
-
-hpx::future<double> compute_loss_distributed(const tile_handle<double> &K_diag_tile,
-                                             const tile_handle<double> &alpha_tile,
-                                             const tile_handle<double> &y_tile,
-                                             std::size_t N)
-{
-    return hpx::dataflow(
-        hpx::launch::async,
-        [=](hpx::future<mutable_tile_data<double>> &&K_diag_tiled,
-            hpx::future<mutable_tile_data<double>> &&alpha_tiled,
-            hpx::future<mutable_tile_data<double>> &&y_tiled)
-        { return cpu::compute_loss(K_diag_tiled.get(), alpha_tiled.get(), y_tiled.get(), N); },
-        K_diag_tile.get_async(),
-        alpha_tile.get_async(),
-        y_tile.get_async());
-}
-
-hpx::future<double> compute_trace_distributed(const tile_handle<double> &diagonal, double trace);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(compute_trace_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::compute_trace, compute_trace_distributed_action, "compute_loss");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::compute_trace);
-
-hpx::future<double> compute_trace_distributed(const tile_handle<double> &diagonal, double trace)
-{
-    return hpx::dataflow(
-        hpx::launch::async,
-        [=](hpx::future<mutable_tile_data<double>> &&diagonald) { return cpu::compute_trace(diagonald.get(), trace); },
-        diagonal.get_async());
-}
-
-hpx::future<double>
-compute_dot_distributed(const tile_handle<double> &vector_T, const tile_handle<double> &vector, double result);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(compute_dot_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::compute_dot, compute_dot_distributed_action, "compute_loss");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::compute_dot);
-
-hpx::future<double>
-compute_dot_distributed(const tile_handle<double> &vector_T, const tile_handle<double> &vector, double result)
-{
-    return hpx::dataflow(
-        hpx::launch::async,
-        [=](hpx::future<mutable_tile_data<double>> &&vector_Td, hpx::future<mutable_tile_data<double>> &&vectord)
-        { return cpu::compute_dot(vector_Td.get(), vectord.get(), result); },
-        vector_T.get_async(),
-        vector.get_async());
-}
-
-hpx::future<double> compute_trace_diag_distributed(const tile_handle<double> &tile, double trace, std::size_t N);
-
-HPX_DEFINE_PLAIN_DIRECT_ACTION(compute_trace_diag_distributed);
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&cpu::compute_trace_diag, compute_trace_diag_distributed_action, "compute_loss");
-GPRAT_DEFINE_PLAIN_ACTION_FOR(&cpu::compute_trace_diag);
-
-hpx::future<double> compute_trace_diag_distributed(const tile_handle<double> &tile, double trace, std::size_t N)
-{
-    return hpx::dataflow(
-        hpx::launch::async,
-        [=](hpx::future<mutable_tile_data<double>> &&tiled) { return cpu::compute_trace_diag(tiled.get(), trace, N); },
-        tile.get_async());
-}
 
 gprat_results load_test_data_results(const std::string &filename)
 {
@@ -639,11 +308,7 @@ void startup()
 
     static struct once_dummy_struct
     {
-        once_dummy_struct()
-        {
-            register_performance_counters();
-            register_distributed_tile_counters();
-        }
+        once_dummy_struct() { register_performance_counters(); }
     } once_dummy;
 }
 
@@ -656,8 +321,6 @@ bool check_startup(hpx::startup_function_type &startup_func, bool &pre_startup)
 }
 
 GPRAT_NS_END
-
-HPX_REGISTER_ACTION(GPRAT_NS::gen_tile_covariance_distributed_action);
 
 HPX_REGISTER_STARTUP_MODULE(GPRAT_NS::check_startup)
 

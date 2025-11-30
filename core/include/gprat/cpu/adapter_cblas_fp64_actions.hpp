@@ -1,14 +1,19 @@
-﻿#pragma once
+﻿#ifndef GPRAT_CPU_ADAPTER_CBLAS_FP64_ACTIONS_HPP
+#define GPRAT_CPU_ADAPTER_CBLAS_FP64_ACTIONS_HPP
+
+#pragma once
 
 #include "gprat/cpu/adapter_cblas_fp64.hpp"
+#include "gprat/detail/actions.hpp"
+#include "gprat/detail/config.hpp"
+#include "gprat/tiled_dataset.hpp"
 
-#include "distributed_tile.hpp"
-#include "scheduling.hpp"
 #include <hpx/actions_base/plain_action.hpp>
 
-GPRAT_REGISTER_TILED_DATASET_DECLARATION(double, double);
-
 GPRAT_NS_BEGIN
+
+namespace cpu
+{
 
 hpx::future<tile_handle<double>> potrf_distributed(const tile_handle<double> &A, int N);
 hpx::future<tile_handle<double>> trsm_distributed(
@@ -43,10 +48,10 @@ hpx::future<tile_handle<double>> gemv_distributed(
 hpx::future<tile_handle<double>>
 dot_diag_syrk_distributed(const tile_handle<double> &A, const tile_handle<double> &r, int N, int M);
 hpx::future<tile_handle<double>> dot_diag_gemm_distributed(
-const tile_handle<double> &A, const tile_handle<double> &B, const tile_handle<double> &r, int N, int M);
-hpx::future<tile_handle<double>> axpy_distributed(
-    const tile_handle<double> &y, const tile_handle<double> &x, int N);
+    const tile_handle<double> &A, const tile_handle<double> &B, const tile_handle<double> &r, int N, int M);
+hpx::future<tile_handle<double>> axpy_distributed(const tile_handle<double> &y, const tile_handle<double> &x, int N);
 
+// This just gives us the action type (that we want in the correct namespace)
 HPX_DEFINE_PLAIN_DIRECT_ACTION(potrf_distributed);
 HPX_DEFINE_PLAIN_DIRECT_ACTION(trsm_distributed);
 HPX_DEFINE_PLAIN_DIRECT_ACTION(syrk_distributed);
@@ -57,24 +62,22 @@ HPX_DEFINE_PLAIN_DIRECT_ACTION(dot_diag_syrk_distributed);
 HPX_DEFINE_PLAIN_DIRECT_ACTION(dot_diag_gemm_distributed);
 HPX_DEFINE_PLAIN_DIRECT_ACTION(axpy_distributed);
 
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&potrf, potrf_distributed_action, "POTRF");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&trsm, trsm_distributed_action, "TRSM");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&syrk, syrk_distributed_action, "SYRK");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&gemm, gemm_distributed_action, "GEMM");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&trsv, trsv_distributed_action, "TRSV");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&gemv, gemv_distributed_action, "GEMV");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&dot_diag_syrk, dot_diag_syrk_distributed_action, "dot diag(SYRK)");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&dot_diag_gemm, dot_diag_gemm_distributed_action, "dot diag(GEMM)");
-GPRAT_DECLARE_PLAIN_ACTION_FOR(&axpy, axpy_distributed_action, "axpy");
+}  // namespace cpu
 
 GPRAT_NS_END
 
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::potrf_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::trsm_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::syrk_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::gemm_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::trsv_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::gemv_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::dot_diag_syrk_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::dot_diag_gemm_distributed_action);
-HPX_REGISTER_ACTION_DECLARATION(GPRAT_NS::axpy_distributed_action);
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::potrf, GPRAT_NS::cpu::potrf_distributed_action, "POTRF");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::trsm, GPRAT_NS::cpu::trsm_distributed_action, "TRSM");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::syrk, GPRAT_NS::cpu::syrk_distributed_action, "SYRK");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::gemm, GPRAT_NS::cpu::gemm_distributed_action, "GEMM");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::trsv, GPRAT_NS::cpu::trsv_distributed_action, "TRSV");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::gemv, GPRAT_NS::cpu::gemv_distributed_action, "GEMV");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::dot_diag_syrk,
+                               GPRAT_NS::cpu::dot_diag_syrk_distributed_action,
+                               "dot diag(SYRK)");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::dot_diag_gemm,
+                               GPRAT_NS::cpu::dot_diag_gemm_distributed_action,
+                               "dot diag(GEMM)");
+GPRAT_DECLARE_PLAIN_ACTION_FOR(&GPRAT_NS::axpy, GPRAT_NS::cpu::axpy_distributed_action, "axpy");
+
+#endif

@@ -205,7 +205,7 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
 {
     if (!gprat::compiled_with_cuda())
     {
-        WARN("CUDA not available — skipping GPU test.");
+        WARN("CUDA not available â€” skipping GPU test.");
         return;
     }
 

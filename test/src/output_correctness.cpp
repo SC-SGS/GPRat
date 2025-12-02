@@ -1,5 +1,7 @@
-#include "gprat_c.hpp"
-#include "utils_c.hpp"
+#include "gprat/gprat.hpp"
+#include "gprat/utils.hpp"
+
+#include "test_data.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -12,56 +14,6 @@
 #include <string>
 #include <string_view>
 
-// Struct containing all results we'd like to compare
-struct gprat_results
-{
-    std::vector<std::vector<double>> choleksy;
-    std::vector<double> losses;
-    std::vector<std::vector<double>> sum;
-    std::vector<std::vector<double>> full;
-    std::vector<double> pred;
-    std::vector<std::vector<double>> sum_no_optimize;
-    std::vector<std::vector<double>> full_no_optimize;
-    std::vector<double> pred_no_optimize;
-};
-
-// The following two functions are for JSON (de-)serialization
-void tag_invoke(boost::json::value_from_tag, boost::json::value &jv, const gprat_results &results)
-{
-    jv = {
-        { "choleksy", boost::json::value_from(results.choleksy) },
-        { "losses", boost::json::value_from(results.losses) },
-        { "sum", boost::json::value_from(results.sum) },
-        { "full", boost::json::value_from(results.full) },
-        { "pred", boost::json::value_from(results.pred) },
-        { "sum_no_optimize", boost::json::value_from(results.sum_no_optimize) },
-        { "full_no_optimize", boost::json::value_from(results.full_no_optimize) },
-        { "pred_no_optimize", boost::json::value_from(results.pred_no_optimize) },
-    };
-}
-
-// This helper function deduces the type and assigns the value with the matching key
-template <typename T>
-inline void extract(const boost::json::object &obj, T &t, std::string_view key)
-{
-    t = boost::json::value_to<T>(obj.at(key));
-}
-
-gprat_results tag_invoke(boost::json::value_to_tag<gprat_results>, const boost::json::value &jv)
-{
-    gprat_results results;
-    const auto &obj = jv.as_object();
-    extract(obj, results.choleksy, "choleksy");
-    extract(obj, results.losses, "losses");
-    extract(obj, results.sum, "sum");
-    extract(obj, results.full, "full");
-    extract(obj, results.pred, "pred");
-    extract(obj, results.sum_no_optimize, "sum_no_optimize");
-    extract(obj, results.full_no_optimize, "full_no_optimize");
-    extract(obj, results.pred_no_optimize, "pred_no_optimize");
-    return results;
-}
-
 // This logic is basically equivalent to the GPRat C++ example (for now).
 gprat_results run_on_data_cpu(const std::string &train_path, const std::string &out_path, const std::string &test_path)
 {
@@ -73,11 +25,11 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
     const std::size_t n_reg = 8;
 
     // Compute tile sizes and number of predict tiles
-    const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
-    const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
+    const auto tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+    const auto test_tiles = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
 
     // hyperparams
-    gprat_hyper::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
+    gprat::AdamParams hpar = { 0.1, 0.9, 0.999, 1e-8, OPT_ITER };
 
     // data loading
     gprat::GP_data training_input(train_path, n_train, n_reg);
@@ -90,22 +42,17 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
         training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, trainable);
 
     // Initialize HPX with no arguments, don't run hpx_main
-    utils::start_hpx_runtime(0, nullptr);
+    gprat::start_hpx_runtime(0, nullptr);
 
     gprat_results results_cpu;
-
-    results_cpu.choleksy = gp_cpu.cholesky();
-
+    results_cpu.choleksy = to_vector(gp_cpu.cholesky());
     results_cpu.losses = gp_cpu.optimize(hpar);
-
     results_cpu.sum = gp_cpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
-
     results_cpu.full = gp_cpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
-
     results_cpu.pred = gp_cpu.predict(test_input.data, test_tiles.first, test_tiles.second);
 
     // Stop the HPX runtime
-    utils::stop_hpx_runtime();
+    gprat::stop_hpx_runtime();
 
     return results_cpu;
 }
@@ -120,8 +67,8 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
     const int gpu_id = 0;
     const int n_streams = 1;
 
-    const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
-    const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
+    const auto tile_size = gprat::compute_train_tile_size(n_train, n_tiles);
+    const auto test_tiles = gprat::compute_test_tiles(n_test, n_tiles, tile_size);
 
     gprat::GP_data training_input(train_path, n_train, n_reg);
     gprat::GP_data training_output(out_path, n_train, n_reg);
@@ -139,16 +86,16 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
         gpu_id,
         n_streams);
 
-    utils::start_hpx_runtime(0, nullptr);
+    gprat::start_hpx_runtime(0, nullptr);
 
     gprat_results results_gpu;
-    results_gpu.choleksy = gp_gpu.cholesky();
+    results_gpu.choleksy = to_vector(gp_gpu.cholesky());
     // NOTE: optimize and optimize_step are currently not implemented for GPU
     results_gpu.sum_no_optimize = gp_gpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
     results_gpu.full_no_optimize = gp_gpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
     results_gpu.pred_no_optimize = gp_gpu.predict(test_input.data, test_tiles.first, test_tiles.second);
 
-    utils::stop_hpx_runtime();
+    gprat::stop_hpx_runtime();
 
     return results_gpu;
 }
@@ -256,7 +203,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
 // NOTE: using higher tolerance than for CPU
 TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu]")
 {
-    if (!utils::compiled_with_cuda())
+    if (!gprat::compiled_with_cuda())
     {
         WARN("CUDA not available — skipping GPU test.");
         return;

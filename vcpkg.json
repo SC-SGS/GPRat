@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "gprat",
+  "version-semver": "0.1.0",
+  "dependencies": [
+    {
+      "name": "boost-json"
+    },
+    {
+      "name": "intel-mkl"
+    },
+    {
+      "name": "fmt"
+    },
+    {
+      "name": "hpx",
+      "features": [
+        "cuda",
+        "bzip2",
+        "mpi",
+        "snappy",
+        "zlib"
+      ]
+    },
+    {
+      "name": "cuda"
+    }
+  ],
+  "default-features": [],
+  "builtin-baseline": "365f6444ab40ee87c73c947b475b3a267b3cb77c"
+}

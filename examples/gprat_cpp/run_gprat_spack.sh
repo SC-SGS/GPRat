@@ -26,6 +26,7 @@ if command -v spack &> /dev/null; then
 	    export CXX=clang++
 	    export CC=clang
 	    GPRAT_WITH_CUDA=ON
+	    GPRAT_APEX_STEPS=OFF
 	    spack install gprat%clang@17.0.1 blas=openblas +cuda cuda_arch=80 ^cmake@3.30.5
 	    spack load gprat blas=openblas +cuda
     else
@@ -46,7 +47,7 @@ export APEX_DISABLE=1
 rm -rf build && mkdir build && cd build
 
 # Configure the project
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGPRAT_WITH_CUDA=${GPRAT_WITH_CUDA}
+cmake .. -DCMAKE_BUILD_TYPE=Release -DGPRAT_WITH_CUDA=${GPRAT_WITH_CUDA} -DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS}
 
 # Build the project
 make -j

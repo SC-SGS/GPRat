@@ -95,4 +95,10 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
             args += [self.define("GPRAT_ENABLE_MKL", "ON")]
         else:
             args += [self.define("GPRAT_ENABLE_MKL", "OFF")]
+
+        # Measuring the durations of implementation steps with APEX drastically reduces the performance as it adds
+        # synchronization points between computations. This option should only be enabled for replicating performance
+        # measurements and is therefore not intended to be exposed to the user.
+        args += [self.define("GPRAT_APEX_STEPS", "OFF")]
+
         return args

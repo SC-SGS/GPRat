@@ -40,12 +40,14 @@ if command -v spack &> /dev/null; then
 	    export CC=gcc
 	    spack env activate gprat_cpu_gcc
 	    GPRAT_WITH_CUDA=OFF # whether GPRAT_WITH_CUDA is ON of OFF is irrelevant for this example
+	    GPRAT_APEX_STEPS=OFF
 	fi
     elif [[ "$HOSTNAME" == "sven0"  ||  "$HOSTNAME" == "sven1" ]]; then
 	#module load gcc/13.2.1
 	spack load openblas arch=linux-fedora38-riscv64
 	HPX_CMAKE=$HOME/git_workspace/build-scripts/build/hpx/lib64/cmake/HPX
         GPRAT_WITH_CUDA=OFF
+	GPRAT_APEX_STEPS=OFF
 	ADD=64
     elif [[ $(uname -i) == "aarch64" ]]; then
 	spack load gcc@14.2.0
@@ -55,6 +57,7 @@ if command -v spack &> /dev/null; then
 	    spack env activate gprat_cpu_arm
 	fi
 	GPRAT_WITH_CUDA=OFF
+	GPRAT_APEX_STEPS=OFF
 	ADD=64
     elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
 	# Check if the gprat_gpu_clang environment exists
@@ -66,6 +69,7 @@ if command -v spack &> /dev/null; then
 	    module load cuda/12.0.1
 	    spack env activate gprat_gpu_clang
 	    GPRAT_WITH_CUDA=ON
+	    GPRAT_APEX_STEPS=OFF
 	fi
     else
     	echo "Hostname is $HOSTNAME — no action taken."
@@ -88,6 +92,7 @@ rm -rf build && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release \
          -DGPRat_DIR=./lib$ADD/cmake/GPRat \
          -DGPRAT_WITH_CUDA=${GPRAT_WITH_CUDA} \
+	 -DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS} \
          -DHPX_DIR=$HPX_CMAKE \
 	 -DUSE_MKL=$USE_MKL
 

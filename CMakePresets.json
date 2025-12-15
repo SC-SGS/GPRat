@@ -159,7 +159,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "GPRAT_WITH_CUDA": "OFF"
+        "GPRAT_WITH_CUDA": "OFF",
+        "GPRAT_APEX_STEPS": "OFF"
       }
     },
     {
@@ -169,7 +170,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "GPRAT_WITH_CUDA": "OFF"
+        "GPRAT_WITH_CUDA": "OFF",
+        "GPRAT_APEX_STEPS": "OFF"
       }
     },
     {
@@ -177,7 +179,8 @@
       "binaryDir": "${sourceDir}/build/dev-linux-gpu",
       "inherits": ["dev-linux"],
       "cacheVariables": {
-        "GPRAT_WITH_CUDA": "ON"
+        "GPRAT_WITH_CUDA": "ON",
+        "GPRAT_APEX_STEPS": "OFF"
       }
     },
     {
@@ -185,7 +188,8 @@
       "binaryDir": "${sourceDir}/build/release-linux-gpu",
       "inherits": ["release-linux"],
       "cacheVariables": {
-        "GPRAT_WITH_CUDA": "ON"
+        "GPRAT_WITH_CUDA": "ON",
+        "GPRAT_APEX_STEPS": "OFF"
       }
     }
   ],

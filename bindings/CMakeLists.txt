@@ -23,6 +23,11 @@ option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
 # Pass variable to C++ code
 add_compile_definitions(GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>)
 
+# Option for steps duration measurement with APEX
+option(GPRAT_APEX_STEPS "Enable measuring duration of steps with APEX" OFF)
+# Pass variable to C++ code
+add_compile_definitions(GPRAT_APEX_STEPS=$<BOOL:${GPRAT_APEX_STEPS}>)
+
 file(GLOB SOURCE_FILES CONFIGURE_DEPENDS "*.cpp")
 file(GLOB HEADER_FILES CONFIGURE_DEPENDS "*.hpp")
 

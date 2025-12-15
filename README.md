@@ -9,7 +9,7 @@ code.
 
 ## Dependencies
 
-GPRat depends on [HPX](https://hpx-docs.stellar-group.org/latest/html/index.html) for asynchronous task-based parallelization. 
+GPRat depends on [HPX](https://hpx-docs.stellar-group.org/latest/html/index.html) for asynchronous task-based parallelization.
 Furthermore, for CPU-only BLAS computation GPRat requires [OpenBLAS](http://www.openmathlib.org/OpenBLAS/) or [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html).
 A [CUDA](https://developer.nvidia.com/cuda-toolkit) installation is required for GPU-only BLAS computations.
 
@@ -40,14 +40,15 @@ The configurations suffixed with `-gpu` build the library with CUDA.
 GPRat can be build with or without Python bindings.
 The following options can be set to include / exclude parts of the project:
 
-| Option name                 | Description                                    | Default value   |
-|-----------------------------|------------------------------------------------|-----------------|
-| GPRAT_BUILD_CORE            | Enable/Disable building of the core library    | ON              |
-| GPRAT_BUILD_BINDINGS        | Enable/Disable building of the Python bindings | ON              |
-| GPRAT_ENABLE_FORMAT_TARGETS | Enable/Disable code formatting helper targets  | ON if top-level |
-| GPRAT_ENABLE_EXAMPLES       | Enable/Disable example projects                | ON if top-level |
-| GPRAT_USE_MKL               | Enable/Disable usage of MKL library            | OFF             |
-| GPRAT_WITH_CUDA             | Enable/disable compilation with CUDA support   | OFF             |
+| Option name                 | Description                                                         | Default value   |
+|-----------------------------|---------------------------------------------------------------------|-----------------|
+| GPRAT_BUILD_CORE            | Enable/Disable building of the core library                         | ON              |
+| GPRAT_BUILD_BINDINGS        | Enable/Disable building of the Python bindings                      | ON              |
+| GPRAT_ENABLE_FORMAT_TARGETS | Enable/Disable code formatting helper targets                       | ON if top-level |
+| GPRAT_ENABLE_EXAMPLES       | Enable/Disable example projects                                     | ON if top-level |
+| GPRAT_USE_MKL               | Enable/Disable usage of MKL library                                 | OFF             |
+| GPRAT_WITH_CUDA             | Enable/disable compilation with CUDA support                        | OFF             |
+| GPRAT_APEX_STEPS            | Enable/disable compilation for steps duration measurement with APEX | OFF             |
 
 Respective scripts can be found in this directory.
 

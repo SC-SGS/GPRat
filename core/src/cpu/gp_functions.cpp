@@ -1,5 +1,6 @@
 #include "cpu/gp_functions.hpp"
 
+#include "apex_utils.hpp"
 #include "cpu/gp_algorithms.hpp"
 #include "cpu/gp_optimizer.hpp"
 #include "cpu/tiled_algorithms.hpp"
@@ -21,6 +22,12 @@ cholesky(const std::vector<double> &training_input,
          int n_regressors)
 {
     std::vector<std::vector<double>> result;
+
+#if GPRAT_APEX_CHOLESKY
+    GPRAT_START_TIMER(assembly_cholesky_timer);
+#endif
+    GPRAT_START_STEP(assembly_timer);
+
     // Tiled future data structures
     Tiled_matrix K_tiles;  // Tiled covariance matrix
 
@@ -45,9 +52,17 @@ cholesky(const std::vector<double> &training_input,
         }
     }
 
+    GPRAT_END_STEP(assembly_timer, "cholesky_step assembly", K_tiles);
+    GPRAT_START_STEP(cholesky_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous Cholesky decomposition: K = L * L^T
     right_looking_cholesky_tiled(K_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
+
+    GPRAT_END_STEP(cholesky_timer, "cholesky_step cholesky", K_tiles);
+#if GPRAT_CHOLESKY_STEPS
+    GPRAT_STOP_TIMER(assembly_cholesky_timer, "cholesky", K_tiles);
+#endif
 
     ///////////////////////////////////////////////////////////////////////////
     // Synchronize
@@ -88,6 +103,8 @@ predict(const std::vector<double> &training_input,
      *    - triangular solve L^T * alpha = beta
      *    - compute hat(y) = cross(K) * alpha
      */
+
+    GPRAT_START_STEP(assembly_timer);
 
     std::vector<double> prediction_result;
     // Tiled future data structures
@@ -149,14 +166,30 @@ predict(const std::vector<double> &training_input,
         prediction_tiles.push_back(hpx::async(hpx::annotated_function(gen_tile_zeros, "assemble_tiled"), m_tile_size));
     }
 
+    GPRAT_END_STEP(
+        assembly_timer, "predict_step assembly", K_tiles, alpha_tiles, cross_covariance_tiles, prediction_tiles);
+    GPRAT_START_STEP(cholesky_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous Cholesky decomposition: K = L * L^T
     right_looking_cholesky_tiled(K_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
 
+    GPRAT_END_STEP(cholesky_timer, "predict_step cholesky", K_tiles);
+    GPRAT_START_STEP(forward_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous triangular solve  L * (L^T * alpha) = y
+    // First, forward solve L * beta = y
     forward_solve_tiled(K_tiles, alpha_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
+
+    GPRAT_END_STEP(forward_timer, "predict_step forward", alpha_tiles);
+    GPRAT_START_STEP(backward_timer);
+
+    // Second, backward solve L^T * alpha = beta
     backward_solve_tiled(K_tiles, alpha_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
+
+    GPRAT_END_STEP(backward_timer, "predict_step backward", alpha_tiles);
+    GPRAT_START_STEP(prediction_timer);
 
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous prediction computation solve: \hat{y} = K_cross_cov * alpha
@@ -176,6 +209,9 @@ predict(const std::vector<double> &training_input,
         auto tile = prediction_tiles[i].get();
         std::copy(tile.begin(), tile.end(), std::back_inserter(prediction_result));
     }
+
+    GPRAT_END_STEP(prediction_timer, "predict_step prediction");
+
     return prediction_result;
 }
 
@@ -212,6 +248,8 @@ std::vector<std::vector<double>> predict_with_uncertainty(
      *    - compute diag(W) = diag(V^T * V)
      *    - compute diag(Sigma) = diag(prior(K)) - diag(W)
      */
+
+    GPRAT_START_STEP(assembly_timer);
 
     std::vector<double> prediction_result;
     std::vector<double> uncertainty_result;
@@ -313,15 +351,39 @@ std::vector<std::vector<double>> predict_with_uncertainty(
             hpx::async(hpx::annotated_function(gen_tile_zeros, "assemble_prior_inter"), m_tile_size));
     }
 
+    GPRAT_END_STEP(
+        assembly_timer,
+        "predict_uncer_step assembly",
+        K_tiles,
+        alpha_tiles,
+        cross_covariance_tiles,
+        prediction_tiles,
+        prior_K_tiles,
+        uncertainty_tiles,
+        t_cross_covariance_tiles);
+    GPRAT_START_STEP(cholesky_timer);
+
     // Prediction
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous Cholesky decomposition: K = L * L^T
     right_looking_cholesky_tiled(K_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
 
+    GPRAT_END_STEP(cholesky_timer, "predict_uncer_step cholesky", K_tiles);
+    GPRAT_START_STEP(forward_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous triangular solve  L * (L^T * alpha) = y
+    // First, forward solve L * beta = y
     forward_solve_tiled(K_tiles, alpha_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
+
+    GPRAT_END_STEP(forward_timer, "predict_uncer_step forward", alpha_tiles);
+    GPRAT_START_STEP(backward_timer);
+
+    // Second, backward solve L^T * alpha = beta
     backward_solve_tiled(K_tiles, alpha_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
+
+    GPRAT_END_STEP(backward_timer, "predict_uncer_step backward", alpha_tiles);
+    GPRAT_START_STEP(prediction_timer);
 
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous prediction computation solve: hat(y) = cross(K) * alpha
@@ -334,6 +396,9 @@ std::vector<std::vector<double>> predict_with_uncertainty(
         static_cast<std::size_t>(n_tiles),
         static_cast<std::size_t>(m_tiles));
 
+    GPRAT_END_STEP(prediction_timer, "predict_uncer_step prediction", prediction_tiles);
+    GPRAT_START_STEP(uncertainty_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous triangular solve L * V = cross(K)^T
     forward_solve_tiled_matrix(
@@ -343,6 +408,9 @@ std::vector<std::vector<double>> predict_with_uncertainty(
         m_tile_size,
         static_cast<std::size_t>(n_tiles),
         static_cast<std::size_t>(m_tiles));
+
+    GPRAT_END_STEP(uncertainty_timer, "predict_uncer_step forward KcK", t_cross_covariance_tiles);
+    GPRAT_START_STEP(posterior_covariance_timer);
 
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous computation diag(W) = diag(V^T * V)
@@ -354,9 +422,14 @@ std::vector<std::vector<double>> predict_with_uncertainty(
         static_cast<std::size_t>(n_tiles),
         static_cast<std::size_t>(m_tiles));
 
+    GPRAT_END_STEP(posterior_covariance_timer, "predict_uncer_step posterior covariance", uncertainty_tiles);
+    GPRAT_START_STEP(prediction_uncertainty_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous computation diag(Sigma) = diag(prior(K)) - diag(W)
     vector_difference_tiled(prior_K_tiles, uncertainty_tiles, m_tile_size, static_cast<std::size_t>(m_tiles));
+
+    GPRAT_END_STEP(prediction_uncertainty_timer, "predict_uncer_step prediction uncertainty", uncertainty_tiles);
 
     ///////////////////////////////////////////////////////////////////////////
     // Synchronize prediction
@@ -400,16 +473,19 @@ std::vector<std::vector<double>> predict_with_full_cov(
      * Algorithm:
      * 1: Compute lower triangular part of covariance matrix K
      * 2: Compute Cholesky factor L of K
-     * 3: Compute prediction hat(y):
-     *    - triangular solve L * beta = y
-     *    - triangular solve L^T * alpha = beta
-     *    - compute hat(y) = cross(K) * alpha
-     * 4: Compute full covariance matrix Sigma:
-     *    - triangular solve L * V = cross(K)^T
-     *    - compute W = V^T * V
-     *    - compute Sigma = prior(K) - W
-     * 5: Compute diag(Sigma)
+     * 3: Compute intermediate solutions (alpha and V):
+     * - triangular solve L * beta = y
+     * - triangular solve L^T * alpha = beta
+     * - triangular solve L * V = cross(K)^T
+     * 4: Compute prediction hat(y):
+     * - compute hat(y) = cross(K) * alpha
+     * 5: Compute full covariance matrix Sigma:
+     * - compute W = V^T * V
+     * - compute Sigma = prior(K) - W
+     * 6: Compute diag(Sigma)
      */
+
+    GPRAT_START_STEP(assembly_timer);
 
     std::vector<double> prediction_result;
     std::vector<double> uncertainty_result;
@@ -523,15 +599,50 @@ std::vector<std::vector<double>> predict_with_full_cov(
         uncertainty_tiles.push_back(hpx::async(hpx::annotated_function(gen_tile_zeros, "assemble_tiled"), m_tile_size));
     }
 
+    GPRAT_END_STEP(
+        assembly_timer,
+        "predict_full_cov_step assembly",
+        K_tiles,
+        alpha_tiles,
+        cross_covariance_tiles,
+        prediction_tiles,
+        prior_K_tiles,
+        uncertainty_tiles,
+        t_cross_covariance_tiles);
+    GPRAT_START_STEP(cholesky_timer);
+
     // Prediction
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous Cholesky decomposition: K = L * L^T
     right_looking_cholesky_tiled(K_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
 
+    GPRAT_END_STEP(cholesky_timer, "predict_full_cov_step cholesky", K_tiles);
+    GPRAT_START_STEP(forward_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous triangular solve  L * (L^T * alpha) = y
     forward_solve_tiled(K_tiles, alpha_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
+
+    GPRAT_END_STEP(forward_timer, "predict_full_cov_step forward", alpha_tiles);
+    GPRAT_START_STEP(backward_timer);
+
     backward_solve_tiled(K_tiles, alpha_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
+
+    GPRAT_END_STEP(backward_timer, "predict_full_cov_step backward", alpha_tiles);
+    GPRAT_START_STEP(forward_KcK_timer);
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Launch asynchronous triangular solve L * V = cross(K)^T
+    forward_solve_tiled_matrix(
+        K_tiles,
+        t_cross_covariance_tiles,
+        n_tile_size,
+        m_tile_size,
+        static_cast<std::size_t>(n_tiles),
+        static_cast<std::size_t>(m_tiles));
+
+    GPRAT_END_STEP(forward_KcK_timer, "predict_full_cov_step forward KcK", t_cross_covariance_tiles);
+    GPRAT_START_STEP(prediction_timer);
 
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous prediction computation solve: hat(y) = K_cross_cov * alpha
@@ -544,15 +655,8 @@ std::vector<std::vector<double>> predict_with_full_cov(
         static_cast<std::size_t>(n_tiles),
         static_cast<std::size_t>(m_tiles));
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Launch asynchronous triangular solve L * V = cross(K)^T
-    forward_solve_tiled_matrix(
-        K_tiles,
-        t_cross_covariance_tiles,
-        n_tile_size,
-        m_tile_size,
-        static_cast<std::size_t>(n_tiles),
-        static_cast<std::size_t>(m_tiles));
+    GPRAT_END_STEP(prediction_timer, "predict_full_cov_step prediction", prediction_tiles);
+    GPRAT_START_STEP(full_cov_timer);
 
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous computation of full covariance Sigma = prior(K) - V^T * V
@@ -563,9 +667,15 @@ std::vector<std::vector<double>> predict_with_full_cov(
         m_tile_size,
         static_cast<std::size_t>(n_tiles),
         static_cast<std::size_t>(m_tiles));
+
+    GPRAT_END_STEP(full_cov_timer, "predict_full_cov_step full cov", prior_K_tiles);
+    GPRAT_START_STEP(prediction_uncertainty_timer);
+
     ///////////////////////////////////////////////////////////////////////////
     // Launch asynchronous computation of uncertainty diag(Sigma)
     matrix_diagonal_tiled(prior_K_tiles, uncertainty_tiles, m_tile_size, static_cast<std::size_t>(m_tiles));
+
+    GPRAT_END_STEP(prediction_uncertainty_timer, "predict_full_cov_step pred uncer", uncertainty_tiles);
 
     ///////////////////////////////////////////////////////////////////////////
     // Synchronize prediction

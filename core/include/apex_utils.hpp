@@ -10,7 +10,7 @@ inline auto now = std::chrono::high_resolution_clock::now;
 /// @brief Computes the duration in nanoseconds between the current time and a given start time.
 inline double diff(const std::chrono::high_resolution_clock::time_point &start_time)
 {
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(now() - start_time).count();
+    return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(now() - start_time).count());
 }
 
 /**

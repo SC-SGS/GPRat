@@ -160,7 +160,8 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "GPRAT_WITH_CUDA": "OFF",
-        "GPRAT_APEX_STEPS": "OFF"
+        "GPRAT_APEX_STEPS": "OFF",
+        "GPRAT_APEX_CHOLESKY": "OFF"
       }
     },
     {
@@ -171,7 +172,8 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "GPRAT_WITH_CUDA": "OFF",
-        "GPRAT_APEX_STEPS": "OFF"
+        "GPRAT_APEX_STEPS": "OFF",
+        "GPRAT_APEX_CHOLESKY": "OFF"
       }
     },
     {
@@ -180,7 +182,8 @@
       "inherits": ["dev-linux"],
       "cacheVariables": {
         "GPRAT_WITH_CUDA": "ON",
-        "GPRAT_APEX_STEPS": "OFF"
+        "GPRAT_APEX_STEPS": "OFF",
+        "GPRAT_APEX_CHOLESKY": "OFF"
       }
     },
     {
@@ -189,7 +192,8 @@
       "inherits": ["release-linux"],
       "cacheVariables": {
         "GPRAT_WITH_CUDA": "ON",
-        "GPRAT_APEX_STEPS": "OFF"
+        "GPRAT_APEX_STEPS": "OFF",
+        "GPRAT_APEX_CHOLESKY": "OFF"
       }
     }
   ],

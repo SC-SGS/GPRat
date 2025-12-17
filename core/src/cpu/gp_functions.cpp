@@ -60,7 +60,7 @@ cholesky(const std::vector<double> &training_input,
     right_looking_cholesky_tiled(K_tiles, n_tile_size, static_cast<std::size_t>(n_tiles));
 
     GPRAT_END_STEP(cholesky_timer, "cholesky_step cholesky", K_tiles);
-#if GPRAT_CHOLESKY_STEPS
+#if GPRAT_APEX_CHOLESKY
     GPRAT_STOP_TIMER(assembly_cholesky_timer, "cholesky", K_tiles);
 #endif
 

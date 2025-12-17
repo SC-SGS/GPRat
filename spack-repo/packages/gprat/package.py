@@ -98,7 +98,8 @@ class Gprat(CMakePackage, CudaPackage):#, ROCmPackage):
 
         # Measuring the durations of implementation steps with APEX drastically reduces the performance as it adds
         # synchronization points between computations. This option should only be enabled for replicating performance
-        # measurements and is therefore not intended to be exposed to the user.
+        # measurements and is therefore not intended to be exposed to the user. (Similarly for Cholesky profiling.)
         args += [self.define("GPRAT_APEX_STEPS", "OFF")]
+        args += [self.define("GPRAT_APEX_CHOLESKY", "OFF")]
 
         return args

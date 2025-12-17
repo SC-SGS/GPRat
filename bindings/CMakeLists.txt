@@ -34,7 +34,10 @@ add_compile_definitions(GPRAT_APEX_STEPS=$<BOOL:${GPRAT_APEX_STEPS}>)
 # overhead to the whole function call and does not provide much useful
 # information on the optimized assembly and right looking cholesky steps which
 # are used by other GP operations.
-option(GPRAT_APEX_CHOLESKY "Enable measuring duration of cholesky assembly and computation with APEX" OFF)
+option(
+  GPRAT_APEX_CHOLESKY
+  "Enable measuring duration of cholesky assembly and computation with APEX"
+  OFF)
 # Pass variable to C++ code
 add_compile_definitions(GPRAT_APEX_CHOLESKY=$<BOOL:${GPRAT_APEX_CHOLESKY}>)
 

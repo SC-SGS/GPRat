@@ -28,7 +28,7 @@ inline double diff(const std::chrono::high_resolution_clock::time_point &start_t
  * @param oldLabel String label associated with the measured duration
  * @param ...      Variadic arguments representing HPX futures to wait on
  */
-#define GPRAT_STOP_TIMER(newTimer, oldTimer, oldLabel, ...)                                                            \
+#define GPRAT_STOP_TIMER(oldTimer, oldLabel, ...)                                                                      \
     hpx::wait_all(__VA_ARGS__);                                                                                        \
     apex::sample_value(oldLabel, diff(oldTimer))
 
@@ -40,7 +40,7 @@ inline double diff(const std::chrono::high_resolution_clock::time_point &start_t
 #define GPRAT_START_STEP(newTimer) GPRAT_START_TIMER(newTimer)
 
 /// @see GPRAT_STOP_TIMER
-#define GPRAT_END_STEP(newTimer, oldTimer, oldLabel, ...) GPRAT_STOP_TIMER(newTimer, oldTimer, oldLabel, __VA_ARGS__)
+#define GPRAT_END_STEP(oldTimer, oldLabel, ...) GPRAT_STOP_TIMER(oldTimer, oldLabel, __VA_ARGS__)
 
 #else
 

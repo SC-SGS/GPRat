@@ -46,6 +46,18 @@ else
     USE_MKL=OFF
 fi
 
+# Select APEX profiling option
+if [[ "$4" == "steps" ]]; then
+    GPRAT_APEX_STEPS=ON
+    GPRAT_APEX_CHOLESKY=OFF
+elif [[ "$4" == "cholesky" ]]; then
+    GPRAT_APEX_STEPS=OFF
+    GPRAT_APEX_CHOLESKY=ON
+else
+    GPRAT_APEX_STEPS=OFF
+    GPRAT_APEX_CHOLESKY=OFF
+fi
+
 if command -v spack &> /dev/null; then
     echo "Spack command found, checking for environments..."
 
@@ -101,7 +113,9 @@ if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
 	-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
 	-DHPX_DIR=$HPX_CMAKE \
 	-DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
-	-DGPRAT_ENABLE_MKL=$USE_MKL
+	-DGPRAT_ENABLE_MKL=$USE_MKL \
+	-DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS} \
+	-DGPRAT_APEX_CHOLESKY=${GPRAT_APEX_CHOLESKY}
 elif [[ $PRESET == "release-linux-gpu" || $PRESET == "dev-linux-gpu" ]]; then
     CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 
@@ -111,6 +125,8 @@ elif [[ $PRESET == "release-linux-gpu" || $PRESET == "dev-linux-gpu" ]]; then
 	-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
 	-DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
         -DGPRAT_ENABLE_MKL=$USE_MKL \
+	-DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS} \
+	-DGPRAT_APEX_CHOLESKY=${GPRAT_APEX_CHOLESKY} \
 	-DCMAKE_C_COMPILER=$(which clang) \
         -DCMAKE_CXX_COMPILER=$(which clang++) \
         -DCMAKE_CUDA_COMPILER=$(which clang++) \

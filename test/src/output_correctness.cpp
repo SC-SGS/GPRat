@@ -26,7 +26,7 @@ namespace gprat::test
 constexpr std::size_t OPT_ITER = 3;
 constexpr std::size_t n_test = 128;
 constexpr std::size_t n_train = 128;
-constexpr std::size_t n_tiles = 16;
+constexpr std::size_t n_tiles = 4;
 constexpr std::size_t n_reg = 8;
 
 // CUDA test settings
@@ -66,7 +66,7 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv, const Gprat
         { "losses", boost::json::value_from(results.losses) },
         { "sum", boost::json::value_from(results.sum) },
         { "full", boost::json::value_from(results.full) },
-        { "pred", boost::json::value_from(results.pred) },
+        { "pred", boost::json::value_from(results.pred) }
     };
 }
 
@@ -191,7 +191,7 @@ GpratResults run_on_data_cpu(const std::string &train_path, const std::string &o
     GpratResults results_cpu;
 
     // Cholesky decomposition
-    results_cpu.choleksy = gp_cpu.cholesky();
+    results_cpu.cholesky = gp_cpu.cholesky();
     // Prediction
     results_cpu.sum = gp_cpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
     results_cpu.full = gp_cpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
@@ -203,7 +203,7 @@ GpratResults run_on_data_cpu(const std::string &train_path, const std::string &o
     // const auto test_total = utils::compute_test_tiles(n_test, 1, n_test);
     // gprat::GP gp_cpu_seq(
     //     training_input.data, training_output.data, 1, n_train, n_reg, { 1.0, 1.0, 0.1 }, trainable);
-    // results_cpu.choleksy = gp_cpu.cholesky();
+    // results_cpu.cholesky = gp_cpu.cholesky();
     // results_cpu.sum = gp_cpu_seq.predict_with_uncertainty(test_input.data, test_total.first, test_total.second);
     // results_cpu.full = gp_cpu_seq.predict_with_full_cov(test_input.data, test_total.first, test_total.second);
     // results_cpu.pred = gp_cpu_seq.predict(test_input.data, test_total.first, test_total.second);
@@ -250,7 +250,7 @@ GpratResults run_on_data_gpu(const std::string &train_path, const std::string &o
     GpratResults results_gpu;
 
     // Cholesky
-    results_gpu.choleksy = gp_gpu.cholesky();
+    results_gpu.cholesky = gp_gpu.cholesky();
 
     // Prediction
     results_gpu.sum = gp_gpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
@@ -297,7 +297,7 @@ GpratResults run_on_data_sycl(const std::string &train_path, const std::string &
     GpratResults results_sycl;
 
     // Cholesky
-    results_sycl.choleksy = gp_sycl.cholesky();
+    results_sycl.cholesky = gp_sycl.cholesky();
 
     // Prediction
     results_sycl.sum = gp_sycl.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);

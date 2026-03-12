@@ -24,7 +24,7 @@ then
         elif [[ "$2" == "amd" ]]; then ############################################################
 
             pip3 install --no-cache-dir torch torchvision \
-                --index-url https://download.pytorch.org/whl/rocm7.1
+                --index-url https://download.pytorch.org/whl/rocm6.4
 
         elif [[ "$2" == "intel" ]]; then ##########################################################
 

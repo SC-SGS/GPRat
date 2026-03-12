@@ -34,13 +34,38 @@ then
             export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CUDA_HOME
 
         elif [[ "$2" == "amd" ]]; then ############################################################
-           
-            module load rocm
 
-            pip install --no-cache-dir tensorflow-rocm==2.19.1 \
-            -f https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/
+            # pip install --no-cache-dir tensorflow-rocm==2.17.1 \
+            # -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
 
-            pip install --no-cache-dir gpflow tensorboard~=2.19.0 --timeout 600
+            # pip install --no-cache-dir gpflow tensorflow-probability==0.24.0 tensorboard==2.17 ml-dtypes==0.3.1 --timeout 600
+
+            # pip install --no-cache-dir \
+            # tensorflow-rocm==2.17.1 \
+            # tensorflow-probability[tf]==0.24.0 \
+            # tensorboard==2.17 \
+            # ml-dtypes==0.3.1 \
+            # -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
+
+            # pip install gpflow==2.9.2 --no-deps
+            # pip install check-shapes deprecated multipledispatch numpy packaging scipy setuptools tabulate typing-extensions
+            # # pip install -r <(pip show gpflow | grep Requires | sed 's/Requires: //')
+
+            # pip uninstall -y tensorflow tensorflow-cpu tensorflow-gpu
+            # pip uninstall -y tensorflow-rocm
+
+            # pip install tensorflow-rocm==2.17.1 -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
+
+
+            pip install --no-cache-dir tensorflow-probability[tf]==0.24.0 tensorboard==2.17 ml-dtypes==0.3.1 --timeout 600
+
+            pip install gpflow==2.9.2
+            # pip install -r <(pip show gpflow | grep Requires | sed 's/Requires: //')
+
+            pip uninstall -y tensorflow tensorflow-cpu tensorflow-gpu
+            pip uninstall -y tensorflow-rocm
+
+            pip install tensorflow-rocm==2.17.1 -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
 
         elif [[ "$2" == "intel" ]]; then ##########################################################
 

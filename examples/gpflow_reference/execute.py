@@ -118,12 +118,18 @@ def execute():
     setup_logging(log_filename, True, logger)
 
     # Check if TensorFlow is using GPU
-    physical_devices = tf.config.list_physical_devices("GPU")
-    if len(physical_devices) > 0:
-        logger.info(f"GPUs available: {physical_devices}")
-        target = "gpu"
+    gpu_devices = tf.config.list_physical_devices("GPU")
+    xpu_devices = tf.config.list_physical_devices("XPU")
+
+    if gpu_devices:
+        logger.info(f"GPUs available: {gpu_devices}")
+        details = tf.config.experimental.get_device_details(gpu_devices[0])
+        target = details['device_name']
+    elif xpu_devices:
+        logger.info(f"XPUs available: {xpu_devices}")
+        target = "xpu"
     else:
-        logger.info("No GPUs found. Using CPU.")
+        logger.info("No GPUs/XPUs found. Using CPU.")
         target = "cpu"
 
     # logger.info("\n")

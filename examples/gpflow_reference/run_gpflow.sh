@@ -6,10 +6,10 @@ if [[ "$1" == "gpu" ]] #########################################################
 then
 
     # Intel packages require more recent Python, e.g. 3.12
-    if [[ "$2" == "intel" ]]; then
-        module load python/3.12
-        echo "intel"
-    fi
+    # if [[ "$2" == "intel" ]]; then
+    #     module load python/3.12
+    #     echo "intel"
+    # fi
 
     # Create Python environment if not present
     if [ ! -d "gpflow_gpu_env" ]; then
@@ -33,43 +33,43 @@ then
 
             export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CUDA_HOME
 
+            pip freeze > requirements_gpflow_nvidia.txt
+
         elif [[ "$2" == "amd" ]]; then ############################################################
-
-            # pip install --no-cache-dir tensorflow-rocm==2.17.1 \
-            # -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
-
-            # pip install --no-cache-dir gpflow tensorflow-probability==0.24.0 tensorboard==2.17 ml-dtypes==0.3.1 --timeout 600
-
-            # pip install --no-cache-dir \
-            # tensorflow-rocm==2.17.1 \
-            # tensorflow-probability[tf]==0.24.0 \
-            # tensorboard==2.17 \
-            # ml-dtypes==0.3.1 \
-            # -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
-
-            # pip install gpflow==2.9.2 --no-deps
-            # pip install check-shapes deprecated multipledispatch numpy packaging scipy setuptools tabulate typing-extensions
-            # # pip install -r <(pip show gpflow | grep Requires | sed 's/Requires: //')
-
-            # pip uninstall -y tensorflow tensorflow-cpu tensorflow-gpu
-            # pip uninstall -y tensorflow-rocm
-
-            # pip install tensorflow-rocm==2.17.1 -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
-
 
             pip install --no-cache-dir tensorflow-probability[tf]==0.24.0 tensorboard==2.17 ml-dtypes==0.3.1 --timeout 600
 
-            pip install gpflow==2.9.2
-            # pip install -r <(pip show gpflow | grep Requires | sed 's/Requires: //')
+            pip install --no-cache-dir gpflow==2.9.2
 
             pip uninstall -y tensorflow tensorflow-cpu tensorflow-gpu
-            pip uninstall -y tensorflow-rocm
 
             pip install tensorflow-rocm==2.17.1 -f https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/
 
+            pip freeze > requirements_gpflow_amd.txt
+
         elif [[ "$2" == "intel" ]]; then ##########################################################
 
-            python -m pip install --no-cache-dir intel-tensorflow gpflow
+            module load python/3.10.16
+
+            # Very important
+            source /opt/intel/oneapi/setvars.sh
+
+            # First, let pip install GPflow and cause some havoc. We'll fix it later.
+            pip install --no-cache-dir gpflow tensorflow-probability~=0.23.0
+            
+            # Whatever pip installs here is almost guaranteed to fail, so away with it.
+            pip uninstall -y tensorflow tensorflow-cpu tensorflow-gpu
+
+            # Install a TensorFlow version that matches what Intel expects
+            pip install --no-cache-dir tensorflow==2.15.1
+
+            # Install Intel extensions for TensorFlow
+            pip install --no-cache-dir --upgrade intel-extension-for-tensorflow[xpu]
+
+            # Install setuptools because something keeps overwriting it
+            pip install setuptools==78.0.0
+
+            pip freeze > requirements_gpflow_intel.txt
 
         else ######################################################################################
 

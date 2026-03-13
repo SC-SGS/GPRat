@@ -10,6 +10,7 @@ then
     fi
     # Activate enviroment
     source gpytorch_gpu_env/bin/activate
+    python -m ensurepip --upgrade
 
     # Install requirements
     if ! python -c "import gpytorch"; then
@@ -21,15 +22,24 @@ then
             pip3 install --no-cache-dir torch torchvision \
                 --index-url https://download.pytorch.org/whl/cu126
 
+            pip freeze > requirements_gpytorch_nvidia.txt
+
         elif [[ "$2" == "amd" ]]; then ############################################################
 
             pip3 install --no-cache-dir torch torchvision \
                 --index-url https://download.pytorch.org/whl/rocm6.4
+            
+            pip freeze > requirements_gpytorch_amd.txt
 
         elif [[ "$2" == "intel" ]]; then ##########################################################
 
+            export PYTORCH_DEBUG_XPU_FALLBACK=1
+
             # Careful: Intel pulls its own SYCL installation here, make sure no other is loaded!
-            pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/xpu
+            pip install --no-cache-dir torch torchvision \
+                --index-url https://download.pytorch.org/whl/xpu
+
+            pip freeze > requirements_gpytorch_intel.txt
 
         else ######################################################################################
 

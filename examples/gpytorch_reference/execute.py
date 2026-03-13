@@ -27,11 +27,11 @@ def get_device(use_gpu):
 
     # NVIDIA CUDA or AMD ROCm
     if torch.cuda.is_available():
-        return torch.device("cuda"), "cuda"
+        return torch.device("cuda"), torch.cuda.get_device_name(0)
 
     # Intel GPU
     if hasattr(torch, "xpu") and torch.xpu.is_available():
-        return torch.device("xpu"), "xpu"
+        return torch.device("xpu"), torch.xpu.get_device_name(0)
 
     return torch.device("cpu"), "cpu"
 

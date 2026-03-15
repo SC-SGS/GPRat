@@ -185,8 +185,8 @@ if(GPRAT_WITH_SYCL)
   elseif(GPRAT_SYCL_INTEL)
 
     target_link_libraries(gprat_core PUBLIC
-      ONEMATH::onemath_blas_oneMKL
-      ONEMATH::onemath_lapack_oneMKL
+      ONEMATH::onemath_blas_mklgpu
+      ONEMATH::onemath_lapack_mklgpu
     )
 
   else()

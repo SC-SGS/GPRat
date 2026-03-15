@@ -95,7 +95,7 @@ fi
 # Set Spack if on psgs04
 if [[ "$HOSTNAME" == "pcsgs04" ]]; then
 
-  spack_destination="/home/grafml/spack"
+  spack_destination="/scratch/grafml/gprat-spack/spack/"
   source $spack_destination/share/spack/setup-env.sh
 
 fi
@@ -231,25 +231,30 @@ if command -v spack &>/dev/null; then
 
   # pcsgs04 with Intel GPU
   elif [[ "$HOSTNAME" == "pcsgs04" ]]; then
-    echo "The setup for host pcsgs04 is currently not supported."
-    exit -1
+    # Check if the gprat_gpu_clang environment exists
+    if spack env list | grep -q "gprat_gpu_clang"; then
 
-    if [[ "$2" == "sycl" ]]; then
+      echo "Found gprat_gpu_clang environment, activating it."
+      spack env activate gprat_gpu_clang
 
-      if command -v icpx --version &>/dev/null; then
+      if [[ "$2" == "sycl" ]]; then
 
-        export CXX=icpx
-        export CC=icx
-        GPRAT_WITH_CUDA=OFF
-        GPRAT_WITH_SYCL=ON
-        GPRAT_SYCL_INTEL=ON
-        CMAKE_PREFIX_PATH="I AM A PLACEHOLDER PATH, PLEASE REPLACE ME WITH THE PATH TO YOUR oneMath INSTALLATION"
+        if command -v icpx --version &>/dev/null; then
 
-      else
+          export CXX=icpx
+          export CC=icx
+          GPRAT_WITH_CUDA=OFF
+          GPRAT_WITH_SYCL=ON
+          GPRAT_SYCL_INTEL=ON
+          CMAKE_PREFIX_PATH="/scratch/grafml/oneMath_intel_v0.7/oneMath/install:${CMAKE_PREFIX_PATH:-}"
 
-        echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
-        exit -1
+        else
 
+          echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
+          exit -1
+
+        fi
+      
       fi
 
     fi

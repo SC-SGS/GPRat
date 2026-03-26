@@ -318,13 +318,13 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
 {
     const std::string root = get_data_directory();
 
-    const auto results = run_on_data_cpu(root + "/data_1024/training_input.txt",
-                                         root + "/data_1024/training_output.txt",
-                                         root + "/data_1024/test_input.txt");
+    const auto results = run_on_data_cpu(root + "/data_19/training_input.txt",
+                                         root + "/data_19/training_output.txt",
+                                         root + "/data_19/test_input.txt");
 
     GpratResults expected_results;
 
-    if (!load_or_create_expected_results(root + "/data_1024/output.json", results, expected_results))
+    if (!load_or_create_expected_results(root + "/data_19/output.json", results, expected_results))
     {
         std::cerr << "No previous results to compare to. The current results have been saved instead!" << std::endl;
         return;
@@ -395,14 +395,14 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
     }
 
     const std::string root = get_data_directory();
-    const std::string train = root + "/data_1024/training_input.txt";
-    const std::string out = root + "/data_1024/training_output.txt";
-    const std::string test = root + "/data_1024/test_input.txt";
+    const std::string train = root + "/data_19/training_input.txt";
+    const std::string out = root + "/data_19/training_output.txt";
+    const std::string test = root + "/data_19/test_input.txt";
 
     const GpratResults results = run_on_data_gpu(train, out, test);
 
     GpratResults expected_results;
-    const std::string ref_file = root + "/data_1024/output.json";
+    const std::string ref_file = root + "/data_19/output.json";
 
     if (!load_or_create_expected_results(ref_file, results, expected_results))
     {
@@ -461,14 +461,14 @@ TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sy
 
     const std::string root = get_data_directory();
 
-    const std::string train = root + "/data_1024/training_input.txt";
-    const std::string out = root + "/data_1024/training_output.txt";
-    const std::string test = root + "/data_1024/test_input.txt";
+    const std::string train = root + "/data_19/training_input.txt";
+    const std::string out = root + "/data_19/training_output.txt";
+    const std::string test = root + "/data_19/test_input.txt";
 
     const GpratResults results = run_on_data_sycl(train, out, test);
 
     GpratResults expected_results;
-    const std::string ref_file = root + "/data_1024/output.json";
+    const std::string ref_file = root + "/data_19/output.json";
 
     if (!load_or_create_expected_results(ref_file, results, expected_results))
     {

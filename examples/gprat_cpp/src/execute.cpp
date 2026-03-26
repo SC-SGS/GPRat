@@ -222,9 +222,9 @@ namespace gprat::example
 
 int main(int argc, char *argv[])
 {
-    std::string train_path = "../../../../data/data_1024/training_input.txt";
-    std::string out_path = "../../../../data/data_1024/training_output.txt";
-    std::string test_path = "../../../../data/data_1024/test_input.txt";
+    std::string train_path = "../../../../data/data_19/input_data.txt";
+    std::string out_path = "../../../../data/data_19/output_data.txt";
+    std::string test_path = "../../../../data/data_19/test_input.txt";
 
     bool use_gpu =
         utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_cuda") == 0;

@@ -268,6 +268,7 @@ def execute():
             "Opt_iter",
             "Init_time",
             "Optimization_Time",
+            "Total_Time",
             "Pred_Var_time",
             "Pred_Full_time",
             "Predict_time",

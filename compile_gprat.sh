@@ -246,7 +246,7 @@ if command -v spack &>/dev/null; then
           GPRAT_WITH_CUDA=OFF
           GPRAT_WITH_SYCL=ON
           GPRAT_SYCL_INTEL=ON
-          CMAKE_PREFIX_PATH="/scratch/grafml/oneMath_intel_v0.7/oneMath/install:${CMAKE_PREFIX_PATH:-}"
+          CMAKE_PREFIX_PATH="/scratch/grafml/oneMath_intel_v0.9/oneMath/install:${CMAKE_PREFIX_PATH:-}"
 
         else
 

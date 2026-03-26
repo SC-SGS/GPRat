@@ -1,6 +1,7 @@
 #!/bin/bash
 # Input $1: Specify cpu/gpu/arm
 # Input $2: Specify nvidia/amd/intel (only necessary if gpu is specified)
+# Input $3: number of iterations per config
 
 if [[ "$1" == "gpu" ]]
 then
@@ -22,14 +23,14 @@ then
             pip3 install --no-cache-dir torch torchvision \
                 --index-url https://download.pytorch.org/whl/cu126
 
-            pip freeze > requirements_gpytorch_nvidia.txt
+            pip freeze > requirements/requirements_gpytorch_nvidia.txt
 
         elif [[ "$2" == "amd" ]]; then ############################################################
 
             pip3 install --no-cache-dir torch torchvision \
                 --index-url https://download.pytorch.org/whl/rocm6.4
             
-            pip freeze > requirements_gpytorch_amd.txt
+            pip freeze > requirements/requirements_gpytorch_amd.txt
 
         elif [[ "$2" == "intel" ]]; then ##########################################################
 
@@ -39,7 +40,7 @@ then
             pip install --no-cache-dir torch torchvision \
                 --index-url https://download.pytorch.org/whl/xpu
 
-            pip freeze > requirements_gpytorch_intel.txt
+            pip freeze > requirements/requirements_gpytorch_intel.txt
 
         else ######################################################################################
 
@@ -53,7 +54,10 @@ then
     fi
 
     # Execute the python script
-    python execute.py --use-gpu
+    for n in 0 1 2 3 4
+    do
+        python execute.py --use-gpu --iteration=$n
+    done
 
 elif [[ "$1" == "cpu" ]]
 then
@@ -67,9 +71,13 @@ then
     # Install requirements
     if ! python -c "import gpytorch"; then
         pip install gpytorch==1.13
+        pip freeze > requirements/requirements_gpytorch_cpu.txt
     fi
     # Execute the python script
-    python execute.py
+        for n in 0 1 2 3 4
+    do
+        python execute.py --iteration=$n
+    done
 
 elif [[ "$1" == "arm" ]]
 then
@@ -84,9 +92,13 @@ then
     # Install requirements
     if ! python -c "import gpytorch"; then
         pip install gpytorch==1.13
+        pip freeze > requirements/requirements_gpytorch_arm.txt
     fi
     # Execute the python script
-    python execute.py
+    for n in 0 1 2 3 4
+    do
+        python execute.py --iteration=$n
+    done
 
 else
 

@@ -1,15 +1,15 @@
+'''
+Reference implementation for Gaussian process regression using GPflow.
+'''
+
+# Imports
 import argparse
+import gc
 import logging
 import os
 import time
-
-import gpflow
 import numpy as np
-import tensorflow as tf
-import tensorflow.python.util._pywrap_util_port as tf_util
-
 from config import get_config
-from gpflow_logger import setup_logging
 from utils import (
     init_model,
     load_data,
@@ -17,7 +17,15 @@ from utils import (
     predict,
     predict_with_var,
 )
+import tensorflow as tf
+import tensorflow.python.util._pywrap_util_port as tf_util
+from tensorflow.python.eager import context
+import gpflow
+from gpflow_logger import setup_logging
 
+# Global definitions
+logger = logging.getLogger()
+log_filename = "./gpflow_logs.log"
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--use-gpu",
@@ -26,43 +34,49 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+# Environment variables
 if not args.use_gpu:
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-logger = logging.getLogger()
-log_filename = "./gpflow_logs.log"
+os.environ["TF_OVERRIDE_GLOBAL_THREADPOOL"] = "1"
 
 
-def gpflow_run(target, config, output_file, size_train, l, cores):
+def sync_if_needed(is_cuda_gpu):
+    if is_cuda_gpu:
+        tf.test.experimental.sync_devices()
+
+
+def gpflow_run(target, is_cuda_gpu, config, output_file, size_train, size_test, \
+               loop_index, cores, is_warmup=False):
     """
     Run the GPflow regression pipeline.
 
     Args:
-        target (str): String of target (cpu/gpu) for logs.
-        config (dict): Configuration parameters for the pipeline.
+        target (str):       String of target (cpu/gpu) for logs.
+        is_cuda_gpu (bool): Whether CUDA GPU is being used or not.
+        config (dict):      Configuration parameters for the pipeline.
         output_csv_obj (csv.writer): CSV writer object for writing output data.
-        size_train (int): Size of the training dataset.
-        l (int): Loop index.
-
-    Returns:
-        None
+        size_train (int):   Size of the training dataset.
+        size_test (int):    Size of the test dataset.
+        loop_index (int):   Index for the current loop iteration.
+        cores (int):        Number of CPU cores to use.
+        is_warmup (bool):   Flag to indicate if this is a warmup run.
     """
-    total_t = time.time()
+    total_t = time.perf_counter()
 
+    load_t = time.perf_counter()
     X_train, Y_train, X_test, Y_test = load_data(
-        train_in_path=config["train_in_file"],
-        train_out_path=config["train_out_file"],
-        test_in_path=config["test_in_file"],
-        test_out_path=config["test_out_file"],
+        train_in_path=config["TRAIN_IN_FILE"],
+        train_out_path=config["TRAIN_OUT_FILE"],
+        test_in_path=config["TEST_IN_FILE"],
+        test_out_path=config["TEST_OUT_FILE"],
         size_train=size_train,
-        size_test=config["N_TEST"],
+        size_test=size_test,
         n_regressors=config["N_REG"],
     )
+    load_t = time.perf_counter() - load_t
 
-    # logger.info("Finished loading the data.")
-
-    init_t = time.time()
+    init_t = time.perf_counter()
     model = init_model(
         X_train,
         Y_train,
@@ -71,37 +85,43 @@ def gpflow_run(target, config, output_file, size_train, l, cores):
         noise_var=0.1,
         params_summary=False,
     )
-    init_t = time.time() - init_t
+    init_t = time.perf_counter() - init_t
 
     opti_t = time.perf_counter()
     optimize_model(model, training_iter=config["OPT_ITER"])
+    sync_if_needed(is_cuda_gpu)
     opti_t = time.perf_counter() - opti_t
-    # logger.info("Finished optimization.")
 
-    pred_var_t = time.time()
+    pred_var_t = time.perf_counter()
     f_pred, f_var = predict_with_var(model, X_test)
-    pred_var_t = time.time() - pred_var_t
-    # logger.info("Finished making predictions.")
+    sync_if_needed(is_cuda_gpu)
+    pred_var_t = time.perf_counter() - pred_var_t
 
-    pred_t = time.time()
+    pred_t = time.perf_counter()
     f_pred = predict(model, X_test)
-    pred_t = time.time() - pred_t
-    # logger.info("Finished making predictions.")
+    sync_if_needed(is_cuda_gpu)
+    pred_t = time.perf_counter() - pred_t
 
-    TOTAL_TIME = time.time() - total_t
+    TOTAL_TIME = time.perf_counter() - total_t
+    LOAD_TIME = load_t
     INIT_TIME = init_t
     OPT_TIME = opti_t
     PRED_UNCER_TIME = pred_var_t
     PREDICTION_TIME = pred_t
-    # ERROR = calculate_error(Y_test, y_pred).detach().cpu().numpy()
 
-    row_data = f"{target},{cores},{size_train},{config['N_TEST']},{config['N_REG']},{config['OPT_ITER']},{TOTAL_TIME},{INIT_TIME},{OPT_TIME},{PRED_UNCER_TIME},{PREDICTION_TIME},{l}\n"
-    output_file.write(row_data)
+    if not is_warmup:
 
-    logger.info(
-        f"{target},{cores},{size_train},{config['N_TEST']},{config['N_REG']},{config['OPT_ITER']},{TOTAL_TIME},{INIT_TIME},{OPT_TIME},{PRED_UNCER_TIME},{PREDICTION_TIME},{l}"
-    )
-    # logger.info("Completed iteration.")
+        row_data = \
+            f"{target},{cores},{size_train},{size_test},{config['N_REG']},"\
+            f"{config['OPT_ITER']},{TOTAL_TIME},{LOAD_TIME},{INIT_TIME},{OPT_TIME},"\
+            f"{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}\n"
+        output_file.write(row_data)
+
+        logger.info(
+            f"{target},{cores},{size_train},{size_test},{config['N_REG']},"\
+            f"{config['OPT_ITER']},{TOTAL_TIME},{LOAD_TIME},{INIT_TIME},{OPT_TIME},"\
+            f"{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}"
+        )
 
 
 def execute():
@@ -115,16 +135,29 @@ def execute():
         - Iterate through different training sizes and for each training size
         loop for a specified amount of times while executing `gpflow_run` function.
     """
+
+    # Init
+    config = get_config()
+    if config["PRECISION"] == "float32":
+        gpflow.config.set_default_float(np.float32)
+    else:
+        gpflow.config.set_default_float(np.float64)
+    test_scale_factor = config["STEP"] if config["SCALE_TEST_WITH_TRAIN"] else 1
+
+    # Logging
     setup_logging(log_filename, True, logger)
-
-    # Check if TensorFlow is using GPU
+    
+    # Check whether TensorFlow is using GPU
+    is_cuda_gpu = False
     gpu_devices = tf.config.list_physical_devices("GPU")
+    for gpu in gpu_devices:
+        tf.config.experimental.set_memory_growth(gpu, True)
     xpu_devices = tf.config.list_physical_devices("XPU")
-
     if gpu_devices:
         logger.info(f"GPUs available: {gpu_devices}")
         details = tf.config.experimental.get_device_details(gpu_devices[0])
         target = details['device_name']
+        is_cuda_gpu = True
     elif xpu_devices:
         logger.info(f"XPUs available: {xpu_devices}")
         target = "xpu"
@@ -132,48 +165,93 @@ def execute():
         logger.info("No GPUs/XPUs found. Using CPU.")
         target = "cpu"
 
-    # logger.info("\n")
-    # logger.info("-" * 40)
-    # logger.info("Load config file.")
-    config = get_config()
-
+    # Output CSV file setup
     file_path = "./output.csv"
     file_exists = os.path.isfile(file_path)
 
     with open(file_path, "a") as output_file:
+
+        # If CSV file non-existent or empty, create/write header
         if not file_exists or os.stat(file_path).st_size == 0:
-            # logger.info("Write output file header")
             logger.info(
-                "Target,Cores,N_train,N_test,N_reg,Opt_iter,Total_time,Init_time,Opt_Time,Pred_Var_time,Pred_time,N_loop"
+                "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Load_time,"\
+                "Init_time,Opt_Time,Pred_Uncer_time,Predict_time,N_loop"
             )
-            header = "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Init_time,Opt_time,Pred_Uncer_time,Predict_time,N_loop\n"
+            header = \
+                "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Load_time,"\
+                "Init_time,Opt_Time,Pred_Uncer_time,Predict_time,N_loop\n"
             output_file.write(header)
 
-        if config["PRECISION"] == "float32":
-            gpflow.config.set_default_float(np.float32)
-        else:
-            gpflow.config.set_default_float(np.float64)
+        gpflow_run(target, is_cuda_gpu, config, output_file, config["TRAIN_SIZE_END"], \
+                   config["TRAIN_SIZE_END"],0, config["END_CORES"], is_warmup=True)
 
-        # runs tests on exponentially increasing number of cores and
-        # data size, for multiple loops (each loop starts with *s)
-        tf.config.threading.set_intra_op_parallelism_threads(config["N_CORES"])
-        tf.config.threading.set_inter_op_parallelism_threads(config["N_CORES"])
-        cores = config["START_CORES"]
-        while cores <= config["N_CORES"]:
-            data_size = config["START"]
-            while data_size <= config["END"]:
-                for l in range(config["LOOP"]):
+        # CPU
+        if target == "cpu":
+
+            cores = config["START_CORES"]
+
+            while cores <= config["END_CORES"]:
+
+                data_size = config["TRAIN_SIZE_START"]
+                test_size = config["TEST_SIZE"] if not config["SCALE_TEST_WITH_TRAIN"] \
+                    else config["TRAIN_SIZE_START"]
+
+                context._reset_context()
+                tf.config.threading.set_intra_op_parallelism_threads(cores)
+                tf.config.threading.set_inter_op_parallelism_threads(1)
+
+                while data_size <= config["TRAIN_SIZE_END"]:
+
+                    for loop_index in range(config["LOOP"]):
+
+                        logger.info("*" * 40)
+                        gc.collect()
+                        gpflow_run(
+                            target, is_cuda_gpu, config, output_file, data_size,\
+                            test_size,loop_index, cores
+                        )
+
+                    # Update sizes
+                    data_size = data_size * config["STEP"]
+                    test_size = test_size * test_scale_factor
+
+                cores = cores * 2
+
+        # GPU / XPU
+        else:
+
+            context._reset_context()
+            tf.config.threading.set_intra_op_parallelism_threads(1)
+            tf.config.threading.set_inter_op_parallelism_threads(1)
+
+            data_size = config["TRAIN_SIZE_START"]
+            test_size = config["TEST_SIZE"] if not config["SCALE_TEST_WITH_TRAIN"] \
+                else config["TRAIN_SIZE_START"]    
+            
+            # Loop over training data sizes
+            while data_size <= config["TRAIN_SIZE_END"]:
+
+                for loop_index in range(config["LOOP"]):
+
                     logger.info("*" * 40)
-                    logger.info(f"Core: {cores}, Train Size: {data_size}, Loop: {l}")
-                    gpflow_run(target,config, output_file, data_size, l, cores)
+                    gc.collect()
+                    gpflow_run(
+                        target, is_cuda_gpu, config, output_file, data_size, test_size, \
+                        loop_index, 1
+                    )
+
+                # Update sizes
                 data_size = data_size * config["STEP"]
-            cores = cores * 2
+                test_size = test_size * test_scale_factor
+        
     logger.info("Completed the program.")
+
 
 def is_mkl_enabled():
     return tf_util.IsMklEnabled()
 
+
 if __name__ == "__main__":
-    # check if Intel oneAPI MKL is enabled
+    setup_logging(log_filename, True, logger)
     print("","-" * 18, "\n", "MKL enabled:", is_mkl_enabled(), "\n", "-" * 18)
     execute()

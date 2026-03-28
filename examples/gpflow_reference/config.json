@@ -1,16 +1,17 @@
 {
-    "train_in_file": "../../data/data_19/training_input.txt",
-    "train_out_file": "../../data/data_19/training_output.txt",
-    "test_in_file": "../../data/data_19/test_input.txt",
-    "test_out_file": "../../data/data_19/test_output.txt",
-    "START": 1,
-    "END": 16384,
+    "TRAIN_IN_FILE": "../../data/data_19/training_input.txt",
+    "TRAIN_OUT_FILE": "../../data/data_19/training_output.txt",
+    "TEST_IN_FILE": "../../data/data_19/test_input.txt",
+    "TEST_OUT_FILE": "../../data/data_19/test_output.txt",
+    "TRAIN_SIZE_START": 4096,
+    "TRAIN_SIZE_END": 16384,
     "STEP": 2,
-    "START_CORES": 48,
-    "N_CORES": 48,
-    "N_TEST": 1024,
+    "START_CORES": 6,
+    "END_CORES": 48,
+    "TEST_SIZE": 4096,
+    "SCALE_TEST_WITH_TRAIN": true, 
     "N_REG": 8,
-    "LOOP": 2,
     "PRECISION": "float64",
-    "OPT_ITER": 1
+    "OPT_ITER":0,
+    "LOOP": 5
 }

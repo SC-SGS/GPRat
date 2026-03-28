@@ -1,7 +1,6 @@
 #!/bin/bash
 # Input $1: Specify cpu/gpu/arm
 # Input $2: Specify nvidia/amd/intel (only necessary if gpu is specified)
-# Input $3: number of iterations per config
 
 if [[ "$1" == "gpu" ]]
 then
@@ -52,15 +51,13 @@ then
         pip install gpytorch==1.13
 
     fi
-
-    # Execute the python script
-    for n in 0 1 2 3 4
-    do
-        python execute.py --use-gpu --iteration=$n
-    done
+    python execute.py --use-gpu
 
 elif [[ "$1" == "cpu" ]]
 then
+
+    end_cores=$(python3 -c "import json; print(json.load(open('config.json'))['END_CORES'])")
+    core_count=$((end_cores * 2))
 
     # Create & Activate python enviroment
     if [ ! -d "gpytorch_cpu_env" ]; then
@@ -73,11 +70,8 @@ then
         pip install gpytorch==1.13
         pip freeze > requirements/requirements_gpytorch_cpu.txt
     fi
-    # Execute the python script
-        for n in 0 1 2 3 4
-    do
-        python execute.py --iteration=$n
-    done
+
+    taskset -c 0-$core_count:2 python execute.py
 
 elif [[ "$1" == "arm" ]]
 then
@@ -94,11 +88,7 @@ then
         pip install gpytorch==1.13
         pip freeze > requirements/requirements_gpytorch_arm.txt
     fi
-    # Execute the python script
-    for n in 0 1 2 3 4
-    do
-        python execute.py --iteration=$n
-    done
+    python execute.py
 
 else
 

@@ -11,7 +11,7 @@ import os
 import argparse
 from config import get_config
 from gpytorch_logger import setup_logging
-from utils import load_data, ExactGPModel, train, predict, predict_with_var
+from utils import load_data, ExactGPModel, predict_with_full_cov, train, predict, predict_with_var
 import gc
 
 # Global definitions
@@ -115,9 +115,15 @@ def gpytorch_run(
     sync_if_needed(device)
     train_t = time.perf_counter() - train_t
 
+    # Make predictions with full covariance matrix
+    pred_full_t = time.perf_counter()
+    f_pred_full, f_var_full = predict_with_full_cov(model, likelihood, X_test)
+    sync_if_needed(device)
+    pred_full_t = time.perf_counter() - pred_full_t
+
     # Make predictions with uncertainty
     pred_var_t = time.perf_counter()
-    f_pred, f_var = predict_with_var(model, likelihood, X_test)
+    predict_with_var(model, likelihood, X_test)
     sync_if_needed(device)
     pred_var_t = time.perf_counter() - pred_var_t
 
@@ -132,6 +138,7 @@ def gpytorch_run(
     LOAD_TIME = load_t
     INIT_TIME = init_t
     OPT_TIME = train_t
+    PRED_FULL_TIME = pred_full_t
     PRED_UNCER_TIME = pred_var_t
     PREDICTION_TIME = pred_t
 
@@ -140,13 +147,13 @@ def gpytorch_run(
         row_data = \
             f"{target},{cores},{size_train},{size_test},{config['N_REG']},"\
             f"{config['OPT_ITER']},{TOTAL_TIME},{LOAD_TIME},{INIT_TIME},{OPT_TIME},"\
-            f"{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}\n"
+            f"{PRED_FULL_TIME},{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}\n"
         output_file.write(row_data)
 
         logger.info(
             f"{target},{cores},{size_train},{size_test},{config['N_REG']},"\
             f"{config['OPT_ITER']},{TOTAL_TIME},{LOAD_TIME},{INIT_TIME},{OPT_TIME},"\
-            f"{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}\n"
+            f"{PRED_FULL_TIME},{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}\n"
         )
 
 
@@ -175,11 +182,11 @@ def execute():
         if not file_exists or os.stat(file_path).st_size == 0:
             logger.info(
                 "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Load_time,"\
-                "Init_time,Opt_Time,Pred_Uncer_time,Predict_time,N_loop"
+                "Init_time,Opt_Time,Pred_Full_time,Pred_Uncer_time,Predict_time,N_loop"
             )
             header = \
                 "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Load_time,"\
-                "Init_time,Opt_Time,Pred_Uncer_time,Predict_time,N_loop\n"
+                "Init_time,Opt_Time,Pred_Full_time,Pred_Uncer_time,Predict_time,N_loop\n"
             output_file.write(header)
 
         if config["PRECISION"] == "float128":
@@ -234,6 +241,8 @@ def execute():
         else:
 
             torch.set_num_threads(1)
+            gc.collect()
+            torch.cuda.empty_cache()
             
             # Set train and test sizes
             data_size = config["TRAIN_SIZE_START"]
@@ -258,6 +267,7 @@ def execute():
                         config, output_file, data_size, test_size, loop_index, 1,
                         device, target
                     )
+                    print(f"After execution: {torch.cuda.memory_allocated() / 1e6:.2f} MB")
 
                 # Update sizes
                 data_size = data_size * config["STEP"]

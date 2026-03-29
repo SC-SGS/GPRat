@@ -41,7 +41,7 @@ then
 
             pip freeze > requirements/requirements_gpytorch_intel.txt
 
-        else ######################################################################################
+        elif [[ -z "$2" ]]; then ####################################################################
 
             echo "Please specify gpu type: nvidia/amd/intel"
             exit 1
@@ -51,6 +51,9 @@ then
         pip install gpytorch==1.13
 
     fi
+
+    export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
     python execute.py --use-gpu
 
 elif [[ "$1" == "cpu" ]]

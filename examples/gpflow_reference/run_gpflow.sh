@@ -67,7 +67,7 @@ then
 
             pip freeze > requirements/requirements_gpflow_intel.txt
 
-        else ######################################################################################
+        elif [[ -z "$2" ]]; then ##################################################################
 
             echo "Please specify gpu type: nvidia/amd/intel"
             exit 1

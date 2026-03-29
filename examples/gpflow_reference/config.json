@@ -3,7 +3,7 @@
     "TRAIN_OUT_FILE": "../../data/data_19/training_output.txt",
     "TEST_IN_FILE": "../../data/data_19/test_input.txt",
     "TEST_OUT_FILE": "../../data/data_19/test_output.txt",
-    "TRAIN_SIZE_START": 4096,
+    "TRAIN_SIZE_START": 1,
     "TRAIN_SIZE_END": 16384,
     "STEP": 2,
     "START_CORES": 6,
@@ -13,5 +13,5 @@
     "N_REG": 8,
     "PRECISION": "float64",
     "OPT_ITER":0,
-    "LOOP": 5
+    "LOOP": 20
 }

@@ -1,12 +1,12 @@
 #!/bin/bash
-# Input $1: Specify how GPRat was compiled, options:	cpu/gpu
+# Input $1: Specify how GPRat was compiled, options:	cpu/cuda/sycl
 # Input $2: If GPRat was compiled with SYCL backend:	nvidia/amd/intel 
 
 # Set --use-gpu flag
 if [[ -z "$1" ]]; then
     echo "Input parameter is missing. Using default: Run computations on CPU"
 	GPU=""
-elif [[ "$1" == "gpu" ]]; then
+elif [[ "$1" == "cuda" || "$1" == "sycl" ]]; then
     GPU="--use-gpu"
 	if [[ \
 		"$HOSTNAME" != "simcl1n1" && \
@@ -14,12 +14,11 @@ elif [[ "$1" == "gpu" ]]; then
 		"$HOSTNAME" != "simcl1n3" && \
 		"$HOSTNAME" != "simcl1n4" ]]; 
 	then
-		echo "GPU execution with this script is only supported on simcl1n1,"\
-		 	 "simcl1n2, simcl1n3, and simcl1n4." 1>&2
+		echo "GPU execution with this script is only supported on simcl1n1, simcl1n2, simcl1n3, and simcl1n4." 1>&2
 		exit 1
 	fi
 elif [[ "$1" != "cpu" ]]; then
-    echo "Please specify input parameter: cpu/gpu"
+    echo "Please specify input parameter: cpu/cuda/sycl"
     exit 1
 fi
 
@@ -41,14 +40,14 @@ if [[ \
 	"$HOSTNAME" == "simcl1n2" || \
 	"$HOSTNAME" == "simcl1n3" || \
 	"$HOSTNAME" == "simcl1n4" ]]; 
-	then
+then
 
 	# Setup Spack
 	spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
 	source $spack_destination/spack/share/spack/setup-env.sh
 
 	# GPU setup
-	if [[ "$1" == "gpu" ]]; then
+	if [[ "$1" == "cuda" || "$1" == "sycl" ]]; then
 
 		# simcl1n4 does not have a GPU
 		if [[ "$HOSTNAME" == "simcl1n4" ]]; then
@@ -65,29 +64,32 @@ if [[ \
 			LD_LIBRARY_PATH=$(spack location -i openblas)/lib:$LD_LIBRARY_PATH
 			LD_LIBRARY_PATH=$(spack location -i intel-oneapi-mkl)/lib:$LD_LIBRARY_PATH
 
-			echo $LD_LIBRARY_PATH
 		fi
 
-		# Add oneMath installation to LD_LIBRARY_PATH if gpu is specified
-		if [[ "$2" == "nvidia" ]]; then
+		if [[ "$1" == "sycl" ]]; then
 
-			ONEMATH_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/"
-			LD_LIBRARY_PATH="$ONEMATH_PATH:$LD_LIBRARY_PATH"
+			# Add oneMath installation to LD_LIBRARY_PATH if gpu is specified
+			if [[ "$2" == "nvidia" ]]; then
 
-		elif [[ "$2" == "amd" ]]; then
+				ONEMATH_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/"
+				LD_LIBRARY_PATH="$ONEMATH_PATH:$LD_LIBRARY_PATH"
 
-			ONEMATH_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/"
-			LD_LIBRARY_PATH="$ONEMATH_PATH:$LD_LIBRARY_PATH"
+			elif [[ "$2" == "amd" ]]; then
 
-		elif [[ "$2" == "intel" ]]; then
+				ONEMATH_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/"
+				LD_LIBRARY_PATH="$ONEMATH_PATH:$LD_LIBRARY_PATH"
 
-			echo "Machine $HOSTNAME does not have an Intel GPU." 1>&2
-			exit 1
-			
-		elif [[ "$1" == "gpu" && "$2" != "nvidia" ]]; then
+			elif [[ "$2" == "intel" ]]; then
 
-			echo "Please specify gpu vendor: nvidia/amd/intel"
-			exit 1
+				echo "Machine $HOSTNAME does not have an Intel GPU." 1>&2
+				exit 1
+				
+			elif [[ "$2" != "nvidia" ]]; then
+
+				echo "Please specify gpu vendor: nvidia/amd/intel"
+				exit 1
+
+			fi
 
 		fi
 

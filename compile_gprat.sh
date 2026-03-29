@@ -2,17 +2,18 @@
 
 set -e # Exit immediately if a command exits with a non-zero status.
 
-################################################################################
+###################################################################################################
 # Parameters
-################################################################################
+###################################################################################################
 # $1: python/cpp
 # $2: cpu/cuda/sycl
 # $3: release/dev
-# $4: mkl
+# $4: mkl/none
+# $5: apex profiling options: steps/cholesky/none
 
-################################################################################
+###################################################################################################
 # Bindings
-################################################################################
+###################################################################################################
 if [[ "$1" == "python" ]]; then
   BINDINGS=ON
   INSTALL_DIR=$(pwd)/examples/gprat_python
@@ -24,9 +25,9 @@ else
   exit 1
 fi
 
-################################################################################
+###################################################################################################
 # CMake Presets
-################################################################################
+###################################################################################################
 if [[ "$2" == "cpu" ]]; then
   if [[ "$3" == "release" ]]; then
     PRESET=release-linux
@@ -55,13 +56,13 @@ elif [[ "$2" == "sycl" ]]; then
     PRESET=release-linux-sycl
   fi
 elif [[ "$2" != "cpu" ]]; then
-  echo "Input parameter is not any of {cpu,cuda,sycl}. Using default: Run computations on CPU in Release mode"
+  echo "Input parameter is not any of {cpu,cuda,sycl}. Using default: CPU in release mode."
   PRESET=release-linux
 fi
 
-################################################################################
+###################################################################################################
 # Select BLAS library
-################################################################################
+###################################################################################################
 if [[ "$4" == "mkl" ]]; then
   USE_MKL=ON
 else
@@ -69,10 +70,10 @@ else
 fi
 
 # Select APEX profiling option
-if [[ "$4" == "steps" ]]; then
+if [[ "$5" == "steps" ]]; then
   GPRAT_APEX_STEPS=ON
   GPRAT_APEX_CHOLESKY=OFF
-elif [[ "$4" == "cholesky" ]]; then
+elif [[ "$5" == "cholesky" ]]; then
   GPRAT_APEX_STEPS=OFF
   GPRAT_APEX_CHOLESKY=ON
 else
@@ -80,12 +81,17 @@ else
   GPRAT_APEX_CHOLESKY=OFF
 fi
 
-################################################################################
-# Developer: Pick Spack installation depending on the host
-################################################################################
+###################################################################################################
+# Pick Spack installation depending on the host
+###################################################################################################
 
 # Set Spack if on simcl1n1, simcl1n2, simcl1n3, or simcl1n4
-if [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" || "$HOSTNAME" == "simcl1n3" || "$HOSTNAME" == "simcl1n4" ]]; then
+if [[ \
+  "$HOSTNAME" == "simcl1n1" || \
+  "$HOSTNAME" == "simcl1n2" || \
+  "$HOSTNAME" == "simcl1n3" || \
+  "$HOSTNAME" == "simcl1n4" ]]; 
+then
 
   spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
   source $spack_destination/spack/share/spack/setup-env.sh
@@ -100,39 +106,38 @@ if [[ "$HOSTNAME" == "pcsgs04" ]]; then
 
 fi
 
-################################################################################
+###################################################################################################
 # Setup Compilation Requirements
-################################################################################
+###################################################################################################
 
-# Assuming Spack is found
+# Assuming Spack is found #########################################################################
 if command -v spack &>/dev/null; then
+  
   echo "Spack command found, checking for environments..."
 
-  # Get current hostname
   HOSTNAME=$(hostname -s)
 
-  # ipvs-epyc1
+  # ipvs-epyc1 ####################################################################################
   if [[ "$HOSTNAME" == "ipvs-epyc1" ]]; then
 
     # Check whether the gprat_cpu_gcc environment exists
     if spack env list | grep -q "gprat_cpu_gcc"; then
       echo "Found gprat_cpu_gcc environment, activating it."
+      spack env activate gprat_cpu_gcc
       module load gcc/14.2.0
       export CXX=g++
       export CC=gcc
-      spack env activate gprat_cpu_gcc
-      GPRAT_WITH_CUDA=OFF # whether GPRAT_WITH_CUDA is ON of OFF is irrelevant for this example
     fi
 
-    # sven0 and sven1
+  # sven0 and sven1 ###############################################################################
   elif [[ "$HOSTNAME" == "sven0" || "$HOSTNAME" == "sven1" ]]; then
 
-    #module load gcc/13.2.1
+    # module load gcc/13.2.1
     spack load openblas arch=linux-fedora38-riscv64
     HPX_CMAKE=$HOME/git_workspace/build-scripts/build/hpx/lib64/cmake/HPX
     USE_MKL=OFF
 
-    # aarch64
+  # aarch64 #######################################################################################
   elif [[ $(uname -i) == "aarch64" ]]; then
 
     spack load gcc@14.2.0
@@ -143,126 +148,231 @@ if command -v spack &>/dev/null; then
     fi
     USE_MKL=OFF
 
-    # simcl1n1 and simcl1n2 with NVIDIA GPUs
+  # simcl1n1 and simcl1n2 with NVIDIA GPUs ########################################################
   elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
 
-    # Check if the gprat_gpu_clang environment exists
-    if spack env list | grep -q "gprat_gpu_clang"; then
+    if [[ "$2" == "cpu" ]]; then # CPU build
 
-      echo "Found gprat_gpu_clang environment, activating it."
-      spack env activate gprat_gpu_clang
+      # Check if the gprat_cpu_gcc environment exists
+      if spack env list | grep -q "gprat_cpu_gcc"; then
 
-      if [[ "$2" == "cuda" ]]; then
+        echo "Found gprat_cpu_gcc environment, activating it."
+        spack env activate gprat_cpu_gcc
 
-        module load clang/17.0.1
-        export CXX=clang++
-        export CC=clang
-        module load cuda/12.0.1
+        # Load GCC 14.1.0
+        module load gcc/14.1.0
+
+        # Set default compiler to GCC
+        export CXX=g++
+        export CC=gcc
+
+      else
+
+        echo "Cannot find Spack environment gprat_cpu_gcc. Please run spack-repo/environments/setup_gprat_cpu_gcc.sh" 1>&2
+        exit -1
+
+      fi
+
+    else # GPU build
+
+      if spack env list | grep -q "gprat_gpu_clang"; then
+
+        echo "Found gprat_gpu_clang environment, activating it."
+        spack env activate gprat_gpu_clang
+
         CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
-        GPRAT_WITH_CUDA=ON
-        GPRAT_WITH_SYCL=OFF
 
-      elif [[ "$2" == "sycl" ]]; then
+        if [[ "$2" == "cuda" ]]; then # GPRat on NVIDIA GPUs with CUDA
 
-        if command -v icpx --version &>/dev/null; then
+          # Load CUDA and Clang modules
+          module load cuda/12.0.1
+          module load clang/17.0.1
 
-          CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
-          export CXX=icpx
-          export CC=icx
-          GPRAT_WITH_CUDA=OFF
-          GPRAT_WITH_SYCL=ON
-          GPRAT_SYCL_NVIDIA=ON
-          CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+          # Set default compiler to clang
+          export CXX=clang++
+          export CC=clang
 
-        else
+        elif [[ "$2" == "sycl" ]]; then # GPRat on NVIDIA GPUs with SYCL
 
-          echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
-          exit -1
+          if command -v icpx --version &>/dev/null; then
+
+            # Set default compiler to icpx
+            export CXX=icpx
+            export CC=icx
+
+            # Set GPRat build options for SYCL on NVIDIA GPUs
+            GPRAT_SYCL_NVIDIA=ON
+
+            # Add oneMath installation to CMAKE_PREFIX_PATH
+            CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+
+          else
+
+            echo \
+              "Intel oneAPI DPC++ compiler (icpx) not found. " \
+              "Please make sure that icpx is available in your PATH." 1>&2
+            exit -1
+
+          fi
 
         fi
+
+      else
+
+        echo \
+          "Cannot find Spack environment gprat_gpu_clang." \
+          "Please run spack-repo/environments/setup_gprat_gpu_clang.sh" 1>&2
+        exit -1
 
       fi
 
     fi
 
-  # simcl1n3 with AMD GPUs
+  # simcl1n3 with AMD GPU #########################################################################
   elif [[ "$HOSTNAME" == "simcl1n3" ]]; then
-    echo "Support for host simcl1n3 is currently experimental."
 
-    # Check if the gprat_gpu_clang environment exists
-    if spack env list | grep -q "gprat_gpu_clang"; then
+      if [[ "$2" == "cpu" ]]; then # CPU build
 
-      echo "Found gprat_gpu_clang environment, activating it."
-      spack env activate gprat_gpu_clang
+      # Check if the gprat_cpu_gcc environment exists
+      if spack env list | grep -q "gprat_cpu_gcc"; then
 
-      if [[ "$2" == "sycl" ]]; then
+        echo "Found gprat_cpu_gcc environment, activating it."
+        spack env activate gprat_cpu_gcc
 
-        if command -v icpx --version &>/dev/null; then
-          export CXX=icpx
-          export CC=icx
-          GPRAT_WITH_CUDA=OFF
-          GPRAT_WITH_SYCL=ON
-          GPRAT_SYCL_AMD=ON
-          HIP_TARGETS="gfx90a"
-          CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+        # Load GCC 14.1.0
+        module load gcc/14.1.0
 
-        else
+        # Set default compiler to GCC
+        export CXX=g++
+        export CC=gcc
 
-          echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
-          exit -1
+      else
+
+        echo "Cannot find Spack environment gprat_cpu_gcc. Please run spack-repo/environments/setup_gprat_cpu_gcc.sh" 1>&2
+        exit -1
+
+      fi
+
+    else # GPU build
+
+      # Check whether the gprat_gpu_clang environment exists
+      if spack env list | grep -q "gprat_gpu_clang"; then
+
+        echo "Found gprat_gpu_clang environment, activating it."
+        spack env activate gprat_gpu_clang
+
+        if [[ "$2" == "sycl" ]]; then # GPRat on AMD GPUs with SYCL
+
+          if command -v icpx --version &>/dev/null; then
+            
+            # Set default compiler to icpx
+            export CXX=icpx
+            export CC=icx
+
+            # Set GPRat build options for SYCL on AMD GPUs
+            GPRAT_SYCL_AMD=ON
+
+            # Set GPRat HIP target for AMD Instinct MI210 GPU (required by icpx)
+            HIP_TARGETS="gfx90a"
+
+            # Add oneMath installation to CMAKE_PREFIX_PATH
+            CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+
+          else
+
+            echo "Intel oneAPI DPC++ compiler (icpx) not found. Please make sure that icpx is available in your PATH." 1>&2
+            exit -1
+
+          fi
 
         fi
+
+      else
+
+        echo "Cannot find Spack environment gprat_gpu_clang. Please run spack-repo/environments/setup_gprat_gpu_clang.sh" 1>&2
+        exit -1
+
       fi
+
     fi
 
-  # simcl1n4 without GPU
+  # simcl1n4 without GPU ##########################################################################
   elif [[ "$HOSTNAME" == "simcl1n4" ]]; then
+
+    if [[ "$2" == "cuda" || "$2" == "sycl" ]]; then 
+
+      echo "Error: simcl1n4 does not have a GPU." 1>&2
+      exit -1
+
+    fi
 
     # Check if the gprat_cpu_gcc environment exists
     if spack env list | grep -q "gprat_cpu_gcc"; then
 
       echo "Found gprat_cpu_gcc environment, activating it."
-      module load gcc/14.2.0
+      spack env activate gprat_cpu_gcc
+
+      # Load GCC 14.1.0
+      module load gcc/14.1.0
+
+      # Set default compiler to GCC
       export CXX=g++
       export CC=gcc
-      spack env activate gprat_cpu_gcc
+
+    else
+
+      echo "Cannot find Spack environment gprat_cpu_gcc. Please run spack-repo/environments/setup_gprat_cpu_gcc.sh" 1>&2
+      exit -1
 
     fi
 
-  # pcsgs04 with Intel GPU
+  # pcsgs04 with Intel GPU ########################################################################
   elif [[ "$HOSTNAME" == "pcsgs04" ]]; then
-    # Check if the gprat_gpu_clang environment exists
+
+    echo "Caution: Intel GPU support couldn't be tested and is in an experimental state."
+
+    # Check whether the gprat_gpu_clang environment exists
     if spack env list | grep -q "gprat_gpu_clang"; then
 
       echo "Found gprat_gpu_clang environment, activating it."
       spack env activate gprat_gpu_clang
 
-      if [[ "$2" == "sycl" ]]; then
+      if [[ "$2" == "sycl" ]]; then # GPRat on Intel GPUs with SYCL
 
         if command -v icpx --version &>/dev/null; then
 
+          # Set default compiler to icpx
           export CXX=icpx
           export CC=icx
-          GPRAT_WITH_CUDA=OFF
-          GPRAT_WITH_SYCL=ON
+
+          # Set GPRat build options for SYCL on Intel GPUs
           GPRAT_SYCL_INTEL=ON
+
+          # Add oneMath installation to CMAKE_PREFIX_PATH
           CMAKE_PREFIX_PATH="/scratch/grafml/oneMath_intel_v0.9/oneMath/install:${CMAKE_PREFIX_PATH:-}"
 
         else
 
-          echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
+          echo \
+            "Intel oneAPI DPC++ compiler (icpx) not found. Please make sure that icpx is available in your PATH." 1>&2
           exit -1
 
         fi
       
       fi
 
+    else
+
+      echo \
+        "Cannot find Spack environment gprat_gpu_clang. Please run spack-repo/environments/setup_gprat_gpu_clang.sh" 1>&2
+      exit -1
+
     fi
 
-    # invalid hostnames
+  # invalid hostnames #############################################################################
   else
 
-    echo "Hostname is $HOSTNAME — no action taken."
+    echo "Caution: This script does not cover host $HOSTNAME."
 
   fi
 
@@ -273,9 +383,9 @@ else
 
 fi
 
-################################################################################
+###################################################################################################
 # Set up CMake
-################################################################################
+###################################################################################################
 
 # CPU build
 if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
@@ -288,11 +398,13 @@ if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
     -DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
     -DGPRAT_ENABLE_MKL=$USE_MKL \
     -DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS} \
-    -DGPRAT_APEX_CHOLESKY=${GPRAT_APEX_CHOLESKY}
+    -DGPRAT_APEX_CHOLESKY=${GPRAT_APEX_CHOLESKY} \
+    -DGPRAT_ENABLE_TESTS=ON \
+    -DGPRAT_ENABLE_EXAMPLES=ON \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 # CUDA build
 elif [[ $PRESET == "release-linux-cuda" || $PRESET == "dev-linux-cuda" ]]; then
-  CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 
   cmake --preset $PRESET \
     -DGPRAT_BUILD_BINDINGS=$BINDINGS \
@@ -306,7 +418,10 @@ elif [[ $PRESET == "release-linux-cuda" || $PRESET == "dev-linux-cuda" ]]; then
     -DCMAKE_CXX_COMPILER=$(which clang++) \
     -DCMAKE_CUDA_COMPILER=$(which clang++) \
     -DCMAKE_CUDA_FLAGS=--cuda-path=${CUDA_HOME} \
-    -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}
+    -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+    -DGPRAT_ENABLE_TESTS=ON \
+    -DGPRAT_ENABLE_EXAMPLES=ON \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 # SYCL build
 elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
@@ -332,14 +447,14 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 
-################################################################################
+###################################################################################################
 # Compile code
-################################################################################
-cmake --build --preset $PRESET -- VERBOSE=1 -j
+###################################################################################################
+cmake --build --preset $PRESET -- -j
 cmake --install build/$PRESET
 
-################################################################################
+###################################################################################################
 # Run tests
-################################################################################
+###################################################################################################
 cd build/$PRESET
 ctest --output-on-failure --no-tests=ignore -C Release -j 2

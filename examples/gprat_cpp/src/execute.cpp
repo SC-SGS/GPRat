@@ -222,8 +222,8 @@ namespace gprat::example
 
 int main(int argc, char *argv[])
 {
-    std::string train_path = "../../../../data/data_19/input_data.txt";
-    std::string out_path = "../../../../data/data_19/output_data.txt";
+    std::string train_path = "../../../../data/data_19/training_input.txt";
+    std::string out_path = "../../../../data/data_19/training_output.txt";
     std::string test_path = "../../../../data/data_19/test_input.txt";
 
     bool use_gpu =

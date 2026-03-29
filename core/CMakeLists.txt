@@ -2,6 +2,11 @@
 
 ### Options #######################################################################################
 
+# CUDA and SYCL are mutually exclusive, catch this error case
+if(GPRAT_WITH_CUDA AND GPRAT_WITH_SYCL)
+  message(FATAL_ERROR "GPRAT_WITH_CUDA and GPRAT_WITH_SYCL cannot be enabled at the same time.") 
+endif()
+
 # SYCL
 option(GPRAT_WITH_SYCL "Enable SYCL support with oneMath" OFF)
 

@@ -143,9 +143,6 @@ def execute():
     else:
         gpflow.config.set_default_float(np.float64)
     test_scale_factor = config["STEP"] if config["SCALE_TEST_WITH_TRAIN"] else 1
-
-    # Logging
-    setup_logging(log_filename, True, logger)
     
     # Check whether TensorFlow is using GPU
     is_cuda_gpu = False

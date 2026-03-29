@@ -163,7 +163,6 @@ def execute():
 
     torch.set_num_interop_threads(1)
 
-    setup_logging(log_filename, True, logger)
     logger.info("\n")
     logger.info("-" * 40)
     logger.info("Load config file.")

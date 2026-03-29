@@ -1,70 +1,121 @@
 #!/bin/bash
+# Input $1: Specify how GPRat was compiled, options:	cpu/gpu
+# Input $2: If GPRat was compiled with SYCL backend:	nvidia/amd/intel 
 
+# Set --use-gpu flag
 if [[ -z "$1" ]]; then
     echo "Input parameter is missing. Using default: Run computations on CPU"
-elif [[ "$1" == "cuda" ]]; then
-    GPU="--use_cuda"
-elif [[ "$1" == "sycl" ]]; then
-	GPU="--use_sycl"
+	GPU=""
+elif [[ "$1" == "gpu" ]]; then
+    GPU="--use-gpu"
+	if [[ \
+		"$HOSTNAME" != "simcl1n1" && \
+		"$HOSTNAME" != "simcl1n2" && \
+		"$HOSTNAME" != "simcl1n3" && \
+		"$HOSTNAME" != "simcl1n4" ]]; 
+	then
+		echo "GPU execution with this script is only supported on simcl1n1,"\
+		 	 "simcl1n2, simcl1n3, and simcl1n4." 1>&2
+		exit 1
+	fi
 elif [[ "$1" != "cpu" ]]; then
-    echo "Please specify input parameter: cpu/cuda/sycl"
+    echo "Please specify input parameter: cpu/gpu"
     exit 1
 fi
 
-# Set Spack if on simcl1n1, simcl1n2, simcl1n3, or simcl1n4
-if [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" || "$HOSTNAME" == "simcl1n3" || "$HOSTNAME" == "simcl1n4" ]]; then
+### SVEN0 AND SVEN1 ###############################################################################
 
-	spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
-	source $spack_destination/spack/share/spack/setup-env.sh
-
-fi
-
-if [[ "$2" == "nvidia" ]]; then
-
-	LD_LIBRARY_PATH=/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/:$LD_LIBRARY_PATH
-
-elif [[ "$2" == "amd" ]]; then
-
-	LD_LIBRARY_PATH=/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/:$LD_LIBRARY_PATH
-
-elif [[ "$2" == "intel" ]]; then
-
-	echo "The Intel setup is not supported yet." 1>&2
-	exit 1
-	
-fi
-
+# Setup LD_LIBRARY_PATH on sven0 and sven1
 if [[ $(hostname -s) == "sven0" || $(hostname -s) == "sven1" ]]; then
 
 	export LD_LIBRARY_PATH=$HOME/git_workspace/build-scripts/build/hpx/lib64:$LD_LIBRARY_PATH
 	export LD_LIBRARY_PATH=$HOME/git_workspace/build-scripts/build/boost/lib:$LD_LIBRARY_PATH
 	export LD_PRELOAD=$HOME/git_workspace/build-scripts/build/jemalloc/lib/libjemalloc.so.2
 
-elif [[ $(hostname) == "simcl1n1" || $(hostname) == "simcl1n2" || $(hostname) == "simcl1n3" ]]; then
+fi
 
-	# Check if the gprat_gpu_clang environment exists
+### SIMCL1N1, SIMCL1N2, SIMCL1N3, SIMCL1N4 ########################################################
 
-	if spack env list | grep -q "gprat_gpu_clang"; then
+if [[ \
+	"$HOSTNAME" == "simcl1n1" || \
+	"$HOSTNAME" == "simcl1n2" || \
+	"$HOSTNAME" == "simcl1n3" || \
+	"$HOSTNAME" == "simcl1n4" ]]; 
+	then
 
-	    echo "Found gprat_gpu_clang environment, activating it."
-	    spack env activate gprat_gpu_clang
-	    LD_LIBRARY_PATH=$(spack location -i hpx)/lib:$LD_LIBRARY_PATH
-	    LD_LIBRARY_PATH=$(spack location -i openblas)/lib:$LD_LIBRARY_PATH
-        LD_LIBRARY_PATH=$(spack location -i intel-oneapi-mkl)/lib:$LD_LIBRARY_PATH
+	# Setup Spack
+	spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
+	source $spack_destination/spack/share/spack/setup-env.sh
 
-		if [[ "$1" == "cuda" ]]; then
+	# GPU setup
+	if [[ "$1" == "gpu" ]]; then
 
-			module load cuda/12.0.1
+		# simcl1n4 does not have a GPU
+		if [[ "$HOSTNAME" == "simcl1n4" ]]; then
+			echo "Machine $HOSTNAME does not have a GPU but you selected GPU execution." 1>&2
+			exit 1
+		fi
+
+		# Check if the gprat_gpu_clang environment exists
+		if spack env list | grep -q "gprat_gpu_clang"; then
+
+			echo "Found gprat_gpu_clang environment, activating it."
+			spack env activate gprat_gpu_clang
+			LD_LIBRARY_PATH=$(spack location -i hpx)/lib:$LD_LIBRARY_PATH
+			LD_LIBRARY_PATH=$(spack location -i openblas)/lib:$LD_LIBRARY_PATH
+			LD_LIBRARY_PATH=$(spack location -i intel-oneapi-mkl)/lib:$LD_LIBRARY_PATH
+
+			echo $LD_LIBRARY_PATH
+		fi
+
+		# Add oneMath installation to LD_LIBRARY_PATH if gpu is specified
+		if [[ "$2" == "nvidia" ]]; then
+
+			ONEMATH_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/"
+			LD_LIBRARY_PATH="$ONEMATH_PATH:$LD_LIBRARY_PATH"
+
+		elif [[ "$2" == "amd" ]]; then
+
+			ONEMATH_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/"
+			LD_LIBRARY_PATH="$ONEMATH_PATH:$LD_LIBRARY_PATH"
+
+		elif [[ "$2" == "intel" ]]; then
+
+			echo "Machine $HOSTNAME does not have an Intel GPU." 1>&2
+			exit 1
+			
+		elif [[ "$1" == "gpu" && "$2" != "nvidia" ]]; then
+
+			echo "Please specify gpu vendor: nvidia/amd/intel"
+			exit 1
 
 		fi
-			
+
+	# CPU setup
+	elif [[ "$1" == "cpu" ]]; then
+
+		if spack env list | grep -q "gprat_cpu_gcc"; then
+			echo "Found gprat_cpu_gcc environment, activating it."
+			spack env activate gprat_cpu_gcc
+			module load gcc/14.2.0
+			LD_LIBRARY_PATH=$(spack location -i hpx)/lib:$LD_LIBRARY_PATH
+			LD_LIBRARY_PATH=$(spack location -i openblas)/lib:$LD_LIBRARY_PATH
+			LD_LIBRARY_PATH=$(spack location -i intel-oneapi-mkl)/lib:$LD_LIBRARY_PATH
+		fi
+
 	fi
 
-elif [[ $(hostname) == "pcsgs04" ]]; then
+fi
+
+### PCSGS04 #######################################################################################
+
+if [[ $(hostname) == "pcsgs04" ]]; then
 
 	echo "The Intel setup is not supported yet." 1>&2
 	exit 1
 
 fi
 
-python3 execute.py $GPU
+### EXECUTION #####################################################################################
+
+python execute.py $GPU

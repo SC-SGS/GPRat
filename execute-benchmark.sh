@@ -124,7 +124,7 @@ if [[ "$3" == "yes" ]]; then
 
     cd ${BUILD_DIR}/examples/gprat_cpp/
     ./gprat_cpp $GPRAT_USE_GPU > /dev/null
-    cp output.csv ../../benchmark_results_${HARDWARE}_${VENDOR}/gprat_cholesky_${VENDOR}_${GPRAT_TARGET}.csv
+    cp ../output.csv ../../../../benchmark_results_${HARDWARE}_${VENDOR}/gprat_cholesky_${VENDOR}_${GPRAT_TARGET}.csv
     cd ../../../..
 
 else
@@ -147,5 +147,10 @@ else
     echo -e "\e[33mSkipping GPRat Python benchmarks.\e[0m"
 
 fi
+
+echo -e "\e[32mCopying results to home directory... \e[0m"
+mkdir -p ${HOME}/GPRAT-BENCHMARKS
+
+cp -r benchmark_results_${HARDWARE}_${VENDOR}/ ${HOME}/GPRAT-BENCHMARKS/
 
 echo -e "\e[32mDone.\e[0m"

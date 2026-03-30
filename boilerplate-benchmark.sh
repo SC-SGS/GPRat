@@ -1,10 +1,9 @@
+source ~/Setup_Scripts/setup_breyerml.sh
+
 if [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
 
-    # ./execute-benchmark.sh yes yes yes yes gpu nvidia cuda
-    # ./execute-benchmark.sh no no yes yes gpu nvidia sycl
-
-    ./execute-benchmark.sh no no no yes gpu nvidia cuda
-    ./execute-benchmark.sh no no no yes gpu nvidia sycl
+    ./execute-benchmark.sh yes yes yes yes gpu nvidia cuda
+    ./execute-benchmark.sh no no yes yes gpu nvidia sycl
 
 elif [[ "$HOSTNAME" == "simcl1n3" ]]; 
 then

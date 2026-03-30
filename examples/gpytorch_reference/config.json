@@ -4,7 +4,7 @@
     "TEST_IN_FILE": "../../data/data_19/test_input.txt",
     "TEST_OUT_FILE": "../../data/data_19/test_output.txt",
     "TRAIN_SIZE_START": 1,
-    "TRAIN_SIZE_END": 2048,
+    "TRAIN_SIZE_END": 128,
     "STEP": 2,
     "START_CORES": 6,
     "END_CORES": 48,
@@ -13,5 +13,5 @@
     "N_REG": 8,
     "PRECISION": "float64",
     "OPT_ITER":0,
-    "LOOP": 20
+    "LOOP": 2
 }

@@ -122,8 +122,13 @@ fi
 if [[ "$3" == "yes" ]]; then
     echo -e "\e[32mRunning GPRat Cholesky benchmarks on ${VENDOR} ${HARDWARE} with ${GPRAT_TARGET} target...\e[0m"
 
+    cd examples/gprat_cpp
+    end_cores=$(python3 -c "import json; print(json.load(open('config.json'))['END_CORES'])")
+    core_count=$((end_cores * 2))
+    cd ../..
+
     cd ${BUILD_DIR}/examples/gprat_cpp/
-    ./gprat_cpp $GPRAT_USE_GPU > /dev/null
+    taskset -c 0-$core_count:2 ./gprat_cpp $GPRAT_USE_GPU > /dev/null
     cp ../output.csv ../../../../benchmark_results_${HARDWARE}_${VENDOR}/gprat_cholesky_${VENDOR}_${GPRAT_TARGET}.csv
     cd ../../../..
 

@@ -207,5 +207,10 @@ make -j
 # Run code
 ################################################################################
 echo "Running GPRat C++ example"
-./gprat_cpp $use_gpu
+
+end_cores=$(python3 -c "import json; print(json.load(open('config.json'))['END_CORES'])")
+core_count=$((end_cores * 2))
+
+taskset -c 0-$core_count:2 ./gprat_cpp $use_gpu
+
 echo "Finished running GPRat C++ example"

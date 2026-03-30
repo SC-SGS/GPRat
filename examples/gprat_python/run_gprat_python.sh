@@ -120,4 +120,7 @@ fi
 
 ### EXECUTION #####################################################################################
 
-python execute.py $GPU
+end_cores=$(python3 -c "import json; print(json.load(open('config.json'))['END_CORES'])")
+core_count=$((end_cores * 2))
+
+taskset -c 0-$core_count:2 python execute.py $GPU

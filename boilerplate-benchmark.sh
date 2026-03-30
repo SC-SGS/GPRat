@@ -1,3 +1,9 @@
+#!/bin/bash
+#
+#SBATCH --job-name=gprat
+#SBATCH --output=output_gprat.txt
+#SBATCH --time=48:00:00
+
 source ~/Setup_Scripts/setup_breyerml.sh
 
 if [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then

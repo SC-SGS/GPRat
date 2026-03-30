@@ -195,6 +195,7 @@ examples/*/output.csv
 examples/gprat_*/include/
 examples/gpflow_reference/GPflow
 /.vscode
+benchmark_results_*
 
 # Editor related files
 ltex*

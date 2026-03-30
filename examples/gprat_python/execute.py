@@ -256,9 +256,9 @@ def execute():
                 print(f"Using GPU with {n_tiles} tiles.")
 
                 # Set train and test sizes
-                data_size = config['TRAIN_SIZE_START']
+                data_size = config['TRAIN_SIZE_START'] if config['TRAIN_SIZE_START'] >= n_tiles else n_tiles
                 test_size = config['TEST_SIZE'] if not config['SCALE_TEST_WITH_TRAIN'] \
-                    else config['TRAIN_SIZE_START']
+                    else data_size
 
                 # Loop over training data sizes
                 while data_size <= config['TRAIN_SIZE_END']:
@@ -289,9 +289,9 @@ def execute():
                 while n_tiles <= config['N_TILES_END']:
 
                     # Set train and test sizes
-                    data_size = config['TRAIN_SIZE_START']
+                    data_size = config['TRAIN_SIZE_START'] if config['TRAIN_SIZE_START'] >= n_tiles else n_tiles
                     test_size = config['TEST_SIZE'] if not config['SCALE_TEST_WITH_TRAIN'] \
-                        else config['TRAIN_SIZE_START']
+                        else data_size
 
                     # Loop over training data sizes
                     while data_size <= config['TRAIN_SIZE_END']:

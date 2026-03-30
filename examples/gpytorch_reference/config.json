@@ -4,7 +4,7 @@
     "TEST_IN_FILE": "../../data/data_19/test_input.txt",
     "TEST_OUT_FILE": "../../data/data_19/test_output.txt",
     "TRAIN_SIZE_START": 1,
-    "TRAIN_SIZE_END": 16384,
+    "TRAIN_SIZE_END": 2048,
     "STEP": 2,
     "START_CORES": 6,
     "END_CORES": 48,

@@ -4,14 +4,14 @@
     "TEST_IN_FILE": "../../data/data_19/test_input.txt",
     "TEST_OUT_FILE": "../../data/data_19/test_output.txt",
     "TRAIN_SIZE_START": 1,
-    "TRAIN_SIZE_END": 128,
+    "TRAIN_SIZE_END": 16384,
     "STEP": 2,
     "START_CORES": 6,
     "END_CORES": 48,
-    "TEST_SIZE": 4096,
+    "TEST_SIZE": 16384,
     "SCALE_TEST_WITH_TRAIN": true, 
     "N_REG": 8,
     "PRECISION": "float64",
-    "OPT_ITER":0,
-    "LOOP": 2
+    "OPT_ITER": 0,
+    "LOOP": 10
 }

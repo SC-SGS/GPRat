@@ -189,50 +189,18 @@ def execute():
         gpflow_run(target, is_cuda_gpu, config, output_file, config["TRAIN_SIZE_END"], \
                    config["TRAIN_SIZE_END"],0, config["END_CORES"], is_warmup=True)
 
-        # CPU
-        if target == "cpu":
+        cores = config["START_CORES"]
 
-            cores = config["START_CORES"]
-
-            while cores <= config["END_CORES"]:
-
-                data_size = config["TRAIN_SIZE_START"]
-                test_size = config["TEST_SIZE"] if not config["SCALE_TEST_WITH_TRAIN"] \
-                    else config["TRAIN_SIZE_START"]
-
-                context._reset_context()
-                tf.config.threading.set_intra_op_parallelism_threads(cores)
-                tf.config.threading.set_inter_op_parallelism_threads(1)
-
-                while data_size <= config["TRAIN_SIZE_END"]:
-
-                    for loop_index in range(config["LOOP"]):
-
-                        logger.info("*" * 40)
-                        gc.collect()
-                        gpflow_run(
-                            target, is_cuda_gpu, config, output_file, data_size,\
-                            test_size,loop_index, cores
-                        )
-
-                    # Update sizes
-                    data_size = data_size * config["STEP"]
-                    test_size = test_size * test_scale_factor
-
-                cores = cores * 2
-
-        # GPU / XPU
-        else:
-
-            context._reset_context()
-            tf.config.threading.set_intra_op_parallelism_threads(1)
-            tf.config.threading.set_inter_op_parallelism_threads(1)
+        while cores <= config["END_CORES"]:
 
             data_size = config["TRAIN_SIZE_START"]
             test_size = config["TEST_SIZE"] if not config["SCALE_TEST_WITH_TRAIN"] \
-                else config["TRAIN_SIZE_START"]    
-            
-            # Loop over training data sizes
+                else config["TRAIN_SIZE_START"]
+
+            context._reset_context()
+            tf.config.threading.set_intra_op_parallelism_threads(cores)
+            tf.config.threading.set_inter_op_parallelism_threads(1)
+
             while data_size <= config["TRAIN_SIZE_END"]:
 
                 for loop_index in range(config["LOOP"]):
@@ -240,13 +208,15 @@ def execute():
                     logger.info("*" * 40)
                     gc.collect()
                     gpflow_run(
-                        target, is_cuda_gpu, config, output_file, data_size, test_size, \
-                        loop_index, 1
+                        target, is_cuda_gpu, config, output_file, data_size,\
+                        test_size,loop_index, cores
                     )
 
                 # Update sizes
                 data_size = data_size * config["STEP"]
                 test_size = test_size * test_scale_factor
+
+            cores = cores * 2
         
     logger.info("Completed the program.")
 

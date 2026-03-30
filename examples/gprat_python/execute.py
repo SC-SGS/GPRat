@@ -244,19 +244,22 @@ def execute():
             output_file.write(header)
 
         # Perform warmup run
-        gprat_run(config, output_file, config['TRAIN_SIZE_END'], config['TRAIN_SIZE_END'], 0, config['END_CORES'], config['N_TILES_END'], True)
+        gprat_run(config, output_file, config['TRAIN_SIZE_END'], config['TRAIN_SIZE_END'], 0, 
+                  config['END_CORES'], config['N_TILES_END'], True)
 
-        n_tiles = config['N_TILES_START']
         test_scale_factor = config['STEP'] if config['SCALE_TEST_WITH_TRAIN'] else 1
 
-        if use_gpu:
+        cores = config["START_CORES"]
+
+        while cores <= config['END_CORES']:
+
+            n_tiles = config['N_TILES_START']
 
             while n_tiles <= config['N_TILES_END']:
 
-                print(f"Using GPU with {n_tiles} tiles.")
-
                 # Set train and test sizes
-                data_size = config['TRAIN_SIZE_START'] if config['TRAIN_SIZE_START'] >= n_tiles else n_tiles
+                data_size = config['TRAIN_SIZE_START'] if config['TRAIN_SIZE_START'] >= n_tiles \
+                    else n_tiles
                 test_size = config['TEST_SIZE'] if not config['SCALE_TEST_WITH_TRAIN'] \
                     else data_size
 
@@ -266,9 +269,9 @@ def execute():
                     # Loop over different test iterations
                     for loop_index in range(config["LOOP"]):
                         logger.info("*" * 40)
-                        logger.info(f"Cores: {config['END_CORES']}, Train Size: {data_size}, Loop: {loop_index}")
+                        logger.info(f"Cores: {cores}, Train Size: {data_size}, Loop: {loop_index}")
                         gc.collect()
-                        gprat_run(config, output_file, data_size, test_size, loop_index, config['END_CORES'], n_tiles)
+                        gprat_run(config, output_file, data_size, test_size, loop_index, cores, n_tiles)
 
                     # Update sizes
                     data_size = data_size * config['STEP']
@@ -276,40 +279,7 @@ def execute():
 
                 n_tiles *= config['STEP_TILES']
 
-                print(f"Updating to {n_tiles} tiles.")
-
-        else:
-
-            print(f"Using CPU with up to {config['END_CORES']} cores.")
-
-            cores = config["START_CORES"]
-
-            while cores <= config['END_CORES']:
-
-                while n_tiles <= config['N_TILES_END']:
-
-                    # Set train and test sizes
-                    data_size = config['TRAIN_SIZE_START'] if config['TRAIN_SIZE_START'] >= n_tiles else n_tiles
-                    test_size = config['TEST_SIZE'] if not config['SCALE_TEST_WITH_TRAIN'] \
-                        else data_size
-
-                    # Loop over training data sizes
-                    while data_size <= config['TRAIN_SIZE_END']:
-
-                        # Loop over different test iterations
-                        for loop_index in range(config["LOOP"]):
-                            logger.info("*" * 40)
-                            logger.info(f"Cores: {cores}, Train Size: {data_size}, Loop: {loop_index}")
-                            gc.collect()
-                            gprat_run(config, output_file, data_size, test_size, loop_index, cores, n_tiles)
-
-                        # Update sizes
-                        data_size = data_size * config['STEP']
-                        test_size = test_size * test_scale_factor
-
-                    n_tiles *= config['STEP_TILES']
-
-                cores *= 2
+            cores *= 2
 
     logger.info("Completed the program.")
 

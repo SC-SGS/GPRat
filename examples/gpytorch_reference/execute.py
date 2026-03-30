@@ -201,50 +201,12 @@ def execute():
                      config["TRAIN_SIZE_END"], 0, config["END_CORES"], device, \
                      target, True)
 
-        # CPU
-        if device.type == "cpu":
+        cores = config["START_CORES"]
 
-            cores = config["START_CORES"]
+        while cores <= config["END_CORES"]:
 
-            while cores <= config["END_CORES"]:
+            torch.set_num_threads(cores)
 
-                torch.set_num_threads(cores)
-
-                data_size = config["TRAIN_SIZE_START"]
-                test_size = config["TEST_SIZE"] if not config["SCALE_TEST_WITH_TRAIN"] \
-                    else config["TRAIN_SIZE_START"]
-
-                # Loop over training data sizes
-                while data_size <= config["TRAIN_SIZE_END"]:
-
-                    # Loop over different test iterations
-                    for loop_index in range(config["LOOP"]):
-
-                        # Loop to create test runs
-                        logger.info("*" * 40)
-                        logger.info(
-                            f"Cores: {cores}, Train Size: {data_size}, Loop: {loop_index}"
-                            )
-                        gc.collect()
-                        gpytorch_run(
-                            config, output_file, data_size, test_size, loop_index, cores, 
-                            device, target
-                        )
-
-                    # Update sizes
-                    data_size = data_size * config["STEP"]
-                    test_size = test_size * test_scale_factor
-                
-                cores *= 2
-
-        # GPU
-        else:
-
-            torch.set_num_threads(1)
-            gc.collect()
-            torch.cuda.empty_cache()
-            
-            # Set train and test sizes
             data_size = config["TRAIN_SIZE_START"]
             test_size = config["TEST_SIZE"] if not config["SCALE_TEST_WITH_TRAIN"] \
                 else config["TRAIN_SIZE_START"]
@@ -255,23 +217,24 @@ def execute():
                 # Loop over different test iterations
                 for loop_index in range(config["LOOP"]):
 
-                    print(f"Before cleanup: {torch.cuda.memory_allocated() / 1e6:.2f} MB")
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    print(f"After cleanup: {torch.cuda.memory_allocated() / 1e6:.2f} MB")
-
                     # Loop to create test runs
                     logger.info("*" * 40)
-                    logger.info(f"Cores: {1}, Train Size: {data_size}, Loop: {loop_index}")
+                    logger.info(
+                        f"Cores: {cores}, Train Size: {data_size}, Loop: {loop_index}"
+                        )
+                    gc.collect()
+                    if not target == "cpu":
+                        torch.cuda.empty_cache()
                     gpytorch_run(
-                        config, output_file, data_size, test_size, loop_index, 1,
+                        config, output_file, data_size, test_size, loop_index, cores, 
                         device, target
                     )
-                    print(f"After execution: {torch.cuda.memory_allocated() / 1e6:.2f} MB")
 
                 # Update sizes
                 data_size = data_size * config["STEP"]
                 test_size = test_size * test_scale_factor
+            
+            cores *= 2
 
         logger.info("Completed the program.")
 

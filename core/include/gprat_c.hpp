@@ -12,6 +12,8 @@
 namespace gprat
 {
 
+// struct GP_data /////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * @brief Data structure for Gaussian Process data
  *
@@ -43,6 +45,8 @@ struct GP_data
      */
     GP_data(const std::string &file_path, int n, int n_reg);
 };
+
+// Class GP ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Gaussian Process class for regression tasks
@@ -78,6 +82,9 @@ class GP
     std::shared_ptr<Target> target_;
 
   public:
+    /// Variables
+    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /** @brief Number of regressors */
     int n_reg;
 
@@ -85,6 +92,9 @@ class GP
      * @brief Hyperarameters of the squared exponential kernel
      */
     gprat_hyper::SEKParams kernel_params;
+
+    /// Generic constructor
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @brief Constructs a Gaussian Process (GP)
@@ -109,6 +119,9 @@ class GP
        std::vector<bool> trainable_bool,
        std::shared_ptr<Target> target);
 
+    /// CPU constructor
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * @brief Constructs a Gaussian Process (GP) for CPU computations
      *
@@ -130,6 +143,9 @@ class GP
        std::vector<double> kernel_hyperparams,
        std::vector<bool> trainable_bool);
 
+    /// GPU constructor
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * @brief Constructs a Gaussian Process (GP) for GPU computations
      *
@@ -143,7 +159,7 @@ class GP
      *                           parameter of squared exponential kernel
      * @param trainable_bool Vector indicating which parameters are trainable
      * @param gpu_id GPU identifier
-     * @param n_streams Number of CUDA streams for GPU computations
+     * @param n_units Number of CUDA streams / SYCL queues for GPU computations
      */
     GP(std::vector<double> input,
        std::vector<double> output,
@@ -153,7 +169,10 @@ class GP
        std::vector<double> kernel_hyperparams,
        std::vector<bool> trainable_bool,
        int gpu_id,
-       int n_streams);
+       int n_units);
+
+    /// Class methods
+    /// /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Returns Gaussian Process attributes as string.
@@ -226,6 +245,7 @@ class GP
      */
     std::vector<std::vector<double>> cholesky();
 };
+
 }  // namespace gprat
 
 #endif  // end of GPRAT_C_H

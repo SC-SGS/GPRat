@@ -85,6 +85,11 @@ void stop_hpx_runtime();
  */
 bool compiled_with_cuda();
 
+/**
+ * @brief Returns whether the code was compiled with SYCL support.
+ */
+bool compiled_with_sycl();
+
 }  // namespace utils
 
 #endif

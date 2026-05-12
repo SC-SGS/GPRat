@@ -64,14 +64,14 @@ jobs:
         cmake "--preset=ci-${{ matrix.os }}"
 
     - name: Build
-      run: cmake --build build --config Release -j 2
+      run: cmake --build build --config Release
 
     - name: Install
       run: cmake --install build --config Release --prefix prefix
 
     - name: Test
       working-directory: build
-      run: ctest --output-on-failure --no-tests=ignore -C Release -j 2
+      run: ctest --output-on-failure --no-tests=ignore -C Release
 
     - name: Upload
       uses: actions/upload-artifact@v4
@@ -90,7 +90,7 @@ jobs:
         cmake -G "Unix Makefiles" -S examples/gprat_cpp -B build_examples -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PWD/prefix -DUSE_MKL=ON
 
     - name: Build example project
-      run: cmake --build build_examples --config Release -j 2
+      run: cmake --build build_examples --config Release
 
     # See: https://github.com/spack/setup-spack?tab=readme-ov-file#example-caching-your-own-binaries-for-public-repositories
     - name: Push packages and update index

@@ -1,6 +1,6 @@
-#include "gpu/gp_uncertainty.cuh"
+#include "gpu/cuda/gp_uncertainty.cuh"
 
-#include "gpu/cuda_utils.cuh"
+#include "gpu/cuda/cuda_utils.cuh"
 #include "target.hpp"
 #include <hpx/async_cuda/cuda_exception.hpp>
 

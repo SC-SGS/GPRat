@@ -8,8 +8,17 @@
 #include <hpx/async_cuda/cublas_executor.hpp>
 #endif
 
+#if GPRAT_WITH_SYCL
+#include <sycl/sycl.hpp>
+#endif
+
 namespace gprat
 {
+  struct DeviceParameters
+  {
+      std::size_t id;
+      std::size_t n_queues;
+  };
 
 /**
  * @brief This class represents the target on which to perform the Gaussian
@@ -35,6 +44,8 @@ struct Target
      */
     virtual bool is_gpu() = 0;
 
+    virtual bool is_sycl() = 0;
+
     /**
      * @brief Returns string representation of the target.
      *
@@ -47,6 +58,8 @@ struct Target
   protected:
     Target() = default;
 };
+
+// CPU ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct CPU : public Target
 {
@@ -67,6 +80,11 @@ struct CPU : public Target
     bool is_gpu() override;
 
     /**
+     * @brief Returns false because CPU target is not GPU.
+     */
+    bool is_sycl() override;
+
+    /**
      * @brief Returns string representation of the CPU target.
      */
     std::string repr() const override;
@@ -78,6 +96,8 @@ struct CPU : public Target
  * @return CPU target
  */
 CPU get_cpu();
+
+// CUDA GPU ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if GPRAT_WITH_CUDA
 struct CUDA_GPU : public Target
@@ -118,6 +138,11 @@ struct CUDA_GPU : public Target
      * @brief Returns true because target is GPU.
      */
     bool is_gpu() override;
+
+    /**
+     * @brief Returns true because target is GPU.
+     */
+    bool is_sycl() override;
 
     /**
      * @brief Returns string representation of the GPU target.
@@ -192,6 +217,115 @@ CUDA_GPU get_gpu(int id, int n_streams);
  */
 CUDA_GPU get_gpu();
 #endif
+
+// SYCL ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if GPRAT_WITH_SYCL
+struct SYCL_DEVICE : public Target
+{
+    /**
+     * @brief Identifier of SYCL device.
+     *
+     * Can be set to a value between 0 and device_count().
+     */
+    std::size_t id;
+
+    /**
+     * @brief Number of SYCL_queues used asynchronous computation and data transfer.
+     */
+    std::size_t n_queues;
+
+    /**
+     * @brief Index of next SYCL queue assigned on next_queue().
+     */
+    std::size_t i_queue;
+
+    /** @brief Default amount of SYCL local memory used by kernels. */
+    std::size_t local_memory_size;
+
+    /**
+     * @brief Returns GPU target that uses SYCL.
+     */
+    SYCL_DEVICE(int gpu_id, int n_queues);
+
+    /**
+     * @brief Returns false because target is not CPU.
+     */
+    bool is_cpu() override;   
+
+    /**
+     * @brief Returns false because target is not CUDA.
+     */
+    bool is_gpu() override;
+
+    /**
+     * @brief Returns false because target is not CUDA.
+     */
+    bool is_sycl() override;
+
+    /**
+     * @brief Returns string representation of the SYCL target.
+     */
+    std::string repr() const override;
+
+    /**
+     * @brief Creates n_streams SYCL queues.
+     *
+     * WARNING: Call destroy() to free both resources after using them.
+     */
+    void create();
+
+    /**
+     * @brief Destroys the SYCL queues previously created with create().
+     */
+    void destroy();
+
+    /**
+     * @brief Returns the next SYCL queue.
+     *
+     * It regards the collection of SYCL queues as a cyclic list and returns
+     * the next SYCL queue in the cycle. The returned queue was already
+     * created when calling create() and will be destroyed by using destroy().
+     *
+     * @return SYCL queue
+     */
+    sycl::queue next_queue();
+
+    /**
+     * @brief Synchronizes the collection of SYCL queues.
+     *
+     * The queue must have be retrieved by next_queue(). Thus, it can use the
+     * cyclic ordering to sync each queue in subset_of_queues only once.
+     *
+     * @param subset_of_queue Vector of SYCL queues, previously retrieved
+     *                          with next_queue().
+     */
+    void sync_queues(std::vector<sycl::queue> &subset_of_queues);
+
+  private:
+
+  std::vector<sycl::queue> queues;
+};
+
+/**
+ * @brief Creates and returns handle for SYCL target.
+ *
+ * @param id ID of SYCL device.
+ * @param n_queues Number of queues to be created on SYCL device.
+ *
+ * @return GPU target
+ */
+SYCL_DEVICE get_sycl_device(int id, int n_queues);
+
+/**
+ * @brief Returns handle for SYCL target with ID 0.
+ *
+ * Uses only one queue, so single-threaded GPU execution.
+ */
+SYCL_DEVICE get_sycl_device();
+#endif
+
+// General ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Lists available GPUs with their properties.

@@ -5,86 +5,109 @@
 #include <cstdio>
 
 #if GPRAT_WITH_CUDA
-#include "gpu/gp_functions.cuh"
+#include "gpu/cuda/gp_functions.cuh"
+#endif
+
+#if GPRAT_WITH_SYCL
+#include "gpu/sycl/sycl_gp_functions.hpp"
 #endif
 
 // namespace for GPRat library entities
 namespace gprat
 {
 
+// Constructor of class GP_data ///////////////////////////////////////////////////////////////////
 GP_data::GP_data(const std::string &f_path, int n, int n_reg) :
-    file_path(f_path),
-    n_samples(n),
-    n_regressors(n_reg)
-{
-    data = utils::load_data(f_path, n, n_reg - 1);
-}
+file_path(f_path),
+n_samples(n),
+n_regressors(n_reg)
+{ data = utils::load_data(f_path, n, n_reg - 1); }
 
-GP::GP(std::vector<double> input,
-       std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
-       std::vector<bool> trainable_bool,
-       std::shared_ptr<Target> target) :
-    training_input_(input),
-    training_output_(output),
-    n_tiles_(n_tiles),
-    n_tile_size_(n_tile_size),
-    trainable_params_(trainable_bool),
-    target_(target),
-    n_reg(n_regressors),
-    kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
-{ }
+// Generic type constructor of class GP ///////////////////////////////////////////////////////////
+GP::GP(
+    std::vector<double> input,
+    std::vector<double> output,
+    int n_tiles,
+    int n_tile_size,
+    int n_regressors,
+    std::vector<double> kernel_hyperparams,
+    std::vector<bool> trainable_bool,
+    std::shared_ptr<Target> target
+) :
+training_input_(input),
+training_output_(output),
+n_tiles_(n_tiles),
+n_tile_size_(n_tile_size),
+trainable_params_(trainable_bool),
+target_(target),
+n_reg(n_regressors),
+kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
+{}
 
-GP::GP(std::vector<double> input,
-       std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
-       std::vector<bool> trainable_bool) :
-    training_input_(input),
-    training_output_(output),
-    n_tiles_(n_tiles),
-    n_tile_size_(n_tile_size),
-    trainable_params_(trainable_bool),
-    target_(std::make_shared<CPU>()),
-    n_reg(n_regressors),
-    kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
-{ }
+// CPU-type constructor of class GP ///////////////////////////////////////////////////////////////
+GP::GP(
+    std::vector<double> input,
+    std::vector<double> output,
+    int n_tiles,
+    int n_tile_size,
+    int n_regressors,
+    std::vector<double> kernel_hyperparams,
+    std::vector<bool> trainable_bool
+) 
+:
+training_input_(input),
+training_output_(output),
+n_tiles_(n_tiles),
+n_tile_size_(n_tile_size),
+trainable_params_(trainable_bool),
+target_(std::make_shared<CPU>()),
+n_reg(n_regressors),
+kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
+{}
 
-GP::GP(std::vector<double> input,
-       std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
-       std::vector<bool> trainable_bool,
-       int gpu_id,
-       int n_streams) :
-    training_input_(input),
-    training_output_(output),
-    n_tiles_(n_tiles),
-    n_tile_size_(n_tile_size),
-    trainable_params_(trainable_bool),
+/// GPU constructor ///////////////////////////////////////////////////////////////////////////////////////////////////
+GP::GP(
+    std::vector<double> input,
+    std::vector<double> output,
+    int n_tiles,
+    int n_tile_size,
+    int n_regressors,
+    std::vector<double> kernel_hyperparams,
+    std::vector<bool> trainable_bool,
+    int gpu_id,
+    int n_units
+) 
+:
+training_input_(input),
+training_output_(output),
+n_tiles_(n_tiles),
+n_tile_size_(n_tile_size),
+trainable_params_(trainable_bool),
+
 #if GPRAT_WITH_CUDA
-    target_(std::make_shared<CUDA_GPU>(CUDA_GPU(gpu_id, n_streams))),
+    target_(std::make_shared<CUDA_GPU>(CUDA_GPU(gpu_id, n_units))),
+
+#elif GPRAT_WITH_SYCL
+    target_(std::make_shared<SYCL_DEVICE>(SYCL_DEVICE(gpu_id, n_units))),
+
 #else
     target_(std::make_shared<CPU>()),
+
 #endif
-    n_reg(n_regressors),
-    kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
+n_reg(n_regressors),
+kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
 {
-#if !GPRAT_WITH_CUDA
+
+    #if !GPRAT_WITH_CUDA && !GPRAT_WITH_SYCL
     throw std::runtime_error(
-        "Cannot create GP object using CUDA for computation. "
-        "CUDA is not available because GPRat has been compiled without CUDA. "
+        "Cannot create GP object using CUDA or SYCL for computation. "
+        "CUDA and SYCL are not available because GPRat has been compiled without CUDA and SYCL support. "
         "Remove arguments gpu_id ("
-        + std::to_string(gpu_id) + ") and n_streams (" + std::to_string(n_streams)
-        + ") to perform computations on the CPU.");
-#endif
+        + std::to_string(gpu_id) + ") and n_units (" + std::to_string(n_units)
+        + ") to perform computations on the CPU."
+    );
+    #endif
+
 }
 
 std::string GP::repr() const
@@ -103,261 +126,406 @@ std::vector<double> GP::get_training_input() const { return training_input_; }
 
 std::vector<double> GP::get_training_output() const { return training_output_; }
 
+// predict ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<double> GP::predict(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
-    return hpx::async(
-               [this, &test_input, m_tiles, m_tile_size]()
-               {
-#if GPRAT_WITH_CUDA
-                   if (target_->is_gpu())
-                   {
-                       return gpu::predict(
-                           training_input_,
-                           training_output_,
-                           test_input,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           m_tiles,
-                           m_tile_size,
-                           n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
-                   }
-                   else
-                   {
-                       return cpu::predict(
-                           training_input_,
-                           training_output_,
-                           test_input,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           m_tiles,
-                           m_tile_size,
-                           n_reg);
-                   }
-#else
-                   return cpu::predict(
-                       training_input_,
-                       training_output_,
-                       test_input,
-                       kernel_params,
-                       n_tiles_,
-                       n_tile_size_,
-                       m_tiles,
-                       m_tile_size,
-                       n_reg);
-#endif
-               })
-        .get();
+    #if !GPRAT_WITH_SYCL
+    return hpx::async([this, &test_input, m_tiles, m_tile_size]()
+    {
+
+        #if GPRAT_WITH_CUDA
+        // ---- CUDA --------------------------------------------------------------------------------------------------
+        if (target_->is_gpu())
+        {
+            return gpu::predict(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+        }
+        else
+        {
+            return cpu::predict(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        }
+        // ---- !CUDA -------------------------------------------------------------------------------------------------
+        #else
+        // ---- Host --------------------------------------------------------------------------------------------------
+        return cpu::predict(
+            training_input_,
+            training_output_,
+            test_input,
+            kernel_params,
+            n_tiles_,
+            n_tile_size_,
+            m_tiles,
+            m_tile_size,
+            n_reg);
+        // ---- !Host -------------------------------------------------------------------------------------------------
+        #endif
+
+    }).get();
+    #else
+        // ---- SYCL --------------------------------------------------------------------------------------------------
+        if (!target_->is_cpu())
+        {
+            return sycl_backend::predict(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::SYCL_DEVICE>(target_));
+        }
+        else
+        {
+            return cpu::predict(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        }
+        // ---- !SYCL -------------------------------------------------------------------------------------------------
+    #endif
 }
 
+// predict_with_uncertainty ///////////////////////////////////////////////////////////////////////////////////////////
 std::vector<std::vector<double>>
 GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
-    return hpx::async(
-               [this, &test_input, m_tiles, m_tile_size]()
-               {
-#if GPRAT_WITH_CUDA
-                   if (target_->is_gpu())
-                   {
-                       return gpu::predict_with_uncertainty(
-                           training_input_,
-                           training_output_,
-                           test_input,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           m_tiles,
-                           m_tile_size,
-                           n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
-                   }
-                   else
-                   {
-                       return cpu::predict_with_uncertainty(
-                           training_input_,
-                           training_output_,
-                           test_input,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           m_tiles,
-                           m_tile_size,
-                           n_reg);
-                   }
-#else
-                   return cpu::predict_with_uncertainty(
-                       training_input_,
-                       training_output_,
-                       test_input,
-                       kernel_params,
-                       n_tiles_,
-                       n_tile_size_,
-                       m_tiles,
-                       m_tile_size,
-                       n_reg);
-#endif
-               })
-        .get();
+    #if !GPRAT_WITH_SYCL
+    return hpx::async([this, &test_input, m_tiles, m_tile_size]()
+    {
+        #if GPRAT_WITH_CUDA
+        // ---- CUDA --------------------------------------------------------------------------------------------------
+        if (target_->is_gpu())
+        {
+            return gpu::predict_with_uncertainty(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+        }
+        else
+        {
+            return cpu::predict_with_uncertainty(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        }
+        // ---- !CUDA -------------------------------------------------------------------------------------------------
+        #else
+        // ---- Host --------------------------------------------------------------------------------------------------
+            return cpu::predict_with_uncertainty(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        // ---- !Host -------------------------------------------------------------------------------------------------
+        #endif
+
+        }).get();
+    #else
+        // ---- SYCL --------------------------------------------------------------------------------------------------
+        if (!target_->is_cpu())
+        {
+            return sycl_backend::predict_with_uncertainty(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::SYCL_DEVICE>(target_));
+        }
+        else
+        {
+            return cpu::predict_with_uncertainty(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        }
+        // ---- !SYCL -------------------------------------------------------------------------------------------------
+    #endif
 }
 
+// predict_with_full_cov //////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<std::vector<double>>
 GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
-    return hpx::async(
-               [this, &test_input, m_tiles, m_tile_size]()
-               {
-#if GPRAT_WITH_CUDA
-                   if (target_->is_gpu())
-                   {
-                       return gpu::predict_with_full_cov(
-                           training_input_,
-                           training_output_,
-                           test_input,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           m_tiles,
-                           m_tile_size,
-                           n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
-                   }
-                   else
-                   {
-                       return cpu::predict_with_full_cov(
-                           training_input_,
-                           training_output_,
-                           test_input,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           m_tiles,
-                           m_tile_size,
-                           n_reg);
-                   }
-#else
-                   return cpu::predict_with_full_cov(
-                       training_input_,
-                       training_output_,
-                       test_input,
-                       kernel_params,
-                       n_tiles_,
-                       n_tile_size_,
-                       m_tiles,
-                       m_tile_size,
-                       n_reg);
-#endif
-               })
-        .get();
+    #if !GPRAT_WITH_SYCL
+    return hpx::async([this, &test_input, m_tiles, m_tile_size]()
+    {
+        #if GPRAT_WITH_CUDA
+        // ---- CUDA --------------------------------------------------------------------------------------------------
+        if (target_->is_gpu())
+        {
+            return gpu::predict_with_full_cov(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+        }
+        else
+        {
+            return cpu::predict_with_full_cov(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        }
+        // ---- !CUDA -------------------------------------------------------------------------------------------------
+        #else
+        // ---- Host --------------------------------------------------------------------------------------------------
+        return cpu::predict_with_full_cov(
+            training_input_,
+            training_output_,
+            test_input,
+            kernel_params,
+            n_tiles_,
+            n_tile_size_,
+            m_tiles,
+            m_tile_size,
+            n_reg);
+        // ---- !Host -------------------------------------------------------------------------------------------------
+        #endif
+
+    }).get();
+    #else
+        // ---- SYCL --------------------------------------------------------------------------------------------------
+        if (!target_->is_cpu())
+        {
+            return sycl_backend::predict_with_full_cov(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::SYCL_DEVICE>(target_));
+        }
+        else
+        {
+            return cpu::predict_with_full_cov(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        }
+        // ---- !SYCL -------------------------------------------------------------------------------------------------
+        #endif
 }
 
+// optimize ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<double> GP::optimize(const gprat_hyper::AdamParams &adam_params)
 {
-    return hpx::async(
-               [this, &adam_params]()
-               {
-#if GPRAT_WITH_CUDA
-                   if (target_->is_gpu())
-                   {
-                       std::cerr << "GP::optimze_step has not been implemented for the GPU.\n"
-                                 << "Instead, this operation executes the CPU implementation." << std::endl;
-                   }
-#endif
-                   return cpu::optimize(
-                       training_input_,
-                       training_output_,
-                       n_tiles_,
-                       n_tile_size_,
-                       n_reg,
-                       adam_params,
-                       kernel_params,
-                       trainable_params_);
-               })
-        .get();
+    return hpx::async([this, &adam_params]()
+    {
+    #if GPRAT_WITH_CUDA || GPRAT_WITH_SYCL
+        if (target_->is_gpu())
+        {
+            std::cerr << "GP::optimze_step has not been implemented for the GPU.\n"
+                        << "Instead, this operation executes the CPU implementation." << std::endl;
+        }
+    #endif
+        return cpu::optimize(
+            training_input_,
+            training_output_,
+            n_tiles_,
+            n_tile_size_,
+            n_reg,
+            adam_params,
+            kernel_params,
+            trainable_params_);
+    }).get();
 }
 
+// optimize_step //////////////////////////////////////////////////////////////////////////////////////////////////////
 double GP::optimize_step(gprat_hyper::AdamParams &adam_params, int iter)
 {
-    return hpx::async(
-               [this, &adam_params, iter]()
-               {
-#if GPRAT_WITH_CUDA
-                   if (target_->is_gpu())
-                   {
-                       std::cerr << "GP::optimze_step has not been implemented for the GPU.\n"
-                                 << "Instead, this operation executes the CPU implementation." << std::endl;
-                   }
-#endif
-                   return cpu::optimize_step(
-                       training_input_,
-                       training_output_,
-                       n_tiles_,
-                       n_tile_size_,
-                       n_reg,
-                       adam_params,
-                       kernel_params,
-                       trainable_params_,
-                       iter);
-               })
-        .get();
+    return hpx::async([this, &adam_params, iter]()
+    {
+        #if GPRAT_WITH_CUDA || GPRAT_WITH_SYCL
+        if (target_->is_gpu())
+        {
+            std::cerr << "GP::optimze_step has not been implemented for the GPU.\n"
+                        << "Instead, this operation executes the CPU implementation." << std::endl;
+        }
+
+        #endif
+        return cpu::optimize_step(
+            training_input_,
+            training_output_,
+            n_tiles_,
+            n_tile_size_,
+            n_reg,
+            adam_params,
+            kernel_params,
+            trainable_params_,
+            iter);
+    }).get();
 }
 
+// calculate_loss /////////////////////////////////////////////////////////////////////////////////////////////////////
 double GP::calculate_loss()
 {
-    return hpx::async(
-               [this]()
-               {
-#if GPRAT_WITH_CUDA
-                   if (target_->is_gpu())
-                   {
-                       return gpu::compute_loss(
-                           training_input_,
-                           training_output_,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
-                   }
-                   else
-                   {
-                       return cpu::compute_loss(
-                           training_input_, training_output_, kernel_params, n_tiles_, n_tile_size_, n_reg);
-                   }
-#else
+    return hpx::async([this]()
+    {
+        #if GPRAT_WITH_CUDA
+        if (target_->is_gpu())
+        {
+            return gpu::compute_loss(
+                training_input_,
+                training_output_,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+        }
+        else
+        {
+            return cpu::compute_loss(
+                training_input_, training_output_, kernel_params, n_tiles_, n_tile_size_, n_reg);
+        }
+
+        #elif GPRAT_WITH_SYCL
+        if (!target_->is_cpu())
+        {
+            return sycl_backend::compute_loss(
+                training_input_,
+                training_output_,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::SYCL_DEVICE>(target_));
+        }
+        else
+        {
+            return cpu::compute_loss(
+                training_input_, training_output_, kernel_params, n_tiles_, n_tile_size_, n_reg);
+        }
+
+        #else
                    return cpu::compute_loss(
                        training_input_, training_output_, kernel_params, n_tiles_, n_tile_size_, n_reg);
-#endif
-               })
-        .get();
+        #endif
+
+    }).get();
 }
 
+// cholesky ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<std::vector<double>> GP::cholesky()
 {
-    return hpx::async(
-               [this]()
-               {
-#if GPRAT_WITH_CUDA
-                   if (target_->is_gpu())
-                   {
-                       return gpu::cholesky(
-                           training_input_,
-                           kernel_params,
-                           n_tiles_,
-                           n_tile_size_,
-                           n_reg,
-                           *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
-                   }
-                   else
-                   {
-                       return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
-                   }
-#else
-                   return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
-#endif
-               })
-        .get();
+    #if !GPRAT_WITH_SYCL
+    return hpx::async([this]()
+    {
+        #if GPRAT_WITH_CUDA
+        if (target_->is_gpu())
+        {
+            return gpu::cholesky(
+                training_input_,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::CUDA_GPU>(target_));
+        }
+        else
+        {
+            return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
+        }
+        #else
+            return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
+        #endif
+    }).get();
+    #else
+    
+        if (!target_->is_cpu())
+        {
+            return sycl_backend::cholesky(
+                training_input_,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                n_reg,
+                *std::dynamic_pointer_cast<gprat::SYCL_DEVICE>(target_));
+        }
+        else
+        {
+            return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
+        }
+
+    #endif
 }
 
 }  // namespace gprat

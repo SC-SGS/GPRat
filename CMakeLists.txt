@@ -1,3 +1,6 @@
+# Top-level CMakeLists.txt
+
+### CMake initialization ##########################################################################
 cmake_minimum_required(VERSION 3.23)
 
 project(
@@ -9,21 +12,26 @@ project(
 
 include(CMakeDependentOption)
 
-# What to build?
+### Build options #################################################################################
 option(GPRAT_BUILD_CORE "Build the core library" ON)
+
 cmake_dependent_option(GPRAT_BUILD_BINDINGS "Build the Python bindings" ON
                        "GPRAT_BUILD_CORE" OFF)
+                     
 cmake_dependent_option(
   GPRAT_ENABLE_EXAMPLES "Build example applications as well?"
   ${PROJECT_IS_TOP_LEVEL} "GPRAT_BUILD_CORE" OFF)
+
 cmake_dependent_option(GPRAT_ENABLE_TESTS "Build unit and integration tests"
                        ${PROJECT_IS_TOP_LEVEL} "GPRAT_BUILD_CORE" OFF)
+
 cmake_dependent_option(GPRAT_ENABLE_MKL "Enable support for Intel oneMKL"
                        ${PROJECT_IS_TOP_LEVEL} "GPRAT_BUILD_CORE" OFF)
 
 option(GPRAT_ENABLE_FORMAT_TARGETS "Enable clang-format / cmake-format targets"
        ${PROJECT_IS_TOP_LEVEL})
 
+### Format settings ###############################################################################
 if(GPRAT_ENABLE_FORMAT_TARGETS)
   set(CMAKE_FORMAT_EXCLUDE "^external_ports/")
 
@@ -39,6 +47,7 @@ if(GPRAT_ENABLE_FORMAT_TARGETS)
   endif()
 endif()
 
+### GNU install dirs ##############################################################################
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   # Our installs follow the standard GNU directory layout. This include needs to
   # come first since we need the CMAKE_INSTALL_* in the CMakeLists.txt of each
@@ -46,22 +55,23 @@ if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(GNUInstallDirs)
 endif()
 
+### Building the GPRAT core #######################################################################
 if(GPRAT_BUILD_CORE)
+
+  ## MKL backend
   if(GPRAT_ENABLE_MKL)
-    # Try to find Intel oneMKL
     set(MKL_INTERFACE_FULL "intel_lp64")
     set(MKL_THREADING "sequential")
     find_package(MKL CONFIG REQUIRED)
-
     if(MKL_FOUND)
       message(STATUS "Intel oneMKL Library found")
     else()
-      message(FATAL_ERROR "No BLAS Library found")
+      message(FATAL_ERROR "Intel oneMKL Library NOT found")
     endif()
-  else()
-    # Try to find OpenBLAS
-    find_library(OpenBLAS_LIB NAMES openblas REQUIRED)
 
+  ## OpenBLAS backend
+  else()
+    find_library(OpenBLAS_LIB NAMES openblas REQUIRED)
     if(OpenBLAS_LIB)
       message(STATUS "OpenBLAS Library found at ${OpenBLAS_LIB}")
     else()
@@ -69,14 +79,20 @@ if(GPRAT_BUILD_CORE)
     endif()
   endif()
 
+  ## HPX
   find_package(HPX REQUIRED)
 
+  ## Add core subdirectiory
   add_subdirectory(core)
+
+  ## Bindings subdirectory
   if(GPRAT_BUILD_BINDINGS)
     add_subdirectory(bindings)
   endif()
+
 endif()
 
+### Installation ##################################################################################
 if(NOT CMAKE_SKIP_INSTALL_RULES AND GPRAT_BUILD_CORE)
   include(CMakePackageConfigHelpers)
 
@@ -116,11 +132,15 @@ if(NOT CMAKE_SKIP_INSTALL_RULES AND GPRAT_BUILD_CORE)
   endif()
 endif()
 
+### Examples ######################################################################################
 if(GPRAT_ENABLE_EXAMPLES)
   add_subdirectory(examples/gprat_cpp)
 endif()
 
+### Tests #########################################################################################
 if(GPRAT_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(test)
 endif()
+
+### End of file ###################################################################################

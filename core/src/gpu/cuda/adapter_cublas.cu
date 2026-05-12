@@ -1,4 +1,4 @@
-#include "gpu/adapter_cublas.cuh"
+#include "gpu/cuda/adapter_cublas.cuh"
 
 // frequently used names
 using hpx::cuda::experimental::check_cuda_error;

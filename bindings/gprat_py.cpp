@@ -79,7 +79,7 @@ Parameters:
     trainable (list): List of booleans for trainable hyperparameters. Default is
         {true, true, true}.
     gpu_id (int): ID of the GPU to use. Default is 0.
-    n_streams (int): Number of streams for GPU computation. Default is 1.
+    n_units (int): Number of streams/queues for GPU computation. Default is 1.
              )pbdoc")
 
         // GPU constructor
@@ -100,11 +100,11 @@ Parameters:
              py::arg("kernel_params") = std::vector<double>{ 1.0, 1.0, 0.1 },
              py::arg("trainable") = std::vector<bool>{ true, true, true },
              py::arg("gpu_id") = 0,
-             py::arg("n_streams") = 1,
+             py::arg("n_units") = 1,
              R"pbdoc(
 Create Gaussian Process including its data, hyperparameters, and target. By
 default, the calculations are performed on the CPU. Setting at least gpu_id or
-n_streams to a value enables computations on the GPU.
+n_units to a value enables computations on the GPU.
 
 Parameters:
     input_data (list): Input data for the GP.
@@ -117,7 +117,7 @@ Parameters:
     trainable (list): List of booleans for trainable hyperparameters. Default is
         {true, true, true}.
     gpu_id (int): ID of the GPU to use. Default is 0.
-    n_streams (int): Number of streams for GPU computation. Default is 1.
+    n_units (int): Number of streams/queues for GPU computation. Default is 1.
 
              )pbdoc")
         .def_readwrite("n_reg", &gprat::GP::n_reg)

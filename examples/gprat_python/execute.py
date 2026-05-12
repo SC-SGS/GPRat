@@ -17,15 +17,23 @@ log_filename = "./hpx_logs.log"
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--use_gpu",
+    "--use_cuda",
     action="store_true",
-    help="Flag to use GPU (assuming available)",
+    help="Flag to use CUDA GPU (assuming available)",
+)
+parser.add_argument(
+    "--use_sycl",
+    action="store_true",
+    help="Flag to use SYCL GPU (assuming available)",
 )
 args = parser.parse_args()
-if args.use_gpu:
-    sys.argv.remove("--use_gpu")
+if args.use_cuda:
+    sys.argv.remove("--use_cuda")
+if args.use_sycl:
+    sys.argv.remove("--use_sycl")
 
-use_gpu = gprat.compiled_with_cuda() and gprat.gpu_count() > 0 and args.use_gpu
+use_cuda = gprat.compiled_with_cuda() and gprat.gpu_count() > 0 and args.use_cuda
+use_sycl = gprat.compiled_with_sycl() and gprat.gpu_count() > 0 and args.use_sycl
 
 
 def gprat_run(config, output_csv_obj, n_train, l, cores):
@@ -45,7 +53,7 @@ def gprat_run(config, output_csv_obj, n_train, l, cores):
 
     total_t = time.time()
 
-    if not use_gpu:
+    if not use_cuda and not use_sycl:
 
         target = "cpu"
 
@@ -96,9 +104,9 @@ def gprat_run(config, output_csv_obj, n_train, l, cores):
         pred_t = time.time() - pred_t
         logger.info("Finished predictions.")
 
-    else:
+    elif use_cuda and not use_sycl:
 
-        target = "gpu"
+        target = "cuda"
 
         ###### GP object ######
         init_t = time.time()
@@ -111,7 +119,7 @@ def gprat_run(config, output_csv_obj, n_train, l, cores):
             n_reg=config["N_REG"],
             trainable=[True, True, True],
             gpu_id=0,
-            n_streams=2,
+            n_units=2,
         )
         init_t = time.time() - init_t
 
@@ -143,6 +151,56 @@ def gprat_run(config, output_csv_obj, n_train, l, cores):
         # Predict
         pred_t = time.time()
         pr_ = gp_gpu.predict(test_in.data, m_tiles, m_tile_size)
+        pred_t = time.time() - pred_t
+        logger.info("Finished predictions.")
+
+    elif use_sycl and not use_cuda:
+
+        target = "sycl"
+
+        ###### GP object ######
+        init_t = time.time()
+        gp_sycl = gprat.GP(
+            train_in.data,
+            train_out.data,
+            config["N_TILES"],
+            n_tile_size,
+            kernel_params=[1.0, 1.0, 0.1],
+            n_reg=config["N_REG"],
+            trainable=[True, True, True],
+            gpu_id=0,
+            n_units=2,
+        )
+        init_t = time.time() - init_t
+
+        # Init hpx runtime but do not start it yet
+        gprat.start_hpx(sys.argv, cores)
+
+        # NOTE: optimization is not implemented for SYCL
+        opti_t = -1
+
+        # gprat.suspend_hpx()
+        # gprat.resume_hpx()
+
+        # Predict
+        pred_uncer_t = time.time()
+        pr, var = gp_sycl.predict_with_uncertainty(
+            test_in.data, m_tiles, m_tile_size
+        )
+        pred_uncer_t = time.time() - pred_uncer_t
+        logger.info("Finished predictions.")
+
+        # Predict
+        pred_full_t = time.time()
+        pr__, var__ = gp_sycl.predict_with_full_cov(
+            test_in.data, m_tiles, m_tile_size
+        )
+        pred_full_t = time.time() - pred_full_t
+        logger.info("Finished predictions with full cov.")
+
+        # Predict
+        pred_t = time.time()
+        pr_ = gp_sycl.predict(test_in.data, m_tiles, m_tile_size)
         pred_t = time.time() - pred_t
         logger.info("Finished predictions.")
 

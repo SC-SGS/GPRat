@@ -1,14 +1,21 @@
 #include "target.hpp"
 
 #include <iostream>
+#include <vector>
 
 #if GPRAT_WITH_CUDA
-#include "gpu/cuda_utils.cuh"
+#include "gpu/cuda/cuda_utils.cuh"
 using hpx::cuda::experimental::check_cuda_error;
+#endif
+
+#if GPRAT_WITH_SYCL
+#include "gpu/sycl/sycl_utils.hpp"
 #endif
 
 namespace gprat
 {
+
+// CPU ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CPU::CPU() { }
 
@@ -16,9 +23,13 @@ bool CPU::is_cpu() { return true; }
 
 bool CPU::is_gpu() { return false; }
 
+bool CPU::is_sycl() { return false; }
+
 std::string CPU::repr() const { return "CPU"; }
 
 CPU get_cpu() { return CPU(); }
+
+// CUDA ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if GPRAT_WITH_CUDA
 CUDA_GPU::CUDA_GPU(int id, int n_streams) :
@@ -28,21 +39,19 @@ CUDA_GPU::CUDA_GPU(int id, int n_streams) :
     shared_memory_size(0),
     streams()
 {
-#if GPRAT_WITH_CUDA
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     if (id >= deviceCount)
     {
         throw std::runtime_error("Requested GPU device is not available.");
     }
-#else
-    throw std::runtime_error("CUDA is not available because GPRat has been compiled without CUDA.");
-#endif
 }
 
 bool CUDA_GPU::is_cpu() { return false; }
 
 bool CUDA_GPU::is_gpu() { return true; }
+
+bool CUDA_GPU::is_sycl() { return false; }
 
 std::string CUDA_GPU::repr() const
 {
@@ -107,7 +116,124 @@ std::pair<cublasHandle_t, cudaStream_t> CUDA_GPU::next_cublas_handle()
 CUDA_GPU get_gpu(int id, int n_streams) { return CUDA_GPU(id, n_streams); }
 
 CUDA_GPU get_gpu() { return CUDA_GPU(0, 1); }
+
 #endif
+
+// SYCL ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if GPRAT_WITH_SYCL
+
+SYCL_DEVICE::SYCL_DEVICE(int id, int n_queues) :
+    id(id),
+    n_queues(n_queues),
+    i_queue(0),
+    local_memory_size(0),
+    queues()
+{
+    try 
+    {
+        std::vector<sycl::device> all_gpus;
+        std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
+
+        for (const auto& platform : platforms) {
+            std::vector<sycl::device> devices = platform.get_devices();
+            for (const auto& device : devices) {
+                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu) 
+                {
+                    all_gpus.push_back(device);
+                }
+            }
+        }
+        
+        std::size_t device_count = all_gpus.size();
+        if (id >= device_count)
+        {
+            throw std::runtime_error("Requested GPU device is not available.");
+        }
+    }
+    catch (const sycl::exception& e) 
+    {
+        std::cout << "SYCL exception: " << e.what() << "\n";
+    }
+}
+
+bool SYCL_DEVICE::is_cpu() { return false; }
+
+bool SYCL_DEVICE::is_gpu() { return false; }
+
+bool SYCL_DEVICE::is_sycl() { return true; }
+
+std::string SYCL_DEVICE::repr() const
+{
+    std::ostringstream oss;
+    oss << "SYCL DEVICE: [id=" << id << ", n_queues=" << n_queues << "]";
+    return oss.str();
+}
+
+void SYCL_DEVICE::create()
+{
+    try 
+    {
+        queues = std::vector<sycl::queue>(n_queues);
+
+        for (size_t i = 0; i < n_queues; ++i) {
+            queues[i] = sycl::queue(sycl::gpu_selector_v);
+        }
+    } 
+    catch (const sycl::exception& e) 
+    {
+        std::cout << "SYCL exception during creation: " << e.what() << "\n";
+    }
+
+}
+
+void SYCL_DEVICE::destroy()
+{
+    try 
+    {
+        queues.clear(); 
+    }
+    catch (const sycl::exception& e) {
+        std::cout << "SYCL exception during destruction: " << e.what() << "\n";
+    }
+}
+
+sycl::queue SYCL_DEVICE::next_queue()
+{
+    return queues[static_cast<std::size_t>(i_queue++) % static_cast<std::size_t>(n_queues)];
+}
+
+void SYCL_DEVICE::sync_queues(std::vector<sycl::queue> &subset_of_queues)
+{
+    try 
+    {
+        if (subset_of_queues.size() < queues.size())
+        {
+            for (sycl::queue &queue : subset_of_queues)
+            {
+                queue.wait();
+            }
+        }
+        else
+        {
+            for (sycl::queue &queue : queues)
+            {
+                queue.wait();
+            }
+        }
+    }
+    catch (const sycl::exception& e) {
+        std::cout << "SYCL exception: " << e.what() << "\n";
+    }
+}
+
+SYCL_DEVICE get_sycl_device(const std::size_t id, const std::size_t n_queues) { return SYCL_DEVICE(id, n_queues); }
+
+SYCL_DEVICE get_sycl_device() { return SYCL_DEVICE(0, 1); }
+
+#endif
+
+// General ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void print_available_gpus()
 {
@@ -133,8 +259,50 @@ void print_available_gpus()
             << "  Memory Bus Width: " << deviceProp.memoryBusWidth << " bits" << std::endl;
         // clang-format on
     }
+#elif GPRAT_WITH_SYCL
+    try {
+        // Get all available platforms
+        std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
+
+        // Loop over all platforms
+        for (const auto& platform : platforms) {
+            std::cout << "Platform: " << platform.get_info<sycl::info::platform::name>() << "\n";
+
+            // Get all devices for each platform
+            std::vector<sycl::device> devices = platform.get_devices();
+
+            for (size_t i = 0; i < devices.size(); ++i) {
+                sycl::device device = devices[i];
+
+                // Check if the device is a GPU
+                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu) {
+                    std::cout << "Device " << i << ": " << device.get_info<sycl::info::device::name>() << "\n";
+
+                    // Query various device properties for GPUs
+                    try 
+                    {
+                        std::cout
+                            << "  Total Global Memory: " << device.get_info<sycl::info::device::global_mem_size>() << " bytes\n"
+                            << "  Max Compute Units: " << device.get_info<sycl::info::device::max_compute_units>() << "\n"
+                            << "  Max Work Group Size: " << device.get_info<sycl::info::device::max_work_group_size>() << "\n"
+                            << "  Max Work Item Dimensions: " << device.get_info<sycl::info::device::max_work_item_dimensions>() << "\n"
+                            << "  Max Clock Frequency: " << device.get_info<sycl::info::device::max_clock_frequency>() << " MHz\n"
+                            << "  Max Memory Allocation Size: " << device.get_info<sycl::info::device::max_mem_alloc_size>() << " bytes\n";
+                    } 
+                    catch (const sycl::exception& e) 
+                    {
+                        std::cerr << "Error querying device properties: " << e.what() << std::endl;
+                    }
+                }
+            }
+        }
+    } 
+    catch (const sycl::exception& e) 
+    {
+        std::cerr << "SYCL exception: " << e.what() << std::endl;
+    }
 #else
-    std::cout << "CUDA is not available - There are no GPUs available. You can only "
+    std::cout << "There are no GPUs available. You can only "
                  "`get_cpu()` to utilize the CPU for computation."
               << std::endl;
 #endif
@@ -143,14 +311,41 @@ void print_available_gpus()
 int gpu_count()
 {
 #if GPRAT_WITH_CUDA
+
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     return deviceCount;
+
+#elif GPRAT_WITH_SYCL
+
+    try {
+        std::vector<sycl::device> all_gpus;
+        std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
+
+        for (const auto& platform : platforms) {
+            std::vector<sycl::device> devices = platform.get_devices();
+            for (const auto& device : devices) {
+                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu) 
+                {
+                    all_gpus.push_back(device);
+                }
+            }
+        }
+        int device_count = all_gpus.size();
+        return device_count;
+    }
+    catch (const sycl::exception& e) 
+    {
+        std::cout << "SYCL exception: " << e.what() << "\n";
+    }
+
 #else
-    std::cout << "CUDA is not available - There are no GPUs available. You can only "
+
+    std::cout << "GPRat has been compiled without GPU support. You can only "
                  "use `get_cpu()` to utilize the CPU for computation."
               << std::endl;
     return 0;
+
 #endif
 }
 

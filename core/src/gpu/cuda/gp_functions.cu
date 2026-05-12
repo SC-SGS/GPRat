@@ -1,10 +1,10 @@
-#include "gpu/gp_functions.cuh"
+#include "gpu/cuda/gp_functions.cuh"
 
 #include "apex_utils.hpp"
 #include "gp_kernels.hpp"
-#include "gpu/cuda_utils.cuh"
-#include "gpu/gp_algorithms.cuh"
-#include "gpu/tiled_algorithms.cuh"
+#include "gpu/cuda/cuda_utils.cuh"
+#include "gpu/cuda/gp_algorithms.cuh"
+#include "gpu/cuda/tiled_algorithms.cuh"
 #include "target.hpp"
 #include <cuda_runtime.h>
 #include <hpx/algorithm.hpp>

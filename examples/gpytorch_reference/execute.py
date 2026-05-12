@@ -21,6 +21,21 @@ parser.add_argument(
 args = parser.parse_args()
 
 
+def get_device(use_gpu):
+    if not use_gpu:
+        return torch.device("cpu"), "cpu"
+
+    # NVIDIA CUDA or AMD ROCm
+    if torch.cuda.is_available():
+        return torch.device("cuda"), "cuda"
+
+    # Intel GPU
+    if hasattr(torch, "xpu") and torch.xpu.is_available():
+        return torch.device("xpu"), "xpu"
+
+    return torch.device("cpu"), "cpu"
+
+
 def gpytorch_run(config, output_file, size_train, l, cores):
     """
     Run the Gaussian process regression pipeline.
@@ -32,8 +47,7 @@ def gpytorch_run(config, output_file, size_train, l, cores):
         l (int): Loop index.
     """
     total_t = time.time()
-    target = "gpu" if args.use_gpu and torch.cuda.is_available() else "cpu"
-    device = torch.device("cuda" if args.use_gpu and torch.cuda.is_available() else "cpu")
+    device, target = get_device(args.use_gpu)
     X_train, Y_train, X_test, Y_test = load_data(
         train_in_path=config["train_in_file"],
         train_out_path=config["train_out_file"],
@@ -43,7 +57,7 @@ def gpytorch_run(config, output_file, size_train, l, cores):
         size_test=config["N_TEST"],
         n_regressors=config["N_REG"],
     )
-    if args.use_gpu and torch.cuda.is_available():
+    if args.use_gpu and device.type != "cpu":
         X_train, Y_train, X_test, Y_test = X_train.to(device), Y_train.to(device), X_test.to(device), Y_test.to(device)
 
     # logger.info("Finished loading the data.")
@@ -52,7 +66,7 @@ def gpytorch_run(config, output_file, size_train, l, cores):
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
     likelihood.noise = 0.1
     model = ExactGPModel(X_train, Y_train, likelihood)
-    if args.use_gpu and torch.cuda.is_available():
+    if args.use_gpu and device.type != "cpu":
         model = model.to(device)
         likelihood = likelihood.to(device)
     init_t = time.time() - init_t

@@ -199,3 +199,9 @@ examples/gpflow_reference/GPflow
 # Editor related files
 ltex*
 compile_commands.json
+
+# Build files
+build*
+
+# Ignore folder
+ignore

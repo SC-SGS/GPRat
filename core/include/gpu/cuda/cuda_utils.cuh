@@ -6,7 +6,7 @@
 #include <cusolverDn.h>
 #include <hpx/algorithm.hpp>
 #include <hpx/async_cuda/cuda_exception.hpp>
-#include <target.hpp>
+#include "target.hpp"
 #include <vector>
 
 #define BLOCK_SIZE 16

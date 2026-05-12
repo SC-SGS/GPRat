@@ -37,7 +37,7 @@ inline double *copy_to_device(const std::vector<double> &h_vector, gprat::SYCL_D
         auto copy_process = queue.memcpy(d_vector, h_vector.data(), h_vector.size() * sizeof(double));
         copy_process.wait();
     }
-    catch (const sycl::exception& e) 
+    catch (const sycl::exception &e)
     {
         std::cout << "SYCL exception: " << e.what() << "\n";
     }
@@ -59,12 +59,12 @@ inline void free(std::vector<hpx::shared_future<double *>> &vector, const sycl::
             sycl::free(ptr.get(), queue);
         }
     }
-    catch (const sycl::exception& e) 
+    catch (const sycl::exception &e)
     {
         std::cout << "SYCL exception: " << e.what() << "\n";
     }
 }
 
-} // end of namespace gprat::sycl_backend
+}  // end of namespace gprat::sycl_backend
 
-#endif // end of SYCL_UTILS_HPP
+#endif  // end of SYCL_UTILS_HPP

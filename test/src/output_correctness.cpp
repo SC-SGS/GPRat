@@ -1,6 +1,7 @@
 // References /////////////////////////////////////////////////////////////////////////////////////
 
-// [1] https://github.com/catchorg/Catch2/blob/914aeecfe23b1e16af6ea675a4fb5dbd5a5b8d0a/docs/comparing-floating-point-numbers.md#withinrel
+// [1]
+// https://github.com/catchorg/Catch2/blob/914aeecfe23b1e16af6ea675a4fb5dbd5a5b8d0a/docs/comparing-floating-point-numbers.md#withinrel
 
 // Includes ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -63,13 +64,11 @@ struct GpratResults
  */
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv, const GpratResults &results)
 {
-    jv = {
-        { "cholesky", boost::json::value_from(results.cholesky) },
-        { "losses", boost::json::value_from(results.losses) },
-        { "sum", boost::json::value_from(results.sum) },
-        { "full", boost::json::value_from(results.full) },
-        { "pred", boost::json::value_from(results.pred) }
-    };
+    jv = { { "cholesky", boost::json::value_from(results.cholesky) },
+           { "losses", boost::json::value_from(results.losses) },
+           { "sum", boost::json::value_from(results.sum) },
+           { "full", boost::json::value_from(results.full) },
+           { "pred", boost::json::value_from(results.pred) } };
 }
 
 /**
@@ -92,7 +91,7 @@ inline void extract(const boost::json::object &obj, T &t, std::string_view key)
  * @brief Returns a results structure with the contents of a loaded JSON file.
  *
  * @param jv the contents of the loaded JSON file
- * 
+ *
  * @return a GpratResults structure filled with the loaded values
  */
 GpratResults tag_invoke(boost::json::value_to_tag<GpratResults>, const boost::json::value &jv)
@@ -108,15 +107,15 @@ GpratResults tag_invoke(boost::json::value_to_tag<GpratResults>, const boost::js
 }
 
 /**
- * @brief Tries to read the contents of the specified filename to set them as the basis of the 
+ * @brief Tries to read the contents of the specified filename to set them as the basis of the
  *        test for correctness. If that is not possible, a file with the specified name is created
  *        and filled with fallback results.
  *
  * @param filename the filename to read from in case of success or write to in case of failure
  * @param fallback_results the fallback results to fill the file with in case of failure
  * @param results the results object to fill up with the content of the file in case of success
- * 
- * @return `true` if reading the specified file is successful, and `false` if it failed and has 
+ *
+ * @return `true` if reading the specified file is successful, and `false` if it failed and has
  *         been created
  */
 bool load_or_create_expected_results(
@@ -141,17 +140,23 @@ bool load_or_create_expected_results(
 }
 
 /**
- * @brief Tries to load the environment variable `GPRAT_ROOT` as the directory pointing toward the 
+ * @brief Tries to load the environment variable `GPRAT_ROOT` as the directory pointing toward the
  *        test data, and sets `../data` if this is not possible.
  *
- * @return a string containing the location of the test data, potentially relative to the working 
+ * @return a string containing the location of the test data, potentially relative to the working
  *         directory
  */
 std::string get_data_directory()
 {
     const char *env_root = std::getenv("GPRAT_ROOT");
-    if (env_root) { return env_root; }
-    else { return "../data"; }
+    if (env_root)
+    {
+        return env_root;
+    }
+    else
+    {
+        return "../data";
+    }
 }
 
 // Test execution /////////////////////////////////////////////////////////////////////////////////
@@ -164,11 +169,10 @@ std::string get_data_directory()
  * @param train_path path to the text file containing the training data
  * @param out_path path to the text file containing the output data of the test
  * @param test_path path to the text file containing the input data for the test
- * 
+ *
  * @return a GpratResults object holding the results generated during the test
  */
-GpratResults run_on_data_cpu(
-    const std::string &train_path, const std::string &out_path, const std::string &test_path)
+GpratResults run_on_data_cpu(const std::string &train_path, const std::string &out_path, const std::string &test_path)
 {
     // Compute tile sizes and number of predict tiles
     const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
@@ -186,9 +190,7 @@ GpratResults run_on_data_cpu(
     const std::vector<bool> trainable = { true, true, true };
 
     gprat::GP gp_cpu(
-        training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, 
-        trainable
-    );
+        training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, trainable);
 
     // Initialize HPX with no arguments, don't run hpx_main
     utils::start_hpx_runtime(0, nullptr);
@@ -199,12 +201,9 @@ GpratResults run_on_data_cpu(
     results_cpu.cholesky = gp_cpu.cholesky();
 
     // Prediction
-    results_cpu.sum = 
-        gp_cpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
-    results_cpu.full = 
-        gp_cpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
-    results_cpu.pred = 
-        gp_cpu.predict(test_input.data, test_tiles.first, test_tiles.second);
+    results_cpu.sum = gp_cpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
+    results_cpu.full = gp_cpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
+    results_cpu.pred = gp_cpu.predict(test_input.data, test_tiles.first, test_tiles.second);
 
     // Optimization
     results_cpu.losses = gp_cpu.optimize(hpar);
@@ -216,17 +215,16 @@ GpratResults run_on_data_cpu(
 }
 
 /**
- * @brief Generates results for a test configuration using a CUDA GPU or a SYCL device for 
+ * @brief Generates results for a test configuration using a CUDA GPU or a SYCL device for
  *        computations, depending on how GPRat was compiled.
  *
  * @param train_path path to the text file containing the training data
  * @param out_path path to the text file containing the output data of the test
  * @param test_path path to the text file containing the input data for the test
- * 
+ *
  * @return a GpratResults object holding the results generated during the test
  */
-GpratResults run_on_data_gpu(
-    const std::string &train_path, const std::string &out_path, const std::string &test_path)
+GpratResults run_on_data_gpu(const std::string &train_path, const std::string &out_path, const std::string &test_path)
 {
     const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
     const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
@@ -256,12 +254,9 @@ GpratResults run_on_data_gpu(
     results_gpu.cholesky = gp_gpu.cholesky();
 
     // Prediction
-    results_gpu.sum = 
-        gp_gpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
-    results_gpu.full = 
-        gp_gpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
-    results_gpu.pred = 
-        gp_gpu.predict(test_input.data, test_tiles.first, test_tiles.second);
+    results_gpu.sum = gp_gpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
+    results_gpu.full = gp_gpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
+    results_gpu.pred = gp_gpu.predict(test_input.data, test_tiles.first, test_tiles.second);
 
     // GPUs do not support optimization
 
@@ -287,8 +282,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
 
     if (!load_or_create_expected_results(root + "/data_1024/output.json", results, expected_results))
     {
-        std::cerr << 
-            "No previous results to compare to. The current results have been saved instead!\n"; 
+        std::cerr << "No previous results to compare to. The current results have been saved instead!\n";
         return;
     }
 
@@ -299,7 +293,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
     double eps = std::numeric_limits<double>::epsilon() * 1'000'000;
 
     /*
-     * Require that the results of the Cholesky decomposition have a relative error below the 
+     * Require that the results of the Cholesky decomposition have a relative error below the
      * specified `eps`
      */
     for (std::size_t i = 0, n = results.cholesky.size(); i != n; ++i)
@@ -312,7 +306,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
     }
 
     /*
-     * Require that the losses after accessing `optimize` have a relative error below the 
+     * Require that the losses after accessing `optimize` have a relative error below the
      * specified `eps`
      */
     for (std::size_t i = 0, n = results.losses.size(); i != n; ++i)
@@ -322,7 +316,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
     }
 
     /*
-     * Require that the sums after predicting with uncertainty have a relative error below the 
+     * Require that the sums after predicting with uncertainty have a relative error below the
      * specified `eps`
      */
     for (std::size_t i = 0, n = results.sum.size(); i != n; ++i)
@@ -335,7 +329,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
     }
 
     /*
-     * Require that the results when predicting with the full covariance matrix have a relative 
+     * Require that the results when predicting with the full covariance matrix have a relative
      * error below the specified `eps`
      */
     for (std::size_t i = 0, n = results.full.size(); i != n; ++i)
@@ -363,14 +357,13 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
  */
 TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu]")
 {
-    
     if (utils::compiled_with_cuda())
     {
         INFO("Executing GPU test with CUDA support.");
     }
     else if (utils::compiled_with_sycl())
     {
-        INFO("Executing GPU test with SYCL support."); 
+        INFO("Executing GPU test with SYCL support.");
     }
     else
     {
@@ -389,8 +382,7 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
 
     if (!load_or_create_expected_results(ref_file, results, expected_results))
     {
-        std::cerr << 
-            "No previous results to compare to. The current results have been saved instead!\n";
+        std::cerr << "No previous results to compare to. The current results have been saved instead!\n";
         return;
     }
 

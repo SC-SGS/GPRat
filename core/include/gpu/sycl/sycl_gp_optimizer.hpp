@@ -48,14 +48,11 @@ gen_tile_grad_l_trans(std::size_t N, const hpx::shared_future<double *> f_grad_l
  *
  * @return Return l = y^T * alpha + \sum_i^N log(L_ii^2)
  */
-double
-compute_loss(
-    const hpx::shared_future<double *> &K_diag_tile,
-    const hpx::shared_future<double *> &alpha_tile,
-    const hpx::shared_future<double *> &y_tile,
-    std::size_t N,
-    gprat::SYCL_DEVICE &sycl_device
-);
+double compute_loss(const hpx::shared_future<double *> &K_diag_tile,
+                    const hpx::shared_future<double *> &alpha_tile,
+                    const hpx::shared_future<double *> &y_tile,
+                    std::size_t N,
+                    gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Add up negative-log likelihood loss for all tiles.
@@ -69,6 +66,6 @@ compute_loss(
 hpx::shared_future<double>
 add_losses(const std::vector<hpx::shared_future<double>> &losses, std::size_t n_tile_size, std::size_t n_tiles);
 
-}  // end of namespace sycl_backend
+}  // namespace gprat::sycl_backend
 
 #endif  // end of SYCL_GP_OPTIMIZER_H

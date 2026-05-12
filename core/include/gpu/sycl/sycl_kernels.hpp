@@ -4,8 +4,8 @@
 // Includes ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GPRat
-#include "sycl_utils.hpp"
 #include "gp_kernels.hpp"
+#include "sycl_utils.hpp"
 
 // Transpose kernel ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -14,16 +14,14 @@
  */
 class TransposeKernel
 {
-    private:
-
+  private:
     double *transposed;
     double *original;
     std::size_t width;
     std::size_t height;
     sycl::local_accessor<double, 2> local;
 
-    public:
-
+  public:
     /**
      * @brief Construct a TransposeKernel object
      *
@@ -34,18 +32,13 @@ class TransposeKernel
      * @param cgh SYCL command group handler for local memory
      */
     explicit TransposeKernel(
-        double *transposed,
-        double *original,
-        std::size_t width,
-        std::size_t height,
-        sycl::handler &cgh
-    ) :
-    transposed(transposed),
-    original(original),
-    width(width),
-    height(height),
-    local(sycl::local_accessor<double, 2>(sycl::range<2>(WORK_GROUP_SIZE, WORK_GROUP_SIZE + 1), cgh))
-    {}
+        double *transposed, double *original, std::size_t width, std::size_t height, sycl::handler &cgh) :
+        transposed(transposed),
+        original(original),
+        width(width),
+        height(height),
+        local(sycl::local_accessor<double, 2>(sycl::range<2>(WORK_GROUP_SIZE, WORK_GROUP_SIZE + 1), cgh))
+    { }
 
     void operator()(const sycl::nd_item<2> &nd_item) const
     {
@@ -65,7 +58,7 @@ class TransposeKernel
         }
         else
         {
-            local[local_y][local_x] = 0.0; // padding
+            local[local_y][local_x] = 0.0;  // padding
         }
 
         nd_item.barrier(sycl::access::fence_space::local_space);
@@ -88,8 +81,7 @@ class TransposeKernel
  */
 class GenTileCovarianceKernel
 {
-    private:
-
+  private:
     double *d_tile;
     const double *d_input;
     std::size_t n_tile_size;
@@ -100,8 +92,7 @@ class GenTileCovarianceKernel
     double vertical_lengthscale_;
     double noise_variance_;
 
-    public:
-
+  public:
     /**
      * @brief Generate a tile of the covariance matrix
      */
@@ -112,18 +103,17 @@ class GenTileCovarianceKernel
         const std::size_t n_regressors,
         const std::size_t tile_row,
         const std::size_t tile_column,
-        const gprat_hyper::SEKParams sek_params
-    ) :
-    d_tile(d_tile),
-    d_input(d_input_input),
-    n_tile_size(n_tile_size),
-    n_regressors(n_regressors),
-    tile_row(tile_row),
-    tile_column(tile_column),
-    lengthscale_(sek_params.lengthscale),
-    vertical_lengthscale_(sek_params.vertical_lengthscale),
-    noise_variance_(sek_params.noise_variance)
-    {}
+        const gprat_hyper::SEKParams sek_params) :
+        d_tile(d_tile),
+        d_input(d_input_input),
+        n_tile_size(n_tile_size),
+        n_regressors(n_regressors),
+        tile_row(tile_row),
+        tile_column(tile_column),
+        lengthscale_(sek_params.lengthscale),
+        vertical_lengthscale_(sek_params.vertical_lengthscale),
+        noise_variance_(sek_params.noise_variance)
+    { }
 
     void operator()(const sycl::item<2> &item) const
     {
@@ -142,11 +132,12 @@ class GenTileCovarianceKernel
             distance += z_ik_minus_z_jk * z_ik_minus_z_jk;
         }
 
-        double covariance =
-            vertical_lengthscale_ *
-            sycl::exp(-0.5 * distance / (lengthscale_ * lengthscale_));
+        double covariance = vertical_lengthscale_ * sycl::exp(-0.5 * distance / (lengthscale_ * lengthscale_));
 
-        if (i_global == j_global) { covariance += noise_variance_; }
+        if (i_global == j_global)
+        {
+            covariance += noise_variance_;
+        }
 
         d_tile[i * n_tile_size + j] = covariance;
     }
@@ -160,8 +151,7 @@ class GenTileCovarianceKernel
  */
 class GenTileFullPriorCovarianceKernel
 {
-    private:
-
+  private:
     double *d_tile;
     const double *d_input;
     std::size_t n_tile_size;
@@ -171,8 +161,7 @@ class GenTileFullPriorCovarianceKernel
     double lengthscale_;
     double vertical_lengthscale_;
 
-    public:
-
+  public:
     explicit GenTileFullPriorCovarianceKernel(
         double *d_tile,
         const double *d_input_input,
@@ -180,17 +169,16 @@ class GenTileFullPriorCovarianceKernel
         const std::size_t n_regressors,
         const std::size_t tile_row,
         const std::size_t tile_column,
-        const gprat_hyper::SEKParams sek_params
-    ) :
-    d_tile(d_tile),
-    d_input(d_input_input),
-    n_tile_size(n_tile_size),
-    n_regressors(n_regressors),
-    tile_row(tile_row),
-    tile_column(tile_column),
-    lengthscale_(sek_params.lengthscale),
-    vertical_lengthscale_(sek_params.vertical_lengthscale)
-    {}
+        const gprat_hyper::SEKParams sek_params) :
+        d_tile(d_tile),
+        d_input(d_input_input),
+        n_tile_size(n_tile_size),
+        n_regressors(n_regressors),
+        tile_row(tile_row),
+        tile_column(tile_column),
+        lengthscale_(sek_params.lengthscale),
+        vertical_lengthscale_(sek_params.vertical_lengthscale)
+    { }
 
     void operator()(const sycl::item<2> &item) const
     {
@@ -209,9 +197,7 @@ class GenTileFullPriorCovarianceKernel
             distance += z_ik_minus_z_jk * z_ik_minus_z_jk;
         }
 
-        const double covariance =
-            vertical_lengthscale_ *
-            sycl::exp(-0.5 * distance / (lengthscale_ * lengthscale_));
+        const double covariance = vertical_lengthscale_ * sycl::exp(-0.5 * distance / (lengthscale_ * lengthscale_));
 
         d_tile[i * n_tile_size + j] = covariance;
     }
@@ -225,8 +211,7 @@ class GenTileFullPriorCovarianceKernel
  */
 class GenTilePriorCovarianceKernel
 {
-    private:
-
+  private:
     double *d_tile;
     const double *d_input;
     std::size_t n_tile_size;
@@ -236,8 +221,7 @@ class GenTilePriorCovarianceKernel
     double lengthscale_;
     double vertical_lengthscale_;
 
-    public:
-
+  public:
     explicit GenTilePriorCovarianceKernel(
         double *d_tile,
         const double *d_input_input,
@@ -245,17 +229,16 @@ class GenTilePriorCovarianceKernel
         const std::size_t n_regressors,
         const std::size_t tile_row,
         const std::size_t tile_column,
-        const gprat_hyper::SEKParams sek_params
-    ) :
-    d_tile(d_tile),
-    d_input(d_input_input),
-    n_tile_size(n_tile_size),
-    n_regressors(n_regressors),
-    tile_row(tile_row),
-    tile_column(tile_column),
-    lengthscale_(sek_params.lengthscale),
-    vertical_lengthscale_(sek_params.vertical_lengthscale)
-    {}
+        const gprat_hyper::SEKParams sek_params) :
+        d_tile(d_tile),
+        d_input(d_input_input),
+        n_tile_size(n_tile_size),
+        n_regressors(n_regressors),
+        tile_row(tile_row),
+        tile_column(tile_column),
+        lengthscale_(sek_params.lengthscale),
+        vertical_lengthscale_(sek_params.vertical_lengthscale)
+    { }
 
     void operator()(const sycl::id<1> &id) const
     {
@@ -271,8 +254,7 @@ class GenTilePriorCovarianceKernel
             distance += z_ik_minus_z_jk * z_ik_minus_z_jk;
         }
 
-        double covariance =
-            vertical_lengthscale_ * exp(-0.5 * distance / (lengthscale_ * lengthscale_));
+        double covariance = vertical_lengthscale_ * exp(-0.5 * distance / (lengthscale_ * lengthscale_));
 
         d_tile[id] = covariance;
     }
@@ -286,8 +268,7 @@ class GenTilePriorCovarianceKernel
  */
 class GenTileCrossCovarianceKernel
 {
-    private:
-
+  private:
     double *d_tile;
     const double *d_row_input;
     const double *d_col_input;
@@ -299,8 +280,7 @@ class GenTileCrossCovarianceKernel
     double lengthscale_;
     double vertical_lengthscale_;
 
-    public:
-
+  public:
     explicit GenTileCrossCovarianceKernel(
         double *d_tile,
         const double *d_row_input,
@@ -310,19 +290,18 @@ class GenTileCrossCovarianceKernel
         const std::size_t tile_row,
         const std::size_t tile_column,
         const std::size_t n_regressors,
-        const gprat_hyper::SEKParams sek_params
-    ) :
-    d_tile(d_tile),
-    d_row_input(d_row_input),
-    d_col_input(d_col_input),
-    n_row_tile_size(n_row_tile_size),
-    n_column_tile_size(n_column_tile_size),
-    tile_row(tile_row),
-    tile_column(tile_column),
-    n_regressors(n_regressors),
-    lengthscale_(sek_params.lengthscale),
-    vertical_lengthscale_(sek_params.vertical_lengthscale)
-    {}
+        const gprat_hyper::SEKParams sek_params) :
+        d_tile(d_tile),
+        d_row_input(d_row_input),
+        d_col_input(d_col_input),
+        n_row_tile_size(n_row_tile_size),
+        n_column_tile_size(n_column_tile_size),
+        tile_row(tile_row),
+        tile_column(tile_column),
+        n_regressors(n_regressors),
+        lengthscale_(sek_params.lengthscale),
+        vertical_lengthscale_(sek_params.vertical_lengthscale)
+    { }
 
     void operator()(const sycl::item<2> &item) const
     {
@@ -341,8 +320,7 @@ class GenTileCrossCovarianceKernel
             distance += z_ik_minus_z_jk * z_ik_minus_z_jk;
         }
 
-        const double covariance = vertical_lengthscale_ *
-            sycl::exp(-0.5 * distance /(lengthscale_ * lengthscale_));
+        const double covariance = vertical_lengthscale_ * sycl::exp(-0.5 * distance / (lengthscale_ * lengthscale_));
 
         d_tile[i * n_column_tile_size + j] = covariance;
     }
@@ -356,26 +334,19 @@ class GenTileCrossCovarianceKernel
  */
 class GenTileOutputKernel
 {
-    private:
-
+  private:
     double *tile;
     const double *output;
     std::size_t row;
     std::size_t n_tile_size;
 
-    public:
-
-    explicit GenTileOutputKernel(
-        double *tile,
-        const double *output,
-        std::size_t row,
-        std::size_t n_tile_size
-    ) :
-    tile(tile),
-    output(output),
-    row(row),
-    n_tile_size(n_tile_size)
-    {}
+  public:
+    explicit GenTileOutputKernel(double *tile, const double *output, std::size_t row, std::size_t n_tile_size) :
+        tile(tile),
+        output(output),
+        row(row),
+        n_tile_size(n_tile_size)
+    { }
 
     void operator()(const sycl::id<1> &id) const
     {
@@ -384,4 +355,4 @@ class GenTileOutputKernel
     }
 };
 
-#endif // end of GPRAT_SYCL_KERNELS_H
+#endif  // end of GPRAT_SYCL_KERNELS_H

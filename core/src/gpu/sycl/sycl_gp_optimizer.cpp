@@ -1,4 +1,5 @@
 #include "gpu/sycl/sycl_gp_optimizer.hpp"
+
 #include "gpu/sycl/adapter_onemath.hpp"
 #include "gpu/sycl/sycl_kernels.hpp"
 #include "gpu/sycl/sycl_utils.hpp"
@@ -18,25 +19,25 @@ gen_tile_grad_l_trans(std::size_t N, const hpx::shared_future<double *> f_grad_l
         double *transposed = sycl::malloc_device<double>(N * N, queue);
         double *d_grad_l_tile = f_grad_l_tile.get();
 
-        sycl::range<2> global_range(
-            ((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE,
-            ((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE
-        );
+        sycl::range<2> global_range(((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE,
+                                    ((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE);
         sycl::range<2> local_range(WORK_GROUP_SIZE, WORK_GROUP_SIZE);
 
-        auto event = queue.submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(
-                sycl::nd_range<2>(global_range, local_range),
-                [=](sycl::nd_item<2> item) {
-                    std::size_t row = item.get_global_id(0);
-                    std::size_t col = item.get_global_id(1);
+        auto event = queue.submit(
+            [&](sycl::handler &cgh)
+            {
+                cgh.parallel_for(sycl::nd_range<2>(global_range, local_range),
+                                 [=](sycl::nd_item<2> item)
+                                 {
+                                     std::size_t row = item.get_global_id(0);
+                                     std::size_t col = item.get_global_id(1);
 
-                    if (row < N && col < N) {
-                        transposed[row * N + col] = d_grad_l_tile[col * N + row];
-                    }
-                }
-            );
-        });
+                                     if (row < N && col < N)
+                                     {
+                                         transposed[row * N + col] = d_grad_l_tile[col * N + row];
+                                     }
+                                 });
+            });
 
         event.wait();
         return hpx::make_ready_future(transposed);
@@ -50,13 +51,11 @@ gen_tile_grad_l_trans(std::size_t N, const hpx::shared_future<double *> f_grad_l
 
 // compute_loss ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double compute_loss(
-    const hpx::shared_future<double *> &K_diag_tile,
-    const hpx::shared_future<double *> &alpha_tile,
-    const hpx::shared_future<double *> &y_tile,
-    std::size_t N,
-    gprat::SYCL_DEVICE &sycl_device
-)
+double compute_loss(const hpx::shared_future<double *> &K_diag_tile,
+                    const hpx::shared_future<double *> &alpha_tile,
+                    const hpx::shared_future<double *> &y_tile,
+                    std::size_t N,
+                    gprat::SYCL_DEVICE &sycl_device)
 {
     sycl::queue queue = sycl_device.next_queue();
     // l = y^T * alpha + \sum_i^N log(L_ii^2)

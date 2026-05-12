@@ -7,10 +7,8 @@ option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
 option(GPRAT_WITH_SYCL "Enable SYCL support with oneMath" OFF)
 
 # Pass variable to C++ code
-add_compile_definitions(
-  GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>
-  GPRAT_WITH_SYCL=$<BOOL:${GPRAT_WITH_SYCL}>
-)
+add_compile_definitions(GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>
+                        GPRAT_WITH_SYCL=$<BOOL:${GPRAT_WITH_SYCL}>)
 
 # This project can be built as part of GPRat itself or as a standalone project
 # in which case below find_package() call is used.
@@ -42,7 +40,7 @@ else()
   if(GPRAT_WITH_SYCL)
     find_package(oneMath CONFIG REQUIRED)
   endif()
-  
+
   if(USE_MKL)
     # Try to find Intel oneMKL
     set(MKL_INTERFACE_FULL "intel_lp64")

@@ -2,15 +2,10 @@
 
 // BLAS LEVEL 3 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
-double *
-potrf(sycl::queue queue, double *f_A, const std::size_t N)
+double *potrf(sycl::queue queue, double *f_A, const std::size_t N)
 {
     std::int64_t scratchpad_size = oneapi::math::lapack::potrf_scratchpad_size<double>(
-        queue, 
-        oneapi::math::uplo::upper, 
-        static_cast<std::int64_t>(N), 
-        static_cast<std::int64_t>(N)
-    );
+        queue, oneapi::math::uplo::upper, static_cast<std::int64_t>(N), static_cast<std::int64_t>(N));
 
     double *scratchpad = sycl::malloc_device<double>(static_cast<std::size_t>(scratchpad_size), queue);
 
@@ -21,8 +16,15 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
     // column-major cuBLAS POTRF for row-major stored A
     // for UPPER part of symmetric positive semi-definite matrix A
 
-    oneapi::math::lapack::potrf(queue, oneapi::math::uplo::upper, static_cast<std::int64_t>(N), f_A, static_cast<std::int64_t>(N), scratchpad, scratchpad_size);
-    
+    oneapi::math::lapack::potrf(
+        queue,
+        oneapi::math::uplo::upper,
+        static_cast<std::int64_t>(N),
+        f_A,
+        static_cast<std::int64_t>(N),
+        scratchpad,
+        scratchpad_size);
+
     queue.wait();
 
     sycl::free(scratchpad, queue);
@@ -30,15 +32,13 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
     return f_A;
 }
 
-double *
-trsm(
-     sycl::queue queue,
-     double *f_A,
-     double *f_B,
-     const std::size_t M,
-     const std::size_t N,
-     const oneapi::math::transpose is_transposed,
-     const oneapi::math::side is_right)
+double *trsm(sycl::queue queue,
+             double *f_A,
+             double *f_B,
+             const std::size_t M,
+             const std::size_t N,
+             const oneapi::math::transpose is_transposed,
+             const oneapi::math::side is_right)
 {
     // TRSM constants
     const double alpha = 1.0;
@@ -73,15 +73,11 @@ trsm(
         static_cast<std::int64_t>(N));
 
     queue.wait();
-    
+
     return f_B;
 }
 
-double *
-syrk(sycl::queue queue,
-     double *f_A,
-     double *f_C,
-     const std::size_t N)
+double *syrk(sycl::queue queue, double *f_A, double *f_C, const std::size_t N)
 {
     // SYRK constants
     const double alpha = -1.0;
@@ -117,16 +113,15 @@ syrk(sycl::queue queue,
     return f_C;
 }
 
-double *
-gemm(sycl::queue queue,
-     double *f_A,
-     double *f_B, 
-     double *f_C, 
-     const std::size_t M,
-     const std::size_t N,
-     const std::size_t K,
-     const oneapi::math::transpose is_A_transposed,
-     const oneapi::math::transpose is_B_transposed) 
+double *gemm(sycl::queue queue,
+             double *f_A,
+             double *f_B,
+             double *f_C,
+             const std::size_t M,
+             const std::size_t N,
+             const std::size_t K,
+             const oneapi::math::transpose is_A_transposed,
+             const oneapi::math::transpose is_B_transposed)
 {
     // row-major GEMM
     // C = alpha * op(A) * op(B) + beta * C
@@ -149,11 +144,11 @@ gemm(sycl::queue queue,
         -1.0,
         f_B,
         static_cast<std::int64_t>(N),
-        f_A, 
+        f_A,
         static_cast<std::int64_t>(K),
         1.0,
-        f_C, 
-        static_cast<std::int64_t>(N)); 
+        f_C,
+        static_cast<std::int64_t>(N));
 
     queue.wait();
 
@@ -163,11 +158,7 @@ gemm(sycl::queue queue,
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
 double *
-trsv(sycl::queue queue,
-     double *f_A,
-     double *f_b,
-     const std::size_t N,
-     const oneapi::math::transpose is_A_transposed)
+trsv(sycl::queue queue, double *f_A, double *f_b, const std::size_t N, const oneapi::math::transpose is_A_transposed)
 {
     // row-major TRSV solves for x
     // op(A) * x = b
@@ -194,15 +185,14 @@ trsv(sycl::queue queue,
     return f_b;
 }
 
-double *
-gemv(sycl::queue queue,
-     double *f_A,
-     double *f_x,
-     double *f_y,
-     const std::size_t M,
-     const std::size_t N,
-     const double alpha,
-     const oneapi::math::transpose is_A_transposed)
+double *gemv(sycl::queue queue,
+             double *f_A,
+             double *f_x,
+             double *f_y,
+             const std::size_t M,
+             const std::size_t N,
+             const double alpha,
+             const oneapi::math::transpose is_A_transposed)
 {
     // GEMV constants
     // const double alpha_value = alpha;
@@ -237,12 +227,7 @@ gemv(sycl::queue queue,
     return f_y;
 }
 
-double *
-ger(sycl::queue queue,
-    double *f_A,
-    double *f_x,
-    double *f_y,
-    const std::size_t N)
+double *ger(sycl::queue queue, double *f_A, double *f_x, double *f_y, const std::size_t N)
 {
     // GER constants
     const double alpha = -1.0;
@@ -256,15 +241,29 @@ ger(sycl::queue queue,
     //   = -y*x^T + A
     // for opposite order of x,y
 
-    oneapi::math::blas::column_major::ger(queue, static_cast<std::int64_t>(N), static_cast<std::int64_t>(N), alpha, f_y, 1, f_x, 1, f_A, static_cast<std::int64_t>(N));
+    oneapi::math::blas::column_major::ger(
+        queue,
+        static_cast<std::int64_t>(N),
+        static_cast<std::int64_t>(N),
+        alpha,
+        f_y,
+        1,
+        f_x,
+        1,
+        f_A,
+        static_cast<std::int64_t>(N));
 
     queue.wait();
 
     return f_A;
 }
 
-DotDiagSyrkKernel::DotDiagSyrkKernel(double *d_A, double *d_r, const std::size_t M, const std::size_t N):
-d_A(d_A), d_r(d_r), M(M), N(N) {}
+DotDiagSyrkKernel::DotDiagSyrkKernel(double *d_A, double *d_r, const std::size_t M, const std::size_t N) :
+    d_A(d_A),
+    d_r(d_r),
+    M(M),
+    N(N)
+{ }
 
 void DotDiagSyrkKernel::operator()(const sycl::id<1> &id) const
 {
@@ -278,33 +277,28 @@ void DotDiagSyrkKernel::operator()(const sycl::id<1> &id) const
     d_r[id] += dot_product;
 }
 
-double *
-dot_diag_syrk(sycl::queue queue,
-              double *f_A,
-              double *f_r,
-              const std::size_t M,
-              const std::size_t N)
+double *dot_diag_syrk(sycl::queue queue, double *f_A, double *f_r, const std::size_t M, const std::size_t N)
 {
     // r = r + diag(A^T * A)
 
-    auto event = queue.submit
-    (
+    auto event = queue.submit(
         [&](sycl::handler &cgh)
         {
             auto kernel = DotDiagSyrkKernel(f_A, f_r, M, N);
-            cgh.parallel_for(
-                sycl::range<1>(N), kernel
-            );
-        }
-    );
+            cgh.parallel_for(sycl::range<1>(N), kernel);
+        });
     event.wait();
 
     return f_r;
 }
 
-
-DotDiagGemmKernel::DotDiagGemmKernel(double *A, double *B, double *r, const std::size_t M, const std::size_t N):
-A(A), B(B), r(r), M(M), N(N) {}
+DotDiagGemmKernel::DotDiagGemmKernel(double *A, double *B, double *r, const std::size_t M, const std::size_t N) :
+    A(A),
+    B(B),
+    r(r),
+    M(M),
+    N(N)
+{ }
 
 void DotDiagGemmKernel::operator()(const sycl::id<1> &id) const
 {
@@ -319,24 +313,15 @@ void DotDiagGemmKernel::operator()(const sycl::id<1> &id) const
 }
 
 double *
-dot_diag_gemm(sycl::queue queue,
-              double *f_A,
-              double *f_B,
-              double *f_r,
-              const std::size_t M,
-              const std::size_t N)
+dot_diag_gemm(sycl::queue queue, double *f_A, double *f_B, double *f_r, const std::size_t M, const std::size_t N)
 {
     // r = r + diag(A * B)
-    auto event = queue.submit
-    (
+    auto event = queue.submit(
         [&](sycl::handler &cgh)
         {
             auto kernel = DotDiagGemmKernel(f_A, f_B, f_r, M, N);
-            cgh.parallel_for(
-                sycl::range<1>(N), kernel
-            );
-        }
-    );
+            cgh.parallel_for(sycl::range<1>(N), kernel);
+        });
     event.wait();
 
     return f_r;
@@ -344,13 +329,7 @@ dot_diag_gemm(sycl::queue queue,
 
 // BLAS LEVEL 1 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
-double *
-dot(
-    sycl::queue queue,
-    double *f_a,
-    double *f_b,
-    const std::size_t N
-)
+double *dot(sycl::queue queue, double *f_a, double *f_b, const std::size_t N)
 {
     double *result = sycl::malloc_device<double>(1, queue);
     queue.fill(result, 0, 1).wait();

@@ -130,28 +130,30 @@ SYCL_DEVICE::SYCL_DEVICE(int id, int n_queues) :
     local_memory_size(0),
     queues()
 {
-    try 
+    try
     {
         std::vector<sycl::device> all_gpus;
         std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
 
-        for (const auto& platform : platforms) {
+        for (const auto &platform : platforms)
+        {
             std::vector<sycl::device> devices = platform.get_devices();
-            for (const auto& device : devices) {
-                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu) 
+            for (const auto &device : devices)
+            {
+                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu)
                 {
                     all_gpus.push_back(device);
                 }
             }
         }
-        
+
         std::size_t device_count = all_gpus.size();
         if (id >= device_count)
         {
             throw std::runtime_error("Requested GPU device is not available.");
         }
     }
-    catch (const sycl::exception& e) 
+    catch (const sycl::exception &e)
     {
         std::cout << "SYCL exception: " << e.what() << "\n";
     }
@@ -172,28 +174,29 @@ std::string SYCL_DEVICE::repr() const
 
 void SYCL_DEVICE::create()
 {
-    try 
+    try
     {
         queues = std::vector<sycl::queue>(n_queues);
 
-        for (size_t i = 0; i < n_queues; ++i) {
+        for (size_t i = 0; i < n_queues; ++i)
+        {
             queues[i] = sycl::queue(sycl::gpu_selector_v);
         }
-    } 
-    catch (const sycl::exception& e) 
+    }
+    catch (const sycl::exception &e)
     {
         std::cout << "SYCL exception during creation: " << e.what() << "\n";
     }
-
 }
 
 void SYCL_DEVICE::destroy()
 {
-    try 
+    try
     {
-        queues.clear(); 
+        queues.clear();
     }
-    catch (const sycl::exception& e) {
+    catch (const sycl::exception &e)
+    {
         std::cout << "SYCL exception during destruction: " << e.what() << "\n";
     }
 }
@@ -205,7 +208,7 @@ sycl::queue SYCL_DEVICE::next_queue()
 
 void SYCL_DEVICE::sync_queues(std::vector<sycl::queue> &subset_of_queues)
 {
-    try 
+    try
     {
         if (subset_of_queues.size() < queues.size())
         {
@@ -222,7 +225,8 @@ void SYCL_DEVICE::sync_queues(std::vector<sycl::queue> &subset_of_queues)
             }
         }
     }
-    catch (const sycl::exception& e) {
+    catch (const sycl::exception &e)
+    {
         std::cout << "SYCL exception: " << e.what() << "\n";
     }
 }
@@ -260,44 +264,53 @@ void print_available_gpus()
         // clang-format on
     }
 #elif GPRAT_WITH_SYCL
-    try {
+    try
+    {
         // Get all available platforms
         std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
 
         // Loop over all platforms
-        for (const auto& platform : platforms) {
+        for (const auto &platform : platforms)
+        {
             std::cout << "Platform: " << platform.get_info<sycl::info::platform::name>() << "\n";
 
             // Get all devices for each platform
             std::vector<sycl::device> devices = platform.get_devices();
 
-            for (size_t i = 0; i < devices.size(); ++i) {
+            for (size_t i = 0; i < devices.size(); ++i)
+            {
                 sycl::device device = devices[i];
 
                 // Check if the device is a GPU
-                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu) {
+                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu)
+                {
                     std::cout << "Device " << i << ": " << device.get_info<sycl::info::device::name>() << "\n";
 
                     // Query various device properties for GPUs
-                    try 
+                    try
                     {
-                        std::cout
-                            << "  Total Global Memory: " << device.get_info<sycl::info::device::global_mem_size>() << " bytes\n"
-                            << "  Max Compute Units: " << device.get_info<sycl::info::device::max_compute_units>() << "\n"
-                            << "  Max Work Group Size: " << device.get_info<sycl::info::device::max_work_group_size>() << "\n"
-                            << "  Max Work Item Dimensions: " << device.get_info<sycl::info::device::max_work_item_dimensions>() << "\n"
-                            << "  Max Clock Frequency: " << device.get_info<sycl::info::device::max_clock_frequency>() << " MHz\n"
-                            << "  Max Memory Allocation Size: " << device.get_info<sycl::info::device::max_mem_alloc_size>() << " bytes\n";
-                    } 
-                    catch (const sycl::exception& e) 
+                        std::cout << "  Total Global Memory: " << device.get_info<sycl::info::device::global_mem_size>()
+                                  << " bytes\n"
+                                  << "  Max Compute Units: " << device.get_info<sycl::info::device::max_compute_units>()
+                                  << "\n"
+                                  << "  Max Work Group Size: "
+                                  << device.get_info<sycl::info::device::max_work_group_size>() << "\n"
+                                  << "  Max Work Item Dimensions: "
+                                  << device.get_info<sycl::info::device::max_work_item_dimensions>() << "\n"
+                                  << "  Max Clock Frequency: "
+                                  << device.get_info<sycl::info::device::max_clock_frequency>() << " MHz\n"
+                                  << "  Max Memory Allocation Size: "
+                                  << device.get_info<sycl::info::device::max_mem_alloc_size>() << " bytes\n";
+                    }
+                    catch (const sycl::exception &e)
                     {
                         std::cerr << "Error querying device properties: " << e.what() << std::endl;
                     }
                 }
             }
         }
-    } 
-    catch (const sycl::exception& e) 
+    }
+    catch (const sycl::exception &e)
     {
         std::cerr << "SYCL exception: " << e.what() << std::endl;
     }
@@ -318,14 +331,17 @@ int gpu_count()
 
 #elif GPRAT_WITH_SYCL
 
-    try {
+    try
+    {
         std::vector<sycl::device> all_gpus;
         std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
 
-        for (const auto& platform : platforms) {
+        for (const auto &platform : platforms)
+        {
             std::vector<sycl::device> devices = platform.get_devices();
-            for (const auto& device : devices) {
-                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu) 
+            for (const auto &device : devices)
+            {
+                if (device.get_info<sycl::info::device::device_type>() == sycl::info::device_type::gpu)
                 {
                     all_gpus.push_back(device);
                 }
@@ -334,7 +350,7 @@ int gpu_count()
         int device_count = all_gpus.size();
         return device_count;
     }
-    catch (const sycl::exception& e) 
+    catch (const sycl::exception &e)
     {
         std::cout << "SYCL exception: " << e.what() << "\n";
     }

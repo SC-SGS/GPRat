@@ -14,11 +14,11 @@
 
 namespace gprat
 {
-  struct DeviceParameters
-  {
-      std::size_t id;
-      std::size_t n_queues;
-  };
+struct DeviceParameters
+{
+    std::size_t id;
+    std::size_t n_queues;
+};
 
 /**
  * @brief This class represents the target on which to perform the Gaussian
@@ -251,7 +251,7 @@ struct SYCL_DEVICE : public Target
     /**
      * @brief Returns false because target is not CPU.
      */
-    bool is_cpu() override;   
+    bool is_cpu() override;
 
     /**
      * @brief Returns false because target is not CUDA.
@@ -303,8 +303,7 @@ struct SYCL_DEVICE : public Target
     void sync_queues(std::vector<sycl::queue> &subset_of_queues);
 
   private:
-
-  std::vector<sycl::queue> queues;
+    std::vector<sycl::queue> queues;
 };
 
 /**

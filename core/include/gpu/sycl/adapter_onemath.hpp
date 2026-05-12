@@ -4,8 +4,8 @@
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GRPat
-#include <target.hpp>
 #include "sycl_utils.hpp"
+#include <target.hpp>
 
 // SYCL
 #include <sycl/sycl.hpp>
@@ -24,8 +24,7 @@
  *
  * @return factorized, lower triangular matrix f_L, in-place update of f_A
  */
-double *
-potrf(sycl::queue queue, double *f_A, const std::size_t N);
+double *potrf(sycl::queue queue, double *f_A, const std::size_t N);
 
 /**
  * @brief In-place solve A(^T) * X = B or X * A(^T) = B for lower triangular A
@@ -41,14 +40,13 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N);
  *
  * @return solution matrix f_X, in-place update of f_B
  */
-double *
-trsm(sycl::queue queue,
-     double *f_A,
-     double *f_B,
-     const std::size_t M,
-     const std::size_t N,
-     const oneapi::math::transpose is_transposed,
-     const oneapi::math::side is_right);
+double *trsm(sycl::queue queue,
+             double *f_A,
+             double *f_B,
+             const std::size_t M,
+             const std::size_t N,
+             const oneapi::math::transpose is_transposed,
+             const oneapi::math::side is_right);
 
 /**
  * @brief Symmetric rank-k update: C = C - A * A^T
@@ -60,11 +58,7 @@ trsm(sycl::queue queue,
  *
  * @return updated matrix f_A, inplace update
  */
-double *
-syrk(sycl::queue queue,
-     double *f_A,
-     double *f_C,
-     const std::size_t N);
+double *syrk(sycl::queue queue, double *f_A, double *f_C, const std::size_t N);
 
 /**
  * @brief General matrix-matrix multiplication: C = C - A(^T) * B(^T)
@@ -81,16 +75,15 @@ syrk(sycl::queue queue,
  *
  * @return updated matrix f_C, in-place update
  */
-double *
-gemm(sycl::queue queue,
-     double *f_A,
-     double *f_B,
-     double *f_C,
-     const std::size_t M,
-     const std::size_t N,
-     const std::size_t K,
-     const oneapi::math::transpose is_A_transposed,
-     const oneapi::math::transpose is_B_transposed);
+double *gemm(sycl::queue queue,
+             double *f_A,
+             double *f_B,
+             double *f_C,
+             const std::size_t M,
+             const std::size_t N,
+             const std::size_t K,
+             const oneapi::math::transpose is_A_transposed,
+             const oneapi::math::transpose is_B_transposed);
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -106,11 +99,7 @@ gemm(sycl::queue queue,
  * @return solution vector f_x, in-place update of b
  */
 double *
-trsv(sycl::queue queue,
-     double * f_A,
-     double * f_b,
-     const std::size_t N,
-     const oneapi::math::transpose is_A_transposed);
+trsv(sycl::queue queue, double *f_A, double *f_b, const std::size_t N, const oneapi::math::transpose is_A_transposed);
 
 /**
  * @brief General matrix-vector multiplication: y = y - A(^T) * x
@@ -125,15 +114,14 @@ trsv(sycl::queue queue,
  *
  * @return updated vector f_y, in-place update
  */
-double *
-gemv(sycl::queue queue,
-     double * f_A,
-     double * f_x,
-     double * f_y,
-     const std::size_t M,
-     const std::size_t N,
-     const double alpha,
-     const oneapi::math::transpose is_A_transposed);
+double *gemv(sycl::queue queue,
+             double *f_A,
+             double *f_x,
+             double *f_y,
+             const std::size_t M,
+             const std::size_t N,
+             const double alpha,
+             const oneapi::math::transpose is_A_transposed);
 
 /**
  * @brief General matrix rank-1 update: A = A - x*y^T
@@ -146,12 +134,7 @@ gemv(sycl::queue queue,
  *
  * @return vector f_b, in-place update
  */
-double *
-ger(sycl::queue queue,
-    double * f_A,
-    double * f_x,
-    double * f_y,
-    const std::size_t N);
+double *ger(sycl::queue queue, double *f_A, double *f_x, double *f_y, const std::size_t N);
 
 /**
  * @brief Vector update with diagonal SYRK: r = r + diag(A^T * A)
@@ -164,24 +147,17 @@ ger(sycl::queue queue,
  *
  * @return vector f_r, in-place update
  */
-double *
-dot_diag_syrk(sycl::queue queue,
-              double * f_A,
-              double * f_r,
-              const std::size_t M,
-              const std::size_t N);
+double *dot_diag_syrk(sycl::queue queue, double *f_A, double *f_r, const std::size_t M, const std::size_t N);
 
 class DotDiagSyrkKernel
 {
-    private:
-
-    double *d_A; 
-    double *d_r; 
-    std::size_t M; 
+  private:
+    double *d_A;
+    double *d_r;
+    std::size_t M;
     std::size_t N;
 
-    public:
-
+  public:
     explicit DotDiagSyrkKernel(double *A, double *r, const std::size_t M, const std::size_t N);
 
     void operator()(const sycl::id<1> &id) const;
@@ -200,25 +176,18 @@ class DotDiagSyrkKernel
  * @return updated vector f_r, in-place update
  */
 double *
-dot_diag_gemm(sycl::queue queue,
-              double * f_A,
-              double * f_B,
-              double * f_r,
-              const std::size_t M,
-              const std::size_t N);
+dot_diag_gemm(sycl::queue queue, double *f_A, double *f_B, double *f_r, const std::size_t M, const std::size_t N);
 
 class DotDiagGemmKernel
 {
-    private:
-
-    double *A; 
-    double *B; 
-    double *r; 
-    std::size_t M; 
+  private:
+    double *A;
+    double *B;
+    double *r;
+    std::size_t M;
     std::size_t N;
 
-    public:
-
+  public:
     explicit DotDiagGemmKernel(double *A, double *B, double *r, const std::size_t M, const std::size_t N);
 
     void operator()(const sycl::id<1> &id) const;
@@ -235,24 +204,20 @@ class DotDiagGemmKernel
  * @param N vector length
  * @return f_a * f_b
  */
-double *
-dot(sycl::queue queue,
-    double * f_a,
-    double * f_b,
-    const std::size_t N);
+double *dot(sycl::queue queue, double *f_a, double *f_b, const std::size_t N);
 
 // HELPER FUNCTIONS ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline oneapi::math::transpose invert_transpose_operator(oneapi::math::transpose op) 
-{ 
-     return (op == oneapi::math::transpose::nontrans) ? 
-          oneapi::math::transpose::trans : oneapi::math::transpose::nontrans; 
+inline oneapi::math::transpose invert_transpose_operator(oneapi::math::transpose op)
+{
+    return (op == oneapi::math::transpose::nontrans)
+               ? oneapi::math::transpose::trans
+               : oneapi::math::transpose::nontrans;
 }
 
-inline oneapi::math::side invert_side_operator(oneapi::math::side op) 
-{ 
-     return (op == oneapi::math::side::left) ? 
-          oneapi::math::side::right : oneapi::math::side::left; 
+inline oneapi::math::side invert_side_operator(oneapi::math::side op)
+{
+    return (op == oneapi::math::side::left) ? oneapi::math::side::right : oneapi::math::side::left;
 }
 
-#endif // end of ADAPTER_ONEMATH_H
+#endif  // end of ADAPTER_ONEMATH_H

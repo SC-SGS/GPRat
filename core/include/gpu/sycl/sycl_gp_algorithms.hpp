@@ -108,11 +108,8 @@ hpx::shared_future<double *> gen_tile_transpose(std::size_t n_row_tile_size,
  * @param sycl_device SYCL target for computations
  * @return A tile of the output data of size n_tile_size
  */
-double *
-gen_tile_output(const std::size_t row, 
-                const std::size_t n_tile_size, 
-                const double *d_output, 
-                gprat::SYCL_DEVICE &sycl_device);
+double *gen_tile_output(
+    const std::size_t row, const std::size_t n_tile_size, const double *d_output, gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Compute the L2-error norm over all tiles and elements
@@ -279,8 +276,11 @@ std::vector<hpx::shared_future<double *>> assemble_t_cross_covariance_tiles(
  * @param n_tile_size The size of the tile
  * @param sycl_device SYCL target for computations
  */
-std::vector<hpx::shared_future<double *>> assemble_y_tiles(
-    const double *d_training_output, const std::size_t n_tiles, const std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device);
+std::vector<hpx::shared_future<double *>>
+assemble_y_tiles(const double *d_training_output,
+                 const std::size_t n_tiles,
+                 const std::size_t n_tile_size,
+                 gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Allocates the tiled covariance matrix on the device given the training
@@ -318,11 +318,9 @@ std::vector<std::vector<double>> move_lower_tiled_matrix_to_host(
  * @param d_tiles The tiles on the device
  * @param n_tiles The number of tiles
  */
-void free_lower_tiled_matrix(
-    const std::vector<hpx::shared_future<double *>> &d_tiles, 
-    const std::size_t n_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+void free_lower_tiled_matrix(const std::vector<hpx::shared_future<double *>> &d_tiles,
+                             const std::size_t n_tiles,
+                             gprat::SYCL_DEVICE &sycl_device);
 
 }  // end of namespace gprat::sycl_backend
 

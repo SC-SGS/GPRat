@@ -23,12 +23,10 @@ namespace gprat::sycl_backend
  * @param n_tiles Number of tiles per dimension.
  * @param sycl_device The SYCL target for computations
  */
-void right_looking_cholesky_tiled(
-    std::vector<hpx::shared_future<double *>> &ft_tiles,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+void right_looking_cholesky_tiled(std::vector<hpx::shared_future<double *>> &ft_tiles,
+                                  const std::size_t n_tile_size,
+                                  const std::size_t n_tiles,
+                                  gprat::SYCL_DEVICE &sycl_device);
 
 // Tiled Triangular Solve Algorithms
 
@@ -41,13 +39,11 @@ void right_looking_cholesky_tiled(
  * @param n_tiles Number of tiles per dimension.
  * @param sycl_device The SYCL target for computations
  */
-void forward_solve_tiled(
-    std::vector<hpx::shared_future<double *>> &ft_tiles,
-    std::vector<hpx::shared_future<double *>> &ft_rhs,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+void forward_solve_tiled(std::vector<hpx::shared_future<double *>> &ft_tiles,
+                         std::vector<hpx::shared_future<double *>> &ft_rhs,
+                         const std::size_t n_tile_size,
+                         const std::size_t n_tiles,
+                         gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Perform tiled backward triangular matrix-vector solve.
@@ -58,13 +54,11 @@ void forward_solve_tiled(
  * @param n_tiles Number of tiles per dimension.
  * @param sycl_device The SYCL target for computations
  */
-void backward_solve_tiled(
-    std::vector<hpx::shared_future<double *>> &ft_tiles,
-    std::vector<hpx::shared_future<double *>> &ft_rhs,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+void backward_solve_tiled(std::vector<hpx::shared_future<double *>> &ft_tiles,
+                          std::vector<hpx::shared_future<double *>> &ft_rhs,
+                          const std::size_t n_tile_size,
+                          const std::size_t n_tiles,
+                          gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Perform tiled forward triangular matrix-matrix solve.
@@ -84,8 +78,7 @@ void forward_solve_tiled_matrix(
     const std::size_t m_tile_size,
     const std::size_t n_tiles,
     const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Perform tiled backward triangular matrix-matrix solve.
@@ -105,8 +98,7 @@ void backward_solve_tiled_matrix(
     const std::size_t m_tile_size,
     const std::size_t n_tiles,
     const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Perform tiled matrix-vector multiplication
@@ -120,16 +112,14 @@ void backward_solve_tiled_matrix(
  * @param m_tiles Number of tiles in second dimension.
  * @param sycl_device The SYCL target for computations
  */
-void matrix_vector_tiled(
-    std::vector<hpx::shared_future<double *>> &ft_tiles,
-    std::vector<hpx::shared_future<double *>> &ft_vector,
-    std::vector<hpx::shared_future<double *>> &ft_rhs,
-    const std::size_t N_row,
-    const std::size_t N_col,
-    const std::size_t n_tiles,
-    const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+void matrix_vector_tiled(std::vector<hpx::shared_future<double *>> &ft_tiles,
+                         std::vector<hpx::shared_future<double *>> &ft_vector,
+                         std::vector<hpx::shared_future<double *>> &ft_rhs,
+                         const std::size_t N_row,
+                         const std::size_t N_col,
+                         const std::size_t n_tiles,
+                         const std::size_t m_tiles,
+                         gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Perform tiled symmetric k-rank update on diagonal tiles
@@ -149,17 +139,14 @@ void symmetric_matrix_matrix_diagonal_tiled(
     const std::size_t m_tile_size,
     const std::size_t n_tiles,
     const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
-void compute_gemm_of_invK_y(
-    std::vector<hpx::shared_future<double *>> &ft_invK,
-    std::vector<hpx::shared_future<double *>> &ft_y,
-    std::vector<hpx::shared_future<double *>> &ft_alpha,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+void compute_gemm_of_invK_y(std::vector<hpx::shared_future<double *>> &ft_invK,
+                            std::vector<hpx::shared_future<double *>> &ft_y,
+                            std::vector<hpx::shared_future<double *>> &ft_alpha,
+                            const std::size_t n_tile_size,
+                            const std::size_t n_tiles,
+                            gprat::SYCL_DEVICE &sycl_device);
 
 // Tiled Loss
 hpx::shared_future<double> compute_loss_tiled(
@@ -168,8 +155,7 @@ hpx::shared_future<double> compute_loss_tiled(
     std::vector<hpx::shared_future<double *>> &ft_y,
     const std::size_t n_tile_size,
     const std::size_t n_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
 // Tiled Diagonal of Posterior Covariance Matrix
 void symmetric_matrix_matrix_tiled(
@@ -179,8 +165,7 @@ void symmetric_matrix_matrix_tiled(
     const std::size_t m_tile_size,
     const std::size_t n_tiles,
     const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Compute the difference between two tiled vectors
@@ -191,31 +176,25 @@ void symmetric_matrix_matrix_tiled(
  * @param m_tile_size Tile size dimension.
  * @param m_tiles Number of tiles.
  */
-void vector_difference_tiled(
-    std::vector<hpx::shared_future<double *>> &ft_priorK,
-    std::vector<hpx::shared_future<double *>> &ft_inter,
-    std::vector<hpx::shared_future<double *>> &ft_vector,
-    const std::size_t m_tile_size,
-    const std::size_t m_tiles
-);
+void vector_difference_tiled(std::vector<hpx::shared_future<double *>> &ft_priorK,
+                             std::vector<hpx::shared_future<double *>> &ft_inter,
+                             std::vector<hpx::shared_future<double *>> &ft_vector,
+                             const std::size_t m_tile_size,
+                             const std::size_t m_tiles);
 
 // Tiled Prediction Uncertainty
-void matrix_diagonal_tiled(
-    std::vector<hpx::shared_future<double *>> &ft_priorK,
-    std::vector<hpx::shared_future<double *>> &ft_vector,
-    const std::size_t m_tile_size,
-    const std::size_t m_tiles
-);
+void matrix_diagonal_tiled(std::vector<hpx::shared_future<double *>> &ft_priorK,
+                           std::vector<hpx::shared_future<double *>> &ft_vector,
+                           const std::size_t m_tile_size,
+                           const std::size_t m_tiles);
 
 // Compute I-y*y^T*inv(K)
-void update_grad_K_tiled_mkl(
-    std::vector<hpx::shared_future<double *>> &ft_tiles,
-    const std::vector<hpx::shared_future<double *>> &ft_v1,
-    const std::vector<hpx::shared_future<double *>> &ft_v2,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    gprat::SYCL_DEVICE &sycl_device
-);
+void update_grad_K_tiled_mkl(std::vector<hpx::shared_future<double *>> &ft_tiles,
+                             const std::vector<hpx::shared_future<double *>> &ft_v1,
+                             const std::vector<hpx::shared_future<double *>> &ft_v2,
+                             const std::size_t n_tile_size,
+                             const std::size_t n_tiles,
+                             gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Updates the lengthscale hyperparameter of the SEK kernel using Adam.
@@ -321,6 +300,6 @@ double update_noise_variance(
     // gprat::SYCL_DEVICE &sycl_device
 );
 
-}  // end of namespace sycl_backend
+}  // namespace gprat::sycl_backend
 
 #endif  // end of SYCL_TILED_ALGORITHMS_H

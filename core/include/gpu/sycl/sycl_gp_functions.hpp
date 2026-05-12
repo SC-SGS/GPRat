@@ -198,6 +198,6 @@ cholesky(const std::vector<double> &training_input,
          int n_regressors,
          gprat::SYCL_DEVICE &sycl_device);
 
-}  // end of namespace gpu
+}  // namespace gprat::sycl_backend
 
-#endif // ! SYCL_GP_FUNCTIONS_H
+#endif  // ! SYCL_GP_FUNCTIONS_H

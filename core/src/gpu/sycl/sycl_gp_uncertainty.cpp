@@ -1,7 +1,8 @@
 // GPRat
-#include "target.hpp"
 #include "gpu/sycl/sycl_gp_uncertainty.hpp"
+
 #include "gpu/sycl/sycl_utils.hpp"
+#include "target.hpp"
 
 // oneMath
 #include <oneapi/math.hpp>
@@ -29,20 +30,16 @@ double *diag_posterior(double *A, double *B, std::size_t M)
         B,
         1,
         tile,
-        1
-    );
+        1);
 
     queue.wait();
 
     return tile;
 }
 
-double *diag_tile(
-    double *A, 
-    std::size_t M
-)
+double *diag_tile(double *A, std::size_t M)
 {
-    //sycl::queue queue = sycl_device.next_queue();
+    // sycl::queue queue = sycl_device.next_queue();
     sycl::queue queue(sycl::gpu_selector_v);
 
     double *diag_tile = sycl::malloc_device<double>(M, queue);
@@ -50,14 +47,13 @@ double *diag_tile(
     oneapi::math::blas::column_major::omatcopy(
         queue,
         oneapi::math::transpose::nontrans,
-        1,                                  
-        static_cast<int64_t>(M),                                  
+        1,
+        static_cast<int64_t>(M),
         1.0,
         A,
         static_cast<int64_t>(M) + 1,
         diag_tile,
-        1 
-    );
+        1);
 
     queue.wait();
 

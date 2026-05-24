@@ -127,7 +127,6 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
                {
 
 #if GPRAT_WITH_CUDA
-
                    if (target_->is_gpu())
                    {
                        return gpu::predict(
@@ -157,7 +156,6 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
                    }
 
 #else
-
                    return cpu::predict(
                        training_input_,
                        training_output_,
@@ -170,12 +168,11 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
                        n_reg);
 
 #endif
-
                })
         .get();
 
 #else
-    
+
     if (!target_->is_cpu())
     {
         return sycl_backend::predict(
@@ -203,7 +200,7 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
             m_tile_size,
             n_reg);
     }
-    
+
 #endif
 }
 
@@ -218,7 +215,6 @@ GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles,
                {
 
 #if GPRAT_WITH_CUDA
-
                    if (target_->is_gpu())
                    {
                        return gpu::predict_with_uncertainty(
@@ -248,7 +244,6 @@ GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles,
                    }
 
 #else
-                  
                    return cpu::predict_with_uncertainty(
                        training_input_,
                        training_output_,
@@ -307,7 +302,6 @@ GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, in
                {
 
 #if GPRAT_WITH_CUDA
-
                    if (target_->is_gpu())
                    {
                        return gpu::predict_with_full_cov(
@@ -337,7 +331,6 @@ GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, in
                    }
 
 #else
-
                    return cpu::predict_with_full_cov(
                        training_input_,
                        training_output_,

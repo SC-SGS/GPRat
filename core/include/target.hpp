@@ -254,7 +254,7 @@ struct SYCL_DEVICE : public Target
     SYCL_DEVICE(int gpu_id, int n_queues);
 
     /**
-     * @brief Returns false because target is not CPU.  
+     * @brief Returns false because target is not CPU.
      */
     bool is_cpu() override;
 
@@ -308,7 +308,6 @@ struct SYCL_DEVICE : public Target
     void sync_queues(std::vector<sycl::queue> &subset_of_queues);
 
   private:
-
     std::vector<sycl::queue> queues;
 };
 

@@ -160,10 +160,9 @@ class DotDiagSyrkKernel
     std::size_t N;
 
   public:
-
     /**
      * @brief Constructor for DotDiagSyrkKernel for vector update with diagonal SYRK
-     * 
+     *
      * @param A update matrix
      * @param r base vector
      * @param M number of rows of A
@@ -173,7 +172,7 @@ class DotDiagSyrkKernel
 
     /**
      * @brief The operator() of DotDiagSyrkKernel implements the actual kernel
-     * 
+     *
      * @param id global SYCL id of the kernel
      */
     void operator()(const sycl::id<1> &id) const;
@@ -209,7 +208,7 @@ class DotDiagGemmKernel
   public:
     /**
      * @brief Constructor for DotDiagGemmKernel for vector update with diagonal GEMM
-     * 
+     *
      * @param A first update matrix, of size NxN
      * @param B second update matrix, of size NxM
      * @param r base vector
@@ -220,7 +219,7 @@ class DotDiagGemmKernel
 
     /**
      * @brief The operator() of DotDiagGemmKernel implements the actual kernel
-     * 
+     *
      * @param id global SYCL id of the kernel
      */
     void operator()(const sycl::id<1> &id) const;

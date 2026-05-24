@@ -239,8 +239,7 @@ double update_lengthscale(
     const std::vector<hpx::shared_future<double>> &beta1_T,
     const std::vector<hpx::shared_future<double>> &beta2_T,
     int iter,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Updates the vertical lengthscale hyperparameter of the SEK kernel
@@ -275,8 +274,7 @@ double update_vertical_lengthscale(
     const std::vector<hpx::shared_future<double>> &beta1_T,
     const std::vector<hpx::shared_future<double>> &beta2_T,
     int iter,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Updates a hyperparameter of the SEK kernel using Adam
@@ -308,8 +306,7 @@ double update_noise_variance(
     const std::vector<hpx::shared_future<double>> &beta1_T,
     const std::vector<hpx::shared_future<double>> &beta2_T,
     int iter,
-    gprat::SYCL_DEVICE &sycl_device
-);
+    gprat::SYCL_DEVICE &sycl_device);
 
 }  // namespace gprat::sycl_backend
 

@@ -40,6 +40,11 @@ class TransposeKernel
         local(sycl::local_accessor<double, 2>(sycl::range<2>(WORK_GROUP_SIZE, WORK_GROUP_SIZE + 1), cgh))
     { }
 
+    /**
+     * @brief The operator() implements the actual kernel functionality.
+     * 
+     * @param nd_item The SYCL nd_item representing the current thread.
+     */
     void operator()(const sycl::nd_item<2> &nd_item) const
     {
         const std::size_t local_x = nd_item.get_local_id(1);
@@ -77,7 +82,7 @@ class TransposeKernel
 // GenTileCovarianceKernel ////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief Kernel function to compute covariance
+ * @brief Class for the kernel function to compute covariance
  */
 class GenTileCovarianceKernel
 {
@@ -93,8 +98,9 @@ class GenTileCovarianceKernel
     double noise_variance_;
 
   public:
+
     /**
-     * @brief Generate a tile of the covariance matrix
+     * @brief Constructor of the kernel to generate a tile of the covariance matrix
      */
     explicit GenTileCovarianceKernel(
         double *d_tile,
@@ -115,6 +121,11 @@ class GenTileCovarianceKernel
         noise_variance_(sek_params.noise_variance)
     { }
 
+    /**
+     * @brief The operator() implements the actual kernel functionality.
+     * 
+     * @param item The SYCL item representing the current thread.
+     */
     void operator()(const sycl::item<2> &item) const
     {
         const std::size_t i = item.get_id(0);
@@ -146,7 +157,7 @@ class GenTileCovarianceKernel
 // GenTileFullPriorCovarianceKernel ///////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief
+ * @brief Class for the kernel to generate a tile of the prior covariance matrix
  *
  */
 class GenTileFullPriorCovarianceKernel
@@ -162,6 +173,10 @@ class GenTileFullPriorCovarianceKernel
     double vertical_lengthscale_;
 
   public:
+
+    /**
+     * @brief Constructor of the kernel to generate a tile of the prior covariance matrix
+     */
     explicit GenTileFullPriorCovarianceKernel(
         double *d_tile,
         const double *d_input_input,
@@ -180,6 +195,11 @@ class GenTileFullPriorCovarianceKernel
         vertical_lengthscale_(sek_params.vertical_lengthscale)
     { }
 
+    /**
+     * @brief The operator() implements the actual kernel functionality.
+     * 
+     * @param item The SYCL item representing the current thread.
+     */
     void operator()(const sycl::item<2> &item) const
     {
         const std::size_t i = item.get_id(0);
@@ -206,7 +226,7 @@ class GenTileFullPriorCovarianceKernel
 // GenTilePriorCovarianceKernel ///////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief
+ * @brief Class for the kernel to generate the diagonal of a diagonal tile in the prior covariance matrix
  *
  */
 class GenTilePriorCovarianceKernel
@@ -222,6 +242,10 @@ class GenTilePriorCovarianceKernel
     double vertical_lengthscale_;
 
   public:
+
+    /**
+    * @brief Constructor of the kernel to generate the diagonal of a diagonal tile in the prior covariance matrix
+    */
     explicit GenTilePriorCovarianceKernel(
         double *d_tile,
         const double *d_input_input,
@@ -240,6 +264,11 @@ class GenTilePriorCovarianceKernel
         vertical_lengthscale_(sek_params.vertical_lengthscale)
     { }
 
+    /**
+     * @brief The operator() implements the actual kernel functionality.
+     * 
+     * @param id The SYCL id representing the current thread.
+     */
     void operator()(const sycl::id<1> &id) const
     {
         std::size_t i_global = n_tile_size * tile_row + id;
@@ -263,8 +292,7 @@ class GenTilePriorCovarianceKernel
 // GenTileCrossCovarianceKernel ///////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief
- *
+ * @brief Class for the kernel to generate a tile of the cross-covariance matrix
  */
 class GenTileCrossCovarianceKernel
 {
@@ -281,6 +309,10 @@ class GenTileCrossCovarianceKernel
     double vertical_lengthscale_;
 
   public:
+
+    /**
+    * @brief Constructor of the kernel to generate a tile of the cross-covariance matrix
+    */
     explicit GenTileCrossCovarianceKernel(
         double *d_tile,
         const double *d_row_input,
@@ -303,6 +335,11 @@ class GenTileCrossCovarianceKernel
         vertical_lengthscale_(sek_params.vertical_lengthscale)
     { }
 
+    /**
+     * @brief The operator() implements the actual kernel functionality.
+     * 
+     * @param item The SYCL item representing the current thread.
+     */
     void operator()(const sycl::item<2> &item) const
     {
         const std::size_t i = item.get_id(0);
@@ -329,8 +366,7 @@ class GenTileCrossCovarianceKernel
 // GenTileOutputKernel ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief
- *
+ * @brief Class for the kernel to generate a tile of the output data
  */
 class GenTileOutputKernel
 {
@@ -341,6 +377,10 @@ class GenTileOutputKernel
     std::size_t n_tile_size;
 
   public:
+
+    /**
+    * @brief Constructor of the kernel to generate a tile of the output data
+    */
     explicit GenTileOutputKernel(double *tile, const double *output, std::size_t row, std::size_t n_tile_size) :
         tile(tile),
         output(output),
@@ -348,6 +388,11 @@ class GenTileOutputKernel
         n_tile_size(n_tile_size)
     { }
 
+    /**
+     * @brief The operator() implements the actual kernel functionality.
+     * 
+     * @param id The SYCL id representing the current thread.
+     */
     void operator()(const sycl::id<1> &id) const
     {
         std::size_t i_global = n_tile_size * row + id;

@@ -105,7 +105,7 @@ void backward_solve_tiled_matrix(
  *
  * @param ft_tiles Tiled matrix represented as a vector of futurized tiles.
  * @param ft_vector Tiled vector represented as a vector of futurized tiles.
- * @param ft_rhsTiled solution represented as a vector of futurized tiles.
+ * @param ft_rhs Tiled solution represented as a vector of futurized tiles.
  * @param N_row Tile size of first dimension.
  * @param N_col Tile size of second dimension.
  * @param n_tiles Number of tiles in first dimension.
@@ -141,6 +141,17 @@ void symmetric_matrix_matrix_diagonal_tiled(
     const std::size_t m_tiles,
     gprat::SYCL_DEVICE &sycl_device);
 
+/**
+ * @brief Compute the tiled matrix-vector product alpha = invK * y
+ *
+ * @param ft_invK Futures holding the tiles of the inverse kernel matrix
+ *                invK
+ * @param ft_y Futures holding the tiles of the input vector y
+ * @param ft_alpha Futures holding the tiles of the output vector alpha
+ * @param n_tile_size The number of elements per tile dimension
+ * @param n_tiles The number of tiles per matrix dimension
+ * @param sycl_device The SYCL device used to launch GEMV operations
+ */
 void compute_gemm_of_invK_y(std::vector<hpx::shared_future<double *>> &ft_invK,
                             std::vector<hpx::shared_future<double *>> &ft_y,
                             std::vector<hpx::shared_future<double *>> &ft_alpha,

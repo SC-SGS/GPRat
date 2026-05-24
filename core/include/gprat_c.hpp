@@ -12,7 +12,7 @@
 namespace gprat
 {
 
-// struct GP_data /////////////////////////////////////////////////////////////////////////////////////////////////////
+// GP_data ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Data structure for Gaussian Process data
@@ -42,11 +42,12 @@ struct GP_data
      *
      * @param f_path Path to the file
      * @param n Number of samples
+     * @param n_reg Number of regressors
      */
     GP_data(const std::string &file_path, int n, int n_reg);
 };
 
-// Class GP ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GP /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Gaussian Process class for regression tasks
@@ -147,7 +148,7 @@ class GP
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @brief Constructs a Gaussian Process (GP) for GPU computations
+     * @brief Constructs a Gaussian Process (GP) for GPU computations using CUDA or SYCL
      *
      * @param input Input data for training of the GP
      * @param output Expected output data for training of the GP
@@ -205,7 +206,7 @@ class GP
      * @brief Predict output for test input and additionally compute full
      * posterior covariance matrix.
      *
-     * @param test_input Test input data
+     * @param test_data Test input data
      * @param m_tiles Number of tiles
      * @param m_tile_size Size of each tile
      *
@@ -227,7 +228,7 @@ class GP
     /**
      * @brief Perform a single optimization step
      *
-     * @param hyperparams Hyperparameters of squared exponential kernel:
+     * @param adam_params Hyperparameters of squared exponential kernel:
      *        lengthscale, vertical_lengthscale, noise_variance
      * @param iter number of iterations
      *

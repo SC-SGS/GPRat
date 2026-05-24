@@ -16,7 +16,7 @@
 // BLAS LEVEL 3 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief In-place Cholesky decomposition of A
+ * @brief In-place Cholesky decomposition of f_A
  *
  * @param queue SYCL queue
  * @param f_A matrix to be factorized
@@ -29,7 +29,6 @@ double *potrf(sycl::queue queue, double *f_A, const std::size_t N);
 /**
  * @brief In-place solve A(^T) * X = B or X * A(^T) = B for lower triangular A
  *
- * @param cublas cuBLAS handle, already created
  * @param queue SYCL queue
  * @param f_A lower triangular matrix
  * @param f_B right hand side matrix
@@ -56,7 +55,7 @@ double *trsm(sycl::queue queue,
  * @param f_C Symmetric matrix
  * @param N matrix dimension
  *
- * @return updated matrix f_A, inplace update
+ * @return updated matrix f_A, in-place update
  */
 double *syrk(sycl::queue queue, double *f_A, double *f_C, const std::size_t N);
 
@@ -149,6 +148,9 @@ double *ger(sycl::queue queue, double *f_A, double *f_x, double *f_y, const std:
  */
 double *dot_diag_syrk(sycl::queue queue, double *f_A, double *f_r, const std::size_t M, const std::size_t N);
 
+/**
+ * @brief Kernel class for vector update with diagonal SYRK
+ */
 class DotDiagSyrkKernel
 {
   private:
@@ -158,8 +160,22 @@ class DotDiagSyrkKernel
     std::size_t N;
 
   public:
+
+    /**
+     * @brief Constructor for DotDiagSyrkKernel for vector update with diagonal SYRK
+     * 
+     * @param A update matrix
+     * @param r base vector
+     * @param M number of rows of A
+     * @param N number of columns of A
+     */
     explicit DotDiagSyrkKernel(double *A, double *r, const std::size_t M, const std::size_t N);
 
+    /**
+     * @brief The operator() of DotDiagSyrkKernel implements the actual kernel
+     * 
+     * @param id global SYCL id of the kernel
+     */
     void operator()(const sycl::id<1> &id) const;
 };
 
@@ -178,6 +194,9 @@ class DotDiagSyrkKernel
 double *
 dot_diag_gemm(sycl::queue queue, double *f_A, double *f_B, double *f_r, const std::size_t M, const std::size_t N);
 
+/**
+ * @brief Kernel class for vector update with diagonal GEMM
+ */
 class DotDiagGemmKernel
 {
   private:
@@ -188,8 +207,22 @@ class DotDiagGemmKernel
     std::size_t N;
 
   public:
+    /**
+     * @brief Constructor for DotDiagGemmKernel for vector update with diagonal GEMM
+     * 
+     * @param A first update matrix, of size NxN
+     * @param B second update matrix, of size NxM
+     * @param r base vector
+     * @param M first matrix dimension
+     * @param N second matrix dimension
+     */
     explicit DotDiagGemmKernel(double *A, double *B, double *r, const std::size_t M, const std::size_t N);
 
+    /**
+     * @brief The operator() of DotDiagGemmKernel implements the actual kernel
+     * 
+     * @param id global SYCL id of the kernel
+     */
     void operator()(const sycl::id<1> &id) const;
 };
 

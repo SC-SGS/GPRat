@@ -17,10 +17,10 @@ namespace gprat::sycl_backend
 /**
  * @brief Generate a tile of the covariance matrix
  *
- * @param input The input data vector
- * @param row The row index of the tile in the tiled matrix
- * @param col The column index of the tile in the tiled matrix
- * @param N The dimension of the quadratic tile (N*N elements)
+ * @param d_input The input data vector
+ * @param tile_row The row index of the tile in the tiled matrix
+ * @param tile_column The column index of the tile in the tiled matrix
+ * @param n_tile_size The dimension of the quadratic tile (N*N elements)
  * @param n_regressors The number of regressors
  * @param sek_params The kernel hyperparameters
  * @param sycl_device SYCL target for computations
@@ -39,10 +39,10 @@ double *gen_tile_covariance(const double *d_input,
 /**
  * @brief Generate the diagonal of a diagonal tile in the prior covariance matrix
  *
- * @param input The input data vector
+ * @param d_input The input data vector
  * @param tile_row The row index of the tile in the tiled matrix
- * @param tile_col The column index of the tile in the tiled matrix
- * @param N The dimension of the tile diagonal
+ * @param tile_column The column index of the tile in the tiled matrix
+ * @param n_tile_size The dimension of the quadratic tile (N*N elements)
  * @param n_regressors The number of regressors
  * @param sek_params The kernel hyperparameters
  * @param sycl_device SYCL target for computations
@@ -64,10 +64,10 @@ double *gen_tile_prior_covariance(
  *
  * @param d_row_input input data for row, allocated on device
  * @param d_col_input input data for column, allocated on device
- * @param row The row index of the tile in the tiled matrix
- * @param col The column index of the tile in the tiled matrix
- * @param tile_row The row-wise dimension of the tile
- * @param tile_column The column-wise dimension of the tile
+ * @param tile_row The row index of the tile in the tiled matrix
+ * @param tile_column The column index of the tile in the tiled matrix
+ * @param n_row_tile_size The row-wise dimension of the tile
+ * @param n_column_tile_size The column-wise dimension of the tile
  * @param n_regressors The number of regressors
  * @param sek_params The kernel hyperparameters
  * @param sycl_device SYCL target for computations
@@ -90,7 +90,8 @@ double *gen_tile_cross_covariance(
  *
  * @param n_row_tile_size The row-wise dimension of the tile
  * @param n_column_tile_size The column-wise dimension of the tile
- * @param tile The tile to transpose
+ * @param f_tile The tile to transpose
+ * @param sycl_device SYCL target for computations
  *
  * @return The transposed tile of size n_row_tile_size x n_column_tile_size
  */
@@ -104,7 +105,7 @@ hpx::shared_future<double *> gen_tile_transpose(std::size_t n_row_tile_size,
  *
  * @param row The row index of the tile in relation to the tiled matrix
  * @param n_tile_size The size of the tile
- * @param output The output data vector
+ * @param d_output The output data vector
  * @param sycl_device SYCL target for computations
  * @return A tile of the output data of size n_tile_size
  */
@@ -116,7 +117,7 @@ double *gen_tile_output(
  *
  * @param n_tiles The number of tiles per dimension
  * @param n_tile_size The number of elements per tile
- * @param b The ground throuth
+ * @param b The ground truth
  * @param tiles The tiled matrix
  */
 double compute_error_norm(const std::size_t n_tiles,
@@ -128,6 +129,7 @@ double compute_error_norm(const std::size_t n_tiles,
  * @brief Generate a tile initialized with zero
  *
  * @param n_tile_size The size of the tile
+ * @param sycl_device SYCL target for computations
  *
  * @return A tile filled with zeros of size N
  */
@@ -250,7 +252,7 @@ std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles_full(
  * @brief Allocates the tiled transpose cross covariance matrix on the device
  *        given the cross covariance matrix.
  *
- * Allocates device memory and copies the tranposed cross covariance matrix std::size_to
+ * Allocates device memory and copies the tranposed cross covariance matrix to
  * it.
  *
  * @param d_cross_covariance_tiles The cross covariance matrix
@@ -286,7 +288,7 @@ assemble_y_tiles(const double *d_training_output,
  * @brief Allocates the tiled covariance matrix on the device given the training
  *        data.
  *
- * @param d_training_input The training input data
+ * @param d_tiles The training input data
  * @param n_tile_size The size of the tile
  * @param n_tiles The number of tiles per dimension
  * @param sycl_device SYCL target for computations
@@ -317,6 +319,7 @@ std::vector<std::vector<double>> move_lower_tiled_matrix_to_host(
  *
  * @param d_tiles The tiles on the device
  * @param n_tiles The number of tiles
+ * @param sycl_device SYCL target for computations
  */
 void free_lower_tiled_matrix(const std::vector<hpx::shared_future<double *>> &d_tiles,
                              const std::size_t n_tiles,

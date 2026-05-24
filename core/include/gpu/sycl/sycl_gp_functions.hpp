@@ -14,7 +14,7 @@ namespace gprat::sycl_backend
  * @param training_input The training input data
  * @param training_output The raining output data
  * @param test_input The test input data
- * @param hyperparameters The kernel hyperparameters
+ * @param sek_params The kernel hyperparameters
  * @param n_tiles The number of training tiles
  * @param n_tile_size The size of each training tile
  * @param m_tiles The number of test tiles
@@ -42,7 +42,7 @@ predict(const std::vector<double> &training_input,
  * @param training_input The training input data
  * @param training_output The raining output data
  * @param test_input The test input data
- * @param hyperparameters The kernel hyperparameters
+ * @param sek_params The kernel hyperparameters
  * @param n_tiles The number of training tiles
  * @param n_tile_size The size of each training tile
  * @param m_tiles The number of test tiles
@@ -69,8 +69,8 @@ std::vector<std::vector<double>> predict_with_uncertainty(
  *
  * @param training_input The training input data
  * @param training_output The raining output data
- * @param test_input The test input data
- * @param hyperparameters The kernel hyperparameters
+ * @param test_data The test input data
+ * @param sek_params The kernel hyperparameters
  * @param n_tiles The number of training tiles
  * @param n_tile_size The size of each training tile
  * @param m_tiles The number of test tiles
@@ -97,7 +97,7 @@ std::vector<std::vector<double>> predict_with_full_cov(
  *
  * @param training_input The training input data
  * @param training_output The raining output data
- * @param hyperparameters The kernel hyperparameters
+ * @param sek_params The kernel hyperparameters
  * @param n_tiles The number of training tiles
  * @param n_tile_size The size of each training tile
  * @param n_regressors The number of regressors
@@ -117,12 +117,10 @@ double compute_loss(const std::vector<double> &training_input,
  * @brief Perform Cholesky decompositon (+ Assembly)
  *
  * @param training_input The training input data
- * @param hyperparameters The kernel hyperparameters
- *
+ * @param sek_params The kernel hyperparameters
  * @param n_tiles The number of training tiles
  * @param n_tile_size The size of each training tile
  * @param n_regressors The number of regressors
- *
  * @param sycl_device SYCL target for computations
  *
  * @return The tiled Cholesky factor

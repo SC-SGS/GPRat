@@ -24,7 +24,7 @@ struct DeviceParameters
  * @brief This class represents the target on which to perform the Gaussian
  *        Process computations: either CPU or GPU.
  *
- * The respective subclasses implement specific targets: CPU, CUDA_GPU.
+ * The respective subclasses implement specific targets: CPU, CUDA_GPU, SYCL_DEVICE.
  * They may also set additional attributes or function that are required when
  * using this target.
  */
@@ -38,12 +38,17 @@ struct Target
     virtual bool is_cpu() = 0;
 
     /**
-     * @brief Returns true if target is GPU.
+     * @brief Returns true if target is a CUDA GPU.
      *
      * Implemented by subclasses.
      */
     virtual bool is_gpu() = 0;
 
+    /**
+     * @brief Returns true if target is a SYCL device.
+     *
+     * Implemented by subclasses.
+     */
     virtual bool is_sycl() = 0;
 
     /**
@@ -75,12 +80,12 @@ struct CPU : public Target
     bool is_cpu() override;
 
     /**
-     * @brief Returns false because CPU target is not GPU.
+     * @brief Returns false because CPU target is not a CUDA GPU.
      */
     bool is_gpu() override;
 
     /**
-     * @brief Returns false because CPU target is not GPU.
+     * @brief Returns false because CPU target is not a SYCL device.
      */
     bool is_sycl() override;
 
@@ -135,12 +140,12 @@ struct CUDA_GPU : public Target
     bool is_cpu() override;
 
     /**
-     * @brief Returns true because target is GPU.
+     * @brief Returns true because target is a CUDA GPU.
      */
     bool is_gpu() override;
 
     /**
-     * @brief Returns true because target is GPU.
+     * @brief Returns false because target is not a SYCL device.
      */
     bool is_sycl() override;
 
@@ -231,7 +236,7 @@ struct SYCL_DEVICE : public Target
     std::size_t id;
 
     /**
-     * @brief Number of SYCL_queues used asynchronous computation and data transfer.
+     * @brief Number of SYCL queues used asynchronous computation and data transfer.
      */
     std::size_t n_queues;
 
@@ -249,17 +254,17 @@ struct SYCL_DEVICE : public Target
     SYCL_DEVICE(int gpu_id, int n_queues);
 
     /**
-     * @brief Returns false because target is not CPU.
+     * @brief Returns false because target is not CPU.  
      */
     bool is_cpu() override;
 
     /**
-     * @brief Returns false because target is not CUDA.
+     * @brief Returns false because target is not a CUDA GPU.
      */
     bool is_gpu() override;
 
     /**
-     * @brief Returns false because target is not CUDA.
+     * @brief Returns true because target is a SYCL device.
      */
     bool is_sycl() override;
 
@@ -269,7 +274,7 @@ struct SYCL_DEVICE : public Target
     std::string repr() const override;
 
     /**
-     * @brief Creates n_streams SYCL queues.
+     * @brief Creates n_queues SYCL queues.
      *
      * WARNING: Call destroy() to free both resources after using them.
      */
@@ -294,7 +299,7 @@ struct SYCL_DEVICE : public Target
     /**
      * @brief Synchronizes the collection of SYCL queues.
      *
-     * The queue must have be retrieved by next_queue(). Thus, it can use the
+     * The queue must be retrieved by next_queue(). Thus, it can use the
      * cyclic ordering to sync each queue in subset_of_queues only once.
      *
      * @param subset_of_queue Vector of SYCL queues, previously retrieved
@@ -303,6 +308,7 @@ struct SYCL_DEVICE : public Target
     void sync_queues(std::vector<sycl::queue> &subset_of_queues);
 
   private:
+
     std::vector<sycl::queue> queues;
 };
 
@@ -312,7 +318,7 @@ struct SYCL_DEVICE : public Target
  * @param id ID of SYCL device.
  * @param n_queues Number of queues to be created on SYCL device.
  *
- * @return GPU target
+ * @return SYCL target
  */
 SYCL_DEVICE get_sycl_device(int id, int n_queues);
 

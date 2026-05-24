@@ -22,7 +22,7 @@ namespace gprat::sycl_backend
  * copying the data.
  *
  * @param h_vector The vector to copy from the host
- * @param sycl_device The SYCL target for computations
+ * @param sycl_device The SYCL target
  *
  * @return A pointer to the copied vector on the device
  */

@@ -465,47 +465,6 @@ double compute_loss(const std::vector<double> &h_training_input,
     return loss_value.get();
 }
 
-// // optimize
-// ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// std::vector<double>
-// optimize(
-//     // const std::vector<double> &training_input,
-//     // const std::vector<double> &training_output,
-//     // int n_tiles,
-//     // int n_tile_size,
-//     // int n_regressors,
-//     // const gprat_hyper::AdamParams &adam_params,
-//     // const gprat_hyper::SEKParams &sek_params,
-//     // std::vector<bool> trainable_params,
-//     // gprat::SYCL_DEVICE &sycl_device
-// )
-// {
-//     throw std::logic_error("Function not implemented for GPU");
-//     // return std::vector<double>>();
-// }
-
-// // optimize_step
-// //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// double
-// optimize_step(
-//     // const std::vector<double> &training_input,
-//     // const std::vector<double> &training_output,
-//     // int n_tiles,
-//     // int n_tile_size,
-//     // int n_regressors,
-//     // gprat_hyper::AdamParams &adam_params,
-//     // gprat_hyper::SEKParams &sek_params,
-//     // std::vector<bool> trainable_params,
-//     // int iter,
-//     // gprat::SYCL_DEVICE &sycl_device
-// )
-// {
-//     throw std::logic_error("Function not implemented for GPU");
-//     // return 0.0;
-// }
-
 // cholesky ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 std::vector<std::vector<double>>

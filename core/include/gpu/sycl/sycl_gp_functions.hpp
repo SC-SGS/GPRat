@@ -113,69 +113,6 @@ double compute_loss(const std::vector<double> &training_input,
                     int n_regressors,
                     gprat::SYCL_DEVICE &sycl_device);
 
-// /**
-//  * @brief Perform optimization for a given number of iterations
-//  *
-//  * @param training_input The training input data
-//  * @param training_output The raining output data
-//  *
-//  * @param n_tiles The number of training tiles
-//  * @param n_tile_size The size of each training tile
-//  * @param n_regressors The number of regressors
-//  *
-//  * @param hyperparams The Adam optimizer hyperparameters
-//  * @param hyperparameters The kernel hyperparameters
-//  * @param trainable_params The vector containing a bool wheather to train a hyperparameter
-//  *
-//  * @param sycl_device SYCL target for computations
-//  *
-//  * @return A vector containing the loss values of each iteration
-//  */
-// std::vector<double>
-// optimize(
-//     // const std::vector<double> &training_input,
-//     // const std::vector<double> &training_output,
-//     // int n_tiles,
-//     // int n_tile_size,
-//     // int n_regressors,
-//     // const gprat_hyper::AdamParams &adam_params,
-//     // gprat_hyper::SEKParams &sek_params,
-//     // std::vector<bool> trainable_params,
-//     // gprat::SYCL_DEVICE &sycl_device
-//         );
-
-// /**
-//  * @brief Perform a single optimization step
-//  *
-//  * @param training_input The training input data
-//  * @param training_output The raining output data
-//  *
-//  * @param n_tiles The number of training tiles
-//  * @param n_tile_size The size of each training tile
-//  * @param n_regressors The number of regressors
-//  *
-//  * @param hyperparams The Adam optimizer hyperparameters
-//  * @param hyperparameters The kernel hyperparameters
-//  * @param trainable_params The vector containing a bool wheather to train a hyperparameter
-//  *
-//  * @param iter The current optimization iteration
-//  * @param sycl_device SYCL target for computations
-//  *
-//  * @return The loss value
-//  */
-// double optimize_step(
-//     // const std::vector<double> &training_input,
-//     // const std::vector<double> &training_output,
-//     // int n_tiles,
-//     // int n_tile_size,
-//     // int n_regressors,
-//     // gprat_hyper::AdamParams &adam_params,
-//     // gprat_hyper::SEKParams &sek_params,
-//     // std::vector<bool> trainable_params,
-//     // int iter,
-//     // gprat::SYCL_DEVICE &sycl_device
-// );
-
 /**
  * @brief Perform Cholesky decompositon (+ Assembly)
  *

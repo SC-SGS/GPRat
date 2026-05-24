@@ -39,7 +39,6 @@ double *diag_posterior(double *A, double *B, std::size_t M)
 
 double *diag_tile(double *A, std::size_t M)
 {
-    // sycl::queue queue = sycl_device.next_queue();
     sycl::queue queue(sycl::gpu_selector_v);
 
     double *diag_tile = sycl::malloc_device<double>(M, queue);

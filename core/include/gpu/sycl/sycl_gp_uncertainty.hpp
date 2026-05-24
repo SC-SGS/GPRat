@@ -1,6 +1,8 @@
 #ifndef SYCL_GP_UNCERTAINTY_H
 #define SYCL_GP_UNCERTAINTY_H
 
+#include <cstddef>
+
 namespace gprat::sycl_backend
 {
 

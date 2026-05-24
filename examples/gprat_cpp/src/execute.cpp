@@ -239,9 +239,9 @@ void example_gpu(Runtimes &runtimes,
 
 int main(int argc, char *argv[])
 {
-    std::string train_path = "../../../../data/data_19/training_input.txt";
-    std::string out_path = "../../../../data/data_19/training_output.txt";
-    std::string test_path = "../../../../data/data_19/test_input.txt";
+    std::string train_path = "../../../../data/data_1024/training_input.txt";
+    std::string out_path = "../../../../data/data_1024/training_output.txt";
+    std::string test_path = "../../../../data/data_1024/test_input.txt";
 
     gprat::example::GpratSettings settings;
 

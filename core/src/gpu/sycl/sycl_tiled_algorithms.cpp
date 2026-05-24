@@ -427,21 +427,21 @@ void update_grad_K_tiled_mkl(std::vector<hpx::shared_future<double *>> &ft_tiles
 }
 
 static double update_hyperparameter(
-    // const std::vector<hpx::shared_future<double *>> &ft_invK,
-    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    // double &hyperparameter,  // lengthscale or vertical-lengthscale
-    // gprat_hyper::SEKParams sek_params,
-    // gprat_hyper::AdamParams adam_params,
-    // const std::size_t n_tile_size,
-    // const std::size_t n_tiles,
-    // std::vector<hpx::shared_future<double>> &m_T,
-    // std::vector<hpx::shared_future<double>> &v_T,
-    // const std::vector<hpx::shared_future<double>> &beta1_T,
-    // const std::vector<hpx::shared_future<double>> &beta2_T,
-    // int iter,
-    // int param_idx,  // 0 for lengthscale, 1 for vertical-lengthscale
-    // gprat::SYCL_DEVICE &sycl_device
+    const std::vector<hpx::shared_future<double *>> &ft_invK,
+    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    double &hyperparameter,  // lengthscale or vertical-lengthscale
+    gprat_hyper::SEKParams sek_params,
+    gprat_hyper::AdamParams adam_params,
+    const std::size_t n_tile_size,
+    const std::size_t n_tiles,
+    std::vector<hpx::shared_future<double>> &m_T,
+    std::vector<hpx::shared_future<double>> &v_T,
+    const std::vector<hpx::shared_future<double>> &beta1_T,
+    const std::vector<hpx::shared_future<double>> &beta2_T,
+    int iter,
+    int param_idx,  // 0 for lengthscale, 1 for vertical-lengthscale
+    gprat::SYCL_DEVICE &sycl_device
 )
 {
     throw std::logic_error("Function not implemented for GPU");
@@ -449,88 +449,88 @@ static double update_hyperparameter(
 }
 
 double update_lengthscale(
-    // const std::vector<hpx::shared_future<double *>> &ft_invK,
-    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    // gprat_hyper::SEKParams sek_params,
-    // gprat_hyper::AdamParams adam_params,
-    // const std::size_t n_tile_size,
-    // const std::size_t n_tiles,
-    // std::vector<hpx::shared_future<double>> &m_T,
-    // std::vector<hpx::shared_future<double>> &v_T,
-    // const std::vector<hpx::shared_future<double>> &beta1_T,
-    // const std::vector<hpx::shared_future<double>> &beta2_T,
-    // int iter,
-    // gprat::SYCL_DEVICE &sycl_device
+    const std::vector<hpx::shared_future<double *>> &ft_invK,
+    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    gprat_hyper::SEKParams sek_params,
+    gprat_hyper::AdamParams adam_params,
+    const std::size_t n_tile_size,
+    const std::size_t n_tiles,
+    std::vector<hpx::shared_future<double>> &m_T,
+    std::vector<hpx::shared_future<double>> &v_T,
+    const std::vector<hpx::shared_future<double>> &beta1_T,
+    const std::vector<hpx::shared_future<double>> &beta2_T,
+    int iter,
+    gprat::SYCL_DEVICE &sycl_device
 )
 {
     return update_hyperparameter(
-        // ft_invK,
-        // ft_gradparam,
-        // ft_alpha,
-        // sek_params.lengthscale,
-        // sek_params,
-        // adam_params,
-        // n_tile_size,
-        // n_tiles,
-        // m_T,
-        // v_T,
-        // beta1_T,
-        // beta2_T,
-        // iter,
-        // 0,
-        // sycl_device
+        ft_invK,
+        ft_gradparam,
+        ft_alpha,
+        sek_params.lengthscale,
+        sek_params,
+        adam_params,
+        n_tile_size,
+        n_tiles,
+        m_T,
+        v_T,
+        beta1_T,
+        beta2_T,
+        iter,
+        0,
+        sycl_device
     );
 }
 
 double update_vertical_lengthscale(
-    // const std::vector<hpx::shared_future<double *>> &ft_invK,
-    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    // gprat_hyper::SEKParams sek_params,
-    // gprat_hyper::AdamParams adam_params,
-    // const std::size_t n_tile_size,
-    // const std::size_t n_tiles,
-    // std::vector<hpx::shared_future<double>> &m_T,
-    // std::vector<hpx::shared_future<double>> &v_T,
-    // const std::vector<hpx::shared_future<double>> &beta1_T,
-    // const std::vector<hpx::shared_future<double>> &beta2_T,
-    // int iter,
-    // gprat::SYCL_DEVICE &sycl_device
+    const std::vector<hpx::shared_future<double *>> &ft_invK,
+    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    gprat_hyper::SEKParams sek_params,
+    gprat_hyper::AdamParams adam_params,
+    const std::size_t n_tile_size,
+    const std::size_t n_tiles,
+    std::vector<hpx::shared_future<double>> &m_T,
+    std::vector<hpx::shared_future<double>> &v_T,
+    const std::vector<hpx::shared_future<double>> &beta1_T,
+    const std::vector<hpx::shared_future<double>> &beta2_T,
+    int iter,
+    gprat::SYCL_DEVICE &sycl_device
 )
 {
     return update_hyperparameter(
-        // ft_invK,
-        // ft_gradparam,
-        // ft_alpha,
-        // sek_params.vertical_lengthscale,
-        // sek_params,
-        // adam_params,
-        // n_tile_size,
-        // n_tiles,
-        // m_T,
-        // v_T,
-        // beta1_T,
-        // beta2_T,
-        // iter,
-        // 1,
-        // sycl_device
+        ft_invK,
+        ft_gradparam,
+        ft_alpha,
+        sek_params.vertical_lengthscale,
+        sek_params,
+        adam_params,
+        n_tile_size,
+        n_tiles,
+        m_T,
+        v_T,
+        beta1_T,
+        beta2_T,
+        iter,
+        1,
+        sycl_device
     );
 }
 
 double update_noise_variance(
-    // const std::vector<hpx::shared_future<double *>> &ft_invK,
-    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    // gprat_hyper::SEKParams sek_params,
-    // gprat_hyper::AdamParams adam_params,
-    // const std::size_t n_tile_size,
-    // const std::size_t n_tiles,
-    // std::vector<hpx::shared_future<double>> &m_T,
-    // std::vector<hpx::shared_future<double>> &v_T,
-    // const std::vector<hpx::shared_future<double>> &beta1_T,
-    // const std::vector<hpx::shared_future<double>> &beta2_T,
-    // int iter,
-    // gprat::SYCL_DEVICE &sycl_device
+    const std::vector<hpx::shared_future<double *>> &ft_invK,
+    const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    gprat_hyper::SEKParams sek_params,
+    gprat_hyper::AdamParams adam_params,
+    const std::size_t n_tile_size,
+    const std::size_t n_tiles,
+    std::vector<hpx::shared_future<double>> &m_T,
+    std::vector<hpx::shared_future<double>> &v_T,
+    const std::vector<hpx::shared_future<double>> &beta1_T,
+    const std::vector<hpx::shared_future<double>> &beta2_T,
+    int iter,
+    gprat::SYCL_DEVICE &sycl_device
 )
 {
     throw std::logic_error("Function not implemented for GPU");

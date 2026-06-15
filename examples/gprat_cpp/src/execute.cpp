@@ -25,6 +25,10 @@ struct Runtimes
 
 struct GpratSettings
 {
+    std::string train_in_file;
+    std::string train_out_file;
+    std::string test_in_file;
+
     int train_size_start;
     int train_size_end;
     int train_size_step;
@@ -55,6 +59,9 @@ GpratSettings tag_invoke(boost::json::value_to_tag<GpratSettings>, const boost::
 {
     GpratSettings settings;
     const auto &obj = jv.as_object();
+    extract(obj, settings.train_in_file, "TRAIN_IN_FILE");
+    extract(obj, settings.train_out_file, "TRAIN_OUT_FILE");
+    extract(obj, settings.test_in_file, "TEST_IN_FILE");
     extract(obj, settings.train_size_start, "TRAIN_SIZE_START");
     extract(obj, settings.train_size_end, "TRAIN_SIZE_END");
     extract(obj, settings.train_size_step, "STEP");
@@ -239,15 +246,9 @@ void example_gpu(Runtimes &runtimes,
 
 int main(int argc, char *argv[])
 {
-    std::string train_path = "../../../../data/data_1024/training_input.txt";
-    std::string out_path = "../../../../data/data_1024/training_output.txt";
-    std::string test_path = "../../../../data/data_1024/test_input.txt";
-
     gprat::example::GpratSettings settings;
 
     bool use_gpu = false;
-    int training_baseline =
-        settings.train_size_start > settings.n_tiles_start ? settings.train_size_start : settings.n_tiles_start;
 
     std::ifstream ifs("../../../../examples/gprat_cpp/config.json");
     if (!ifs.fail())
@@ -294,6 +295,9 @@ int main(int argc, char *argv[])
 
     std::string target = use_gpu ? utils::compiled_with_cuda() ? "cuda" : "sycl" : "cpu";
 
+    int training_baseline =
+        settings.train_size_start > settings.n_tiles_start ? settings.train_size_start : settings.n_tiles_start;
+
     // Loop over cores
     for (int core = settings.start_cores; core <= settings.end_cores; core *= 2)
     {
@@ -331,9 +335,9 @@ int main(int argc, char *argv[])
                     int tile_size = utils::compute_train_tile_size(train_size, n_tiles);
                     auto result = utils::compute_test_tiles(n_test, n_tiles, tile_size);
 
-                    gprat::GP_data training_input(train_path, train_size, settings.n_reg);
-                    gprat::GP_data training_output(out_path, train_size, settings.n_reg);
-                    gprat::GP_data test_input(test_path, n_test, settings.n_reg);
+                    gprat::GP_data training_input(settings.train_in_file, train_size, settings.n_reg);
+                    gprat::GP_data training_output(settings.train_out_file, train_size, settings.n_reg);
+                    gprat::GP_data test_input(settings.test_in_file, n_test, settings.n_reg);
 
                     gprat::example::Runtimes runtimes;
                     std::vector<bool> trainable = { true, true, true };

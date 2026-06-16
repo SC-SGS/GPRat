@@ -7,6 +7,7 @@
 
 // Standard library
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string_view>
@@ -250,12 +251,24 @@ int main(int argc, char *argv[])
 
     bool use_gpu = false;
 
-    std::ifstream ifs("../../../../examples/gprat_cpp/config.json");
+    std::ifstream ifs(GPRAT_CPP_CONFIG_PATH);
     if (!ifs.fail())
     {
         using iterator_type = std::istreambuf_iterator<char>;
         const std::string content(iterator_type{ ifs }, iterator_type{});
         settings = boost::json::value_to<gprat::example::GpratSettings>(boost::json::parse(content));
+
+        // Resolve data file paths relative to the config file's directory
+        const std::filesystem::path config_dir =
+            std::filesystem::path(GPRAT_CPP_CONFIG_PATH).parent_path();
+        auto resolve = [&](std::string &p)
+        {
+            if (!std::filesystem::path(p).is_absolute())
+                p = (config_dir / p).lexically_normal().string();
+        };
+        resolve(settings.train_in_file);
+        resolve(settings.train_out_file);
+        resolve(settings.test_in_file);
     }
     else
     {

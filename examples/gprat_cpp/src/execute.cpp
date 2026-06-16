@@ -98,7 +98,9 @@ void append_to_output_file(
     Runtimes &runtimes,
     int &l)
 {
-    std::ofstream outfile("../output.csv", std::ios::app);  // Append mode
+    const std::filesystem::path output_path =
+        std::filesystem::path(GPRAT_CPP_CONFIG_PATH).parent_path() / "output.csv";
+    std::ofstream outfile(output_path, std::ios::app);  // Append mode
     if (outfile.tellp() == 0)
     {
         // If file is empty, write the header

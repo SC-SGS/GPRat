@@ -129,7 +129,7 @@ if [[ "$3" == "yes" ]]; then
 
     cd ${BUILD_DIR}/examples/gprat_cpp/
     taskset -c 0-$core_count:2 ./gprat_cpp $GPRAT_USE_GPU > /dev/null
-    cp ../output.csv ../../../../benchmark_results_${HARDWARE}_${VENDOR}/gprat_cholesky_${VENDOR}_${GPRAT_TARGET}.csv
+    cp ../../../../examples/gprat_cpp/output.csv ../../../../benchmark_results_${HARDWARE}_${VENDOR}/gprat_cholesky_${VENDOR}_${GPRAT_TARGET}.csv
     cd ../../../..
 
 else

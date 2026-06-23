@@ -6,7 +6,6 @@
 #include "gpu/sycl/sycl_utils.hpp"
 #include "target.hpp"
 #include <hpx/algorithm.hpp>
-#include <sstream>
 
 namespace gprat::sycl_backend
 {

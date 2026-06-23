@@ -61,7 +61,9 @@ double compute_loss(const hpx::shared_future<double *> &K_diag_tile,
     // l = y^T * alpha + \sum_i^N log(L_ii^2)
     double l;
     // Compute y^T * alpha
-    l = *(dot(queue, y_tile.get(), alpha_tile.get(), N));
+    double *d_dot = dot(queue, y_tile.get(), alpha_tile.get(), N);
+    l = *d_dot;
+    sycl::free(d_dot, queue);
     // Compute \sum_i^N log(L_ii^2)
     for (std::size_t i = 0; i < N; i++)
     {

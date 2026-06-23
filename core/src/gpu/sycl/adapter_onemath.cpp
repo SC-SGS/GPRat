@@ -16,16 +16,24 @@ double *potrf(sycl::queue queue, double *f_A, const std::size_t N)
     // column-major cuBLAS POTRF for row-major stored A
     // for UPPER part of symmetric positive semi-definite matrix A
 
-    oneapi::math::lapack::potrf(
-        queue,
-        oneapi::math::uplo::upper,
-        static_cast<std::int64_t>(N),
-        f_A,
-        static_cast<std::int64_t>(N),
-        scratchpad,
-        scratchpad_size);
+    try
+    {
+        oneapi::math::lapack::potrf(
+            queue,
+            oneapi::math::uplo::upper,
+            static_cast<std::int64_t>(N),
+            f_A,
+            static_cast<std::int64_t>(N),
+            scratchpad,
+            scratchpad_size);
 
-    queue.wait();
+        queue.wait();
+    }
+    catch (...)
+    {
+        sycl::free(scratchpad, queue);
+        throw;
+    }
 
     sycl::free(scratchpad, queue);
 

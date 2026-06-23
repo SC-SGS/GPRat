@@ -40,6 +40,9 @@ potrf(cusolverDnHandle_t cusolver, cudaStream_t stream, hpx::shared_future<doubl
         h_work = reinterpret_cast<void *>(malloc(workspaceInBytesOnHost));
         if (h_work == nullptr)
         {
+            check_cuda_error(cudaFree(d_work));
+            check_cuda_error(cudaFree(d_info));
+            cusolverDnDestroyParams(params);
             throw std::runtime_error("Error: h_work not allocated.");
         }
     }
@@ -51,21 +54,33 @@ potrf(cusolverDnHandle_t cusolver, cudaStream_t stream, hpx::shared_future<doubl
     // column-major cuBLAS POTRF for row-major stored A
     // for UPPER part of symmetric positive semi-definite matrix A
 
-    cusolverDnXpotrf(
-        cusolver,
-        params,
-        CUBLAS_FILL_MODE_UPPER,
-        N,
-        CUDA_R_64F,
-        d_A,
-        N,
-        CUDA_R_64F,
-        d_work,
-        workspaceInBytesOnDevice,
-        h_work,
-        workspaceInBytesOnHost,
-        d_info);
-    check_cuda_error(cudaStreamSynchronize(stream));
+    try
+    {
+        cusolverDnXpotrf(
+            cusolver,
+            params,
+            CUBLAS_FILL_MODE_UPPER,
+            N,
+            CUDA_R_64F,
+            d_A,
+            N,
+            CUDA_R_64F,
+            d_work,
+            workspaceInBytesOnDevice,
+            h_work,
+            workspaceInBytesOnHost,
+            d_info);
+        check_cuda_error(cudaStreamSynchronize(stream));
+    }
+    catch (...)
+    {
+        check_cuda_error(cudaFree(d_work));
+        if (h_work != nullptr)
+            free(h_work);
+        check_cuda_error(cudaFree(d_info));
+        cusolverDnDestroyParams(params);
+        throw;
+    }
 
     check_cuda_error(cudaFree(d_work));
     if (h_work != nullptr)

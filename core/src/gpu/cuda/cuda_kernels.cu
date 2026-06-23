@@ -1,6 +1,6 @@
-#include "gpu/cuda_kernels.cuh"
+#include "gpu/cuda/cuda_kernels.cuh"
 
-#include "gpu/cuda_utils.cuh"
+#include "gpu/cuda/cuda_utils.cuh"
 
 __global__ void transpose(double *transposed, double *original, std::size_t width, std::size_t height)
 {

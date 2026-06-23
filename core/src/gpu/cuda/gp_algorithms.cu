@@ -1,9 +1,9 @@
-#include "gpu/gp_algorithms.cuh"
+#include "gpu/cuda/gp_algorithms.cuh"
 
 #include "gp_kernels.hpp"
-#include "gpu/cuda_kernels.cuh"
-#include "gpu/cuda_utils.cuh"
-#include "gpu/gp_optimizer.cuh"
+#include "gpu/cuda/cuda_kernels.cuh"
+#include "gpu/cuda/cuda_utils.cuh"
+#include "gpu/cuda/gp_optimizer.cuh"
 #include "target.hpp"
 #include <cuda_runtime.h>
 #include <hpx/algorithm.hpp>

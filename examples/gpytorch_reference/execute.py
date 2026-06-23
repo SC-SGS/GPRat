@@ -1,14 +1,20 @@
+'''
+Reference implementation for Gaussian process regression using GPyTorch.
+'''
+
+# Imports
 import time
 import logging
 import torch
 import gpytorch
 import os
 import argparse
-
 from config import get_config
 from gpytorch_logger import setup_logging
-from utils import load_data, ExactGPModel, train, predict, predict_with_var
+from utils import load_data, ExactGPModel, predict_with_full_cov, train, predict, predict_with_var
+import gc
 
+# Global definitions
 logger = logging.getLogger()
 log_filename = "./gpytorch_logs.log"
 
@@ -18,73 +24,137 @@ parser.add_argument(
     action="store_true",
     help="Flag to use GPU (assuming available)",
 )
+
 args = parser.parse_args()
 
+def get_device(use_gpu):
+    """
+    Returns a tuple containing 
+    - a device object corrsponding to user preference if available, and the CPU
+      otherwise
+    - a string representation of the device
 
-def gpytorch_run(config, output_file, size_train, l, cores):
+    Args:
+        use_gpu (bool): whether to use GPU or not if available
+
+    Returns:
+        tuple: a tuple of a device and a string
+    """
+    if not use_gpu:
+        return torch.device("cpu"), "cpu"
+
+    # NVIDIA CUDA or AMD ROCm
+    if torch.cuda.is_available():
+        return torch.device("cuda"), torch.cuda.get_device_name(0)
+
+    # Intel GPU
+    if hasattr(torch, "xpu") and torch.xpu.is_available():
+        return torch.device("xpu"), torch.xpu.get_device_name(0)
+
+    return torch.device("cpu"), "cpu"
+
+
+def sync_if_needed(device):
+    if device.type == "cuda":
+        torch.cuda.synchronize()
+    if device.type == "xpu":
+        torch.xpu.synchronize()
+
+
+def gpytorch_run(
+        config, output_file, size_train, size_test, loop_index, cores, device, target, \
+        is_warmup=False
+        ):
     """
     Run the Gaussian process regression pipeline.
 
     Args:
-        config (dict): Configuration parameters for the pipeline.
-        output_csv_obj (csv.writer): CSV writer object for writing output data.
-        size_train (int): Size of the training dataset.
-        l (int): Loop index.
+        config (dict):                  Configuration parameters for the pipeline.
+        output_csv_obj (csv.writer):    CSV writer object for writing output data.
+        size_train (int):               Size of the training dataset.
+        size_test (int):                Size of the test dataset.
+        loop_index (int):               Loop index.
+        cores (int):                    Number of CPU cores to use.
+        device (torch.device):          Device to use for computation.
+        target (str):                   Target device name.
+        is_warmup (bool):               Flag to indicate if this is a warmup run.
     """
-    total_t = time.time()
-    target = "gpu" if args.use_gpu and torch.cuda.is_available() else "cpu"
-    device = torch.device("cuda" if args.use_gpu and torch.cuda.is_available() else "cpu")
+    total_t = time.perf_counter()
+
+    # Load data
+    load_t = time.perf_counter()
     X_train, Y_train, X_test, Y_test = load_data(
-        train_in_path=config["train_in_file"],
-        train_out_path=config["train_out_file"],
-        test_in_path=config["test_in_file"],
-        test_out_path=config["test_out_file"],
+        train_in_path=config["TRAIN_IN_FILE"],
+        train_out_path=config["TRAIN_OUT_FILE"],
+        test_in_path=config["TEST_IN_FILE"],
+        test_out_path=config["TEST_OUT_FILE"],
         size_train=size_train,
-        size_test=config["N_TEST"],
-        n_regressors=config["N_REG"],
+        size_test=size_test,
+        n_regressors=config["N_REG"]
     )
-    if args.use_gpu and torch.cuda.is_available():
-        X_train, Y_train, X_test, Y_test = X_train.to(device), Y_train.to(device), X_test.to(device), Y_test.to(device)
+    if args.use_gpu and device.type != "cpu":
+        X_train, Y_train, X_test, Y_test = \
+            X_train.to(device), Y_train.to(device), X_test.to(device), Y_test.to(device)
+        sync_if_needed(device)
+    load_t = time.perf_counter() - load_t
 
-    # logger.info("Finished loading the data.")
-
-    init_t = time.time()
+    # Initialize model
+    init_t = time.perf_counter()
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
     likelihood.noise = 0.1
     model = ExactGPModel(X_train, Y_train, likelihood)
-    if args.use_gpu and torch.cuda.is_available():
+    if args.use_gpu and device.type != "cpu":
         model = model.to(device)
         likelihood = likelihood.to(device)
-    init_t = time.time() - init_t
-    # logger.info("Initialized model.")
+        sync_if_needed(device)
+    init_t = time.perf_counter() - init_t
 
-    train_t = time.time()
+    # Train model
+    train_t = time.perf_counter()
     train(model, likelihood, X_train, Y_train, training_iter=config['OPT_ITER'])
-    train_t = time.time() - train_t
-    # logger.info("Trained model.")
+    sync_if_needed(device)
+    train_t = time.perf_counter() - train_t
 
-    pred_var_t = time.time()
-    f_pred, f_var = predict_with_var(model, likelihood, X_test)
-    pred_var_t = time.time() - pred_var_t
-    # logger.info("Finished making predictions.")
+    # Make predictions with full covariance matrix
+    pred_full_t = time.perf_counter()
+    f_pred_full, f_var_full = predict_with_full_cov(model, likelihood, X_test)
+    sync_if_needed(device)
+    pred_full_t = time.perf_counter() - pred_full_t
 
-    pred_t = time.time()
+    # Make predictions with uncertainty
+    pred_var_t = time.perf_counter()
+    predict_with_var(model, likelihood, X_test)
+    sync_if_needed(device)
+    pred_var_t = time.perf_counter() - pred_var_t
+
+    # Make predictions without uncertainty
+    pred_t = time.perf_counter()
     f_pred = predict(model, likelihood, X_test)
-    pred_t = time.time() - pred_t
-    # logger.info("Finished making predictions.")
+    sync_if_needed(device)
+    pred_t = time.perf_counter() - pred_t
 
-    TOTAL_TIME = time.time() - total_t
+    # Assign runtimes
+    TOTAL_TIME = time.perf_counter() - total_t
+    LOAD_TIME = load_t
     INIT_TIME = init_t
     OPT_TIME = train_t
+    PRED_FULL_TIME = pred_full_t
     PRED_UNCER_TIME = pred_var_t
     PREDICTION_TIME = pred_t
-    # ERROR = calculate_error(Y_test, y_pred).detach().cpu().numpy()
 
-    row_data = f"{target},{cores},{size_train},{config['N_TEST']},{config['N_REG']},{config['OPT_ITER']},{TOTAL_TIME},{INIT_TIME},{OPT_TIME},{PREDICTION_TIME},{l}\n"
-    output_file.write(row_data)
+    if not is_warmup:
 
-    logger.info(f"{cores},{size_train},{config['N_TEST']},{config['N_REG']},{config['OPT_ITER']},{TOTAL_TIME},{INIT_TIME},{OPT_TIME},{PRED_UNCER_TIME},{PREDICTION_TIME},{l}")
-    #logger.info("Completed iteration.")
+        row_data = \
+            f"{target},{cores},{size_train},{size_test},{config['N_REG']},"\
+            f"{config['OPT_ITER']},{TOTAL_TIME},{LOAD_TIME},{INIT_TIME},{OPT_TIME},"\
+            f"{PRED_FULL_TIME},{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}\n"
+        output_file.write(row_data)
+
+        logger.info(
+            f"{target},{cores},{size_train},{size_test},{config['N_REG']},"\
+            f"{config['OPT_ITER']},{TOTAL_TIME},{LOAD_TIME},{INIT_TIME},{OPT_TIME},"\
+            f"{PRED_FULL_TIME},{PRED_UNCER_TIME},{PREDICTION_TIME},{loop_index}\n"
+        )
 
 
 def execute():
@@ -97,7 +167,9 @@ def execute():
         - Iterate through different training sizes and for each training size
         loop for a specified amount of times while executing `gpytorch_run` function.
     """
-    setup_logging(log_filename, True, logger)
+
+    torch.set_num_interop_threads(1)
+
     logger.info("\n")
     logger.info("-" * 40)
     logger.info("Load config file.")
@@ -108,30 +180,64 @@ def execute():
 
     with open(file_path, "a") as output_file:
         if not file_exists or os.stat(file_path).st_size == 0:
-            # logger.info("Write output file header")
-            logger.info("Target,Cores,N_train,N_test,N_reg,Opt_iter,Total_time,Init_time,Opt_Time,Pred_Var_time,Pred_time,N_loop")
-            header = "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Init_time,Opt_time,Pred_Uncer_time,Predict_time,N_loop\n"
+            logger.info(
+                "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Load_time,"\
+                "Init_time,Opt_Time,Pred_Full_time,Pred_Uncer_time,Predict_time,N_loop"
+            )
+            header = \
+                "Target,Cores,N_train,N_test,N_regressor,Opt_iter,Total_time,Load_time,"\
+                "Init_time,Opt_Time,Pred_Full_time,Pred_Uncer_time,Predict_time,N_loop\n"
             output_file.write(header)
 
-        if config["PRECISION"] == "float32":
-            torch.set_default_dtype(torch.float32)
+        if config["PRECISION"] == "float128":
+            torch.set_default_dtype(torch.float128)
         else:
             torch.set_default_dtype(torch.float64)
 
-        # runs tests on exponentially increasing number of cores and
-        # data size, for multiple loops (each loop starts with *s)
-        torch.set_num_threads(config["N_CORES"])
+        device, target = get_device(args.use_gpu)
+        test_scale_factor = config["STEP"] if config["SCALE_TEST_WITH_TRAIN"] else 1
+
+        gpytorch_run(config, output_file, config["TRAIN_SIZE_END"], \
+                     config["TRAIN_SIZE_END"], 0, config["END_CORES"], device, \
+                     target, True)
+
         cores = config["START_CORES"]
-        while cores <= config["N_CORES"]:
-            data_size = config["START"]
-            while data_size <= config["END"]:
-                for l in range(config["LOOP"]):
+
+        while cores <= config["END_CORES"]:
+
+            torch.set_num_threads(cores)
+
+            data_size = config["TRAIN_SIZE_START"]
+            test_size = config["TEST_SIZE"] if not config["SCALE_TEST_WITH_TRAIN"] \
+                else config["TRAIN_SIZE_START"]
+
+            # Loop over training data sizes
+            while data_size <= config["TRAIN_SIZE_END"]:
+
+                # Loop over different test iterations
+                for loop_index in range(config["LOOP"]):
+
+                    # Loop to create test runs
                     logger.info("*" * 40)
-                    logger.info(f"Core: {cores}, Train Size: {data_size}, Loop: {l}")
-                    gpytorch_run(config, output_file, data_size, l, cores)
+                    logger.info(
+                        f"Cores: {cores}, Train Size: {data_size}, Loop: {loop_index}"
+                        )
+                    gc.collect()
+                    if not target == "cpu":
+                        torch.cuda.empty_cache()
+                    gpytorch_run(
+                        config, output_file, data_size, test_size, loop_index, cores, 
+                        device, target
+                    )
+
+                # Update sizes
                 data_size = data_size * config["STEP"]
-            cores = cores * 2
-    logger.info("Completed the program.")
+                test_size = test_size * test_scale_factor
+            
+            cores *= 2
+
+        logger.info("Completed the program.")
+
 
 def is_mkl_enabled():
     torch_config = torch.__config__.show()
@@ -139,7 +245,8 @@ def is_mkl_enabled():
     value = torch_config[index+8:index+10]
     return True if value == 'ON' else False
 
+
 if __name__ == "__main__":
-    # check if Intel oneAPI MKL is enabled
+    setup_logging(log_filename, True, logger)
     print("","-" * 18, "\n", "MKL enabled:", is_mkl_enabled(), "\n", "-" * 18)
     execute()

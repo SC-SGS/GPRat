@@ -5,13 +5,14 @@
 set -e
 
 spack_repo_dir=$PWD
+spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
 
-# Clone spack repository into $HOME/spack
-cd
+# Clone spack repository
+cd $spack_destination
 git clone -c feature.manyFiles=true --branch=v0.23.1 --depth=1 https://github.com/spack/spack.git
 
 # Configure spack (add this to your .bashrc file)
-source $HOME/spack/share/spack/setup-env.sh
+source $spack_destination/spack/share/spack/setup-env.sh
 # Find external compilers & software
 spack compiler find
 spack external find

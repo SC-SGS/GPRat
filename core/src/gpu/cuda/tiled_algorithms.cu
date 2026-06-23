@@ -1,8 +1,8 @@
-#include "gpu/tiled_algorithms.cuh"
+#include "gpu/cuda/tiled_algorithms.cuh"
 
-#include "gpu/adapter_cublas.cuh"
-#include "gpu/gp_optimizer.cuh"
-#include "gpu/gp_uncertainty.cuh"
+#include "gpu/cuda/adapter_cublas.cuh"
+#include "gpu/cuda/gp_optimizer.cuh"
+#include "gpu/cuda/gp_uncertainty.cuh"
 #include <hpx/algorithm.hpp>
 
 namespace gpu

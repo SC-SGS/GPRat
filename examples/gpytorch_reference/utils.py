@@ -143,6 +143,42 @@ def train(model, likelihood, X_train, Y_train, training_iter=10):
     return None
 
 
+def predict_with_full_cov(model, likelihood, X_test):
+    """
+    Predict the mean and full covariance matrix of latent function values and observed target values.
+
+    Args:
+        model (gpytorch.models.ExactGP): The trained Gaussian process regression model.
+        likelihood (gpytorch.likelihoods.GaussianLikelihood): The likelihood function.
+        X_test (torch.Tensor): The test input data.
+
+    Returns:
+        - f_mean (torch.Tensor): Mean of latent function values.
+        - f_var_matrix (torch.Tensor): Full covariance matrix of latent function values.
+    """
+    model.eval()
+    likelihood.eval()
+    with (torch.no_grad(), \
+        # Compute the exact posterior covariance
+        gpytorch.settings.fast_pred_var(False), \
+        # Kernel matrices are computed immediately, not lazily
+        gpytorch.settings.lazily_evaluate_kernels(False), \
+        gpytorch.settings.fast_computations(
+            # Compute exact Cholesky
+            covar_root_decomposition=False, \
+            # Compute the log-determinant exactly (via Cholesky)                                
+            log_prob=False, \
+            # Use direct solver                  
+            solves=False)
+        ):
+                                            
+        f_pred = model(X_test)
+        f_mean = f_pred.mean
+        f_var_matrix = f_pred.covariance_matrix
+
+    return f_mean, f_var_matrix
+
+
 def predict_with_var(model, likelihood, X_test):
     """
     Predict the mean and variance of latent function values and observed target values.
@@ -181,6 +217,7 @@ def predict_with_var(model, likelihood, X_test):
     '''
 
     return f_mean, f_var
+
 
 def predict(model, likelihood, X_test):
     """

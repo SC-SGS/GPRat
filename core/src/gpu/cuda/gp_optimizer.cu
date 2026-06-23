@@ -1,8 +1,8 @@
-#include "gpu/gp_optimizer.cuh"
+#include "gpu/cuda/gp_optimizer.cuh"
 
-#include "gpu/adapter_cublas.cuh"
-#include "gpu/cuda_kernels.cuh"
-#include "gpu/cuda_utils.cuh"
+#include "gpu/cuda/adapter_cublas.cuh"
+#include "gpu/cuda/cuda_kernels.cuh"
+#include "gpu/cuda/cuda_utils.cuh"
 
 namespace gpu
 {

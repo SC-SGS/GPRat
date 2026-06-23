@@ -141,4 +141,13 @@ bool compiled_with_cuda()
 #endif
 }
 
+bool compiled_with_sycl()
+{
+#if GPRAT_WITH_SYCL
+    return true;
+#else
+    return false;
+#endif
+}
+
 }  // namespace utils

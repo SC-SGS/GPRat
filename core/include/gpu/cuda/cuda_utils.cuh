@@ -1,12 +1,12 @@
 #ifndef CUDA_UTILS_H
 #define CUDA_UTILS_H
 
+#include "target.hpp"
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cusolverDn.h>
 #include <hpx/algorithm.hpp>
 #include <hpx/async_cuda/cuda_exception.hpp>
-#include <target.hpp>
 #include <vector>
 
 #define BLOCK_SIZE 16

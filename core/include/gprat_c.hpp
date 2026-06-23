@@ -12,6 +12,8 @@
 namespace gprat
 {
 
+// GP_data ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * @brief Data structure for Gaussian Process data
  *
@@ -40,9 +42,12 @@ struct GP_data
      *
      * @param f_path Path to the file
      * @param n Number of samples
+     * @param n_reg Number of regressors
      */
     GP_data(const std::string &file_path, int n, int n_reg);
 };
+
+// GP /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Gaussian Process class for regression tasks
@@ -78,6 +83,9 @@ class GP
     std::shared_ptr<Target> target_;
 
   public:
+    /// Variables
+    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /** @brief Number of regressors */
     int n_reg;
 
@@ -85,6 +93,9 @@ class GP
      * @brief Hyperarameters of the squared exponential kernel
      */
     gprat_hyper::SEKParams kernel_params;
+
+    /// Generic constructor
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @brief Constructs a Gaussian Process (GP)
@@ -109,6 +120,9 @@ class GP
        std::vector<bool> trainable_bool,
        std::shared_ptr<Target> target);
 
+    /// CPU constructor
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * @brief Constructs a Gaussian Process (GP) for CPU computations
      *
@@ -130,8 +144,11 @@ class GP
        std::vector<double> kernel_hyperparams,
        std::vector<bool> trainable_bool);
 
+    /// GPU constructor
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
-     * @brief Constructs a Gaussian Process (GP) for GPU computations
+     * @brief Constructs a Gaussian Process (GP) for GPU computations using CUDA or SYCL
      *
      * @param input Input data for training of the GP
      * @param output Expected output data for training of the GP
@@ -143,7 +160,7 @@ class GP
      *                           parameter of squared exponential kernel
      * @param trainable_bool Vector indicating which parameters are trainable
      * @param gpu_id GPU identifier
-     * @param n_streams Number of CUDA streams for GPU computations
+     * @param n_units Number of CUDA streams / SYCL queues for GPU computations
      */
     GP(std::vector<double> input,
        std::vector<double> output,
@@ -153,7 +170,10 @@ class GP
        std::vector<double> kernel_hyperparams,
        std::vector<bool> trainable_bool,
        int gpu_id,
-       int n_streams);
+       int n_units);
+
+    /// Class methods
+    /// /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Returns Gaussian Process attributes as string.
@@ -186,7 +206,7 @@ class GP
      * @brief Predict output for test input and additionally compute full
      * posterior covariance matrix.
      *
-     * @param test_input Test input data
+     * @param test_data Test input data
      * @param m_tiles Number of tiles
      * @param m_tile_size Size of each tile
      *
@@ -208,7 +228,7 @@ class GP
     /**
      * @brief Perform a single optimization step
      *
-     * @param hyperparams Hyperparameters of squared exponential kernel:
+     * @param adam_params Hyperparameters of squared exponential kernel:
      *        lengthscale, vertical_lengthscale, noise_variance
      * @param iter number of iterations
      *
@@ -226,6 +246,7 @@ class GP
      */
     std::vector<std::vector<double>> cholesky();
 };
+
 }  // namespace gprat
 
 #endif  // end of GPRAT_C_H

@@ -84,6 +84,10 @@ predict(const std::vector<double> &h_training_input,
     free(prediction_tiles);
     destroy(cusolver);
 
+    check_cuda_error(cudaFree(d_training_input));
+    check_cuda_error(cudaFree(d_training_output));
+    check_cuda_error(cudaFree(d_test_input));
+
     gpu.destroy();
 
     GPRAT_END_STEP(destroy_timer, "predict_step ressource destroy");

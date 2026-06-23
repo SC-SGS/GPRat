@@ -87,6 +87,10 @@ predict(const std::vector<double> &h_training_input,
     gprat::sycl_backend::free(cross_covariance_tiles, queue);
     gprat::sycl_backend::free(prediction_tiles, queue);
 
+    sycl::free(d_training_input, queue);
+    sycl::free(d_training_output, queue);
+    sycl::free(d_test_input, queue);
+
     sycl_device.destroy();
 
     return prediction;

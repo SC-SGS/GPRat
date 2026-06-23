@@ -72,9 +72,6 @@ void forward_solve_tiled(std::vector<hpx::shared_future<double *>> &ft_tiles,
                          gprat::SYCL_DEVICE &sycl_device)
 {
     double *result;
-    double *result_gemv;
-    double *test1;
-    double *test2;
 
     for (std::size_t k = 0; k < n_tiles; ++k)
     {
@@ -92,13 +89,10 @@ void forward_solve_tiled(std::vector<hpx::shared_future<double *>> &ft_tiles,
         for (std::size_t m = k + 1; m < n_tiles; ++m)
         {
             // GEMV: b = b - A * a
-            test1 = ft_rhs[m].get();
-            test2 = ft_tiles[m * n_tiles + k].get();
+            result =
+                gemv(gemv_queue, ft_tiles[m * n_tiles + k].get(), result, ft_rhs[m].get(), n_tile_size, n_tile_size, -1, oneapi::math::transpose::nontrans);
 
-            result_gemv =
-                gemv(gemv_queue, test2, result, test1, n_tile_size, n_tile_size, -1, oneapi::math::transpose::nontrans);
-
-            ft_rhs[m] = hpx::make_ready_future(result_gemv);
+            ft_rhs[m] = hpx::make_ready_future(result);
         }
     }
 }

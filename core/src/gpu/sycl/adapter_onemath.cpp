@@ -165,8 +165,11 @@ double *gemm(const sycl::queue &queue,
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
-double *
-trsv(const sycl::queue &queue, double *f_A, double *f_b, const std::size_t N, const oneapi::math::transpose is_A_transposed)
+double *trsv(const sycl::queue &queue,
+             double *f_A,
+             double *f_b,
+             const std::size_t N,
+             const oneapi::math::transpose is_A_transposed)
 {
     // row-major TRSV solves for x
     // op(A) * x = b

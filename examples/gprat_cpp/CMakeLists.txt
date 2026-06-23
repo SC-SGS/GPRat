@@ -71,9 +71,11 @@ add_compile_definitions(GPRAT_APEX_CHOLESKY=$<BOOL:${GPRAT_APEX_CHOLESKY}>)
 # Add the executable
 add_executable(gprat_cpp src/execute.cpp)
 
-# Bake in the absolute path to config.json so the binary works from any working directory
-target_compile_definitions(gprat_cpp PRIVATE
-    GPRAT_CPP_CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.json")
+# Bake in the absolute path to config.json so the binary works from any working
+# directory
+target_compile_definitions(
+  gprat_cpp
+  PRIVATE GPRAT_CPP_CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
 target_compile_features(gprat_cpp PUBLIC cxx_std_17)
 

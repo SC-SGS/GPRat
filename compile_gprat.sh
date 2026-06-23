@@ -99,6 +99,8 @@ then
 fi
 
 # Set Spack if on psgs04
+# SITE-SPECIFIC: spack_destination is hardcoded for the pcsgs04 cluster.
+# Adjust this path to match your local Spack installation before running on a different machine.
 if [[ "$HOSTNAME" == "pcsgs04" ]]; then
 
   spack_destination="/scratch/grafml/gprat-spack/spack/"
@@ -348,7 +350,9 @@ if command -v spack &>/dev/null; then
           # Set GPRat build options for SYCL on Intel GPUs
           GPRAT_SYCL_INTEL=ON
 
-          # Add oneMath installation to CMAKE_PREFIX_PATH
+          # Add oneMath installation to CMAKE_PREFIX_PATH.
+          # SITE-SPECIFIC: update this path to your local oneMath install prefix,
+          # or set CMAKE_PREFIX_PATH before invoking this script to override it.
           CMAKE_PREFIX_PATH="/scratch/grafml/oneMath_intel_v0.9/oneMath/install:${CMAKE_PREFIX_PATH:-}"
 
         else

@@ -66,8 +66,13 @@ else
 
 fi
 
+# Build joined suffixes without double/trailing underscores when parts are empty
+join_parts() { local IFS=_; echo "$*" | tr -s '_' | sed 's/^_//;s/_$//'; }
+HARDWARE_VENDOR=$(join_parts "$HARDWARE" "$VENDOR")
+VENDOR_TARGET=$(join_parts "$VENDOR" "$GPRAT_TARGET")
+
 # Create benchmark folder
-mkdir -p benchmark_results_${HARDWARE}_${VENDOR}
+mkdir -p benchmark_results_${HARDWARE_VENDOR}
 
 # GPflow
 if [[ "$1" == "yes" ]]; then
@@ -76,7 +81,7 @@ if [[ "$1" == "yes" ]]; then
     
     cd examples/gpflow_reference
     ./run_gpflow.sh ${HARDWARE} ${VENDOR} > /dev/null
-    cp output.csv ../../benchmark_results_${HARDWARE}_${VENDOR}/gpflow_${VENDOR}.csv
+    cp output.csv ../../benchmark_results_${HARDWARE_VENDOR}/gpflow_${VENDOR_TARGET}.csv
     rm -rf gpflow_${HARDWARE}_env
     cd ../..
 
@@ -92,7 +97,7 @@ if [[ "$2" == "yes" ]]; then
 
     cd examples/gpytorch_reference
     ./run_gpytorch.sh ${HARDWARE} ${VENDOR} > /dev/null
-    cp output.csv ../../benchmark_results_${HARDWARE}_${VENDOR}/gpytorch_${VENDOR}.csv
+    cp output.csv ../../benchmark_results_${HARDWARE_VENDOR}/gpytorch_${VENDOR_TARGET}.csv
     rm -rf gpytorch_${HARDWARE}_env
     cd ../..
 
@@ -129,7 +134,7 @@ if [[ "$3" == "yes" ]]; then
 
     cd ${BUILD_DIR}/examples/gprat_cpp/
     taskset -c 0-$core_count:2 ./gprat_cpp $GPRAT_USE_GPU > /dev/null
-    cp ../../../../examples/gprat_cpp/output.csv ../../../../benchmark_results_${HARDWARE}_${VENDOR}/gprat_cholesky_${VENDOR}_${GPRAT_TARGET}.csv
+    cp ../../../../examples/gprat_cpp/output.csv ../../../../benchmark_results_${HARDWARE_VENDOR}/gprat_cholesky_${VENDOR_TARGET}.csv
     cd ../../../..
 
 else
@@ -144,7 +149,7 @@ if [[ "$4" == "yes" ]]; then
 
     cd examples/gprat_python
     ./run_gprat_python.sh ${GPRAT_TARGET} ${VENDOR} > /dev/null
-    cp output.csv ../../benchmark_results_${HARDWARE}_${VENDOR}/gprat_python_${VENDOR}_${GPRAT_TARGET}.csv
+    cp output.csv ../../benchmark_results_${HARDWARE_VENDOR}/gprat_python_${VENDOR_TARGET}.csv
     cd ../..
 
 else
@@ -156,6 +161,6 @@ fi
 echo -e "\e[32mCopying results to home directory... \e[0m"
 mkdir -p ${HOME}/GPRAT-BENCHMARKS
 
-cp -r benchmark_results_${HARDWARE}_${VENDOR}/ ${HOME}/GPRAT-BENCHMARKS/
+cp -r benchmark_results_${HARDWARE_VENDOR}/ ${HOME}/GPRAT-BENCHMARKS/
 
 echo -e "\e[32mDone.\e[0m"

@@ -98,8 +98,7 @@ void append_to_output_file(
     Runtimes &runtimes,
     int &l)
 {
-    const std::filesystem::path output_path =
-        std::filesystem::path(GPRAT_CPP_CONFIG_PATH).parent_path() / "output.csv";
+    const std::filesystem::path output_path = std::filesystem::path(GPRAT_CPP_CONFIG_PATH).parent_path() / "output.csv";
     std::ofstream outfile(output_path, std::ios::app);  // Append mode
     if (outfile.tellp() == 0)
     {
@@ -261,12 +260,13 @@ int main(int argc, char *argv[])
         settings = boost::json::value_to<gprat::example::GpratSettings>(boost::json::parse(content));
 
         // Resolve data file paths relative to the config file's directory
-        const std::filesystem::path config_dir =
-            std::filesystem::path(GPRAT_CPP_CONFIG_PATH).parent_path();
+        const std::filesystem::path config_dir = std::filesystem::path(GPRAT_CPP_CONFIG_PATH).parent_path();
         auto resolve = [&](std::string &p)
         {
             if (!std::filesystem::path(p).is_absolute())
+            {
                 p = (config_dir / p).lexically_normal().string();
+            }
         };
         resolve(settings.train_in_file);
         resolve(settings.train_out_file);

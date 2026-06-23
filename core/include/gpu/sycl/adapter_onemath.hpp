@@ -97,8 +97,11 @@ double *gemm(const sycl::queue &queue,
  *
  * @return solution vector f_x, in-place update of b
  */
-double *
-trsv(const sycl::queue &queue, double *f_A, double *f_b, const std::size_t N, const oneapi::math::transpose is_A_transposed);
+double *trsv(const sycl::queue &queue,
+             double *f_A,
+             double *f_b,
+             const std::size_t N,
+             const oneapi::math::transpose is_A_transposed);
 
 /**
  * @brief General matrix-vector multiplication: y = y - A(^T) * x
@@ -190,8 +193,8 @@ class DotDiagSyrkKernel
  *
  * @return updated vector f_r, in-place update
  */
-double *
-dot_diag_gemm(const sycl::queue &queue, double *f_A, double *f_B, double *f_r, const std::size_t M, const std::size_t N);
+double *dot_diag_gemm(
+    const sycl::queue &queue, double *f_A, double *f_B, double *f_r, const std::size_t M, const std::size_t N);
 
 /**
  * @brief Kernel class for vector update with diagonal GEMM

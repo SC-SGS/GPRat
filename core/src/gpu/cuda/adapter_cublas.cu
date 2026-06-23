@@ -76,7 +76,9 @@ potrf(cusolverDnHandle_t cusolver, cudaStream_t stream, hpx::shared_future<doubl
     {
         check_cuda_error(cudaFree(d_work));
         if (h_work != nullptr)
+        {
             free(h_work);
+        }
         check_cuda_error(cudaFree(d_info));
         cusolverDnDestroyParams(params);
         throw;

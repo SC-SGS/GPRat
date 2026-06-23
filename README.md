@@ -11,7 +11,8 @@ code.
 
 GPRat depends on [HPX](https://hpx-docs.stellar-group.org/latest/html/index.html) for asynchronous task-based parallelization.
 Furthermore, for CPU-only BLAS computation GPRat requires [OpenBLAS](http://www.openmathlib.org/OpenBLAS/) or [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html).
-A [CUDA](https://developer.nvidia.com/cuda-toolkit) installation is required for GPU-only BLAS computations.
+A [CUDA](https://developer.nvidia.com/cuda-toolkit) installation is required for GPU-only BLAS computations on NVIDIA hardware.
+For GPU computations on Intel and AMD hardware, GPRat supports [SYCL](https://www.khronos.org/sycl/) via [oneMath](https://github.com/uxlfoundation/oneMath).
 
 ### Install dependencies
 
@@ -34,8 +35,8 @@ ctest --preset=dev-linux
 
 As a developer, you may create a `CMakeUserPresets.json` file at the root of the project that contains additional
 presets local to your machine.
-In addition to the build configuration `dev-linux`, there are `release-linux`, `dev-linux-gpu`, and `release-linux-gpu`.
-The configurations suffixed with `-gpu` build the library with CUDA.
+In addition to the build configuration `dev-linux`, there are `release-linux`, `dev-linux-gpu`, `release-linux-gpu`, `dev-linux-sycl`, and `release-linux-sycl`.
+The configurations suffixed with `-gpu` build the library with CUDA for NVIDIA GPUs, and those suffixed with `-sycl` build it with SYCL support for Intel and AMD GPUs.
 
 GPRat can be build with or without Python bindings.
 The following options can be set to include / exclude parts of the project:
@@ -47,7 +48,8 @@ The following options can be set to include / exclude parts of the project:
 | GPRAT_ENABLE_FORMAT_TARGETS    | Enable/Disable code formatting helper targets                                        | ON if top-level |
 | GPRAT_ENABLE_EXAMPLES          | Enable/Disable example projects                                                      | ON if top-level |
 | GPRAT_USE_MKL                  | Enable/Disable usage of MKL library                                                  | OFF             |
-| GPRAT_WITH_CUDA                | Enable/disable compilation with CUDA support                                         | OFF             |
+| GPRAT_WITH_CUDA                | Enable/disable compilation with CUDA support (NVIDIA GPUs)                           | OFF             |
+| GPRAT_WITH_SYCL                | Enable/disable compilation with SYCL support (Intel and AMD GPUs via oneMath)        | OFF             |
 | GPRAT_APEX_STEPS               | Enable/disable compilation for steps duration measurement with APEX                  | OFF             |
 | GPRAT_APEX_CHOLESKY            | Enable/disable compilation for measuring cholesky assembly and computation with APEX | OFF             |
 
@@ -103,7 +105,10 @@ We specifically thank the follow contributors:
   [Optimization, Python bindings and reference implementations](https://doi.org/10.48550/arXiv.2505.00136).
 
 - [Henrik Möllmann](https://www.linkedin.com/in/moellh/):
-  [Accelerator Support](tbd.).
+  [CUDA backend via cuBLAS/cuSOLVER](tbd.).
+
+- Marcel Graf:
+  [SYCL backend via oneMath](tbd.).
 
 ## How To Cite
 

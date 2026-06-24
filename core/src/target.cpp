@@ -148,10 +148,14 @@ SYCL_DEVICE::SYCL_DEVICE(int id, int n_queues) :
         {
             throw std::runtime_error("Requested GPU device is not available.");
         }
+
+        // Store the selected device so create() can target it specifically.
+        selected_device_ = all_gpus[static_cast<std::size_t>(id)];
     }
-    catch (const sycl::exception &e)
+    catch (const std::exception &e)
     {
-        std::cout << "SYCL exception: " << e.what() << "\n";
+        std::cout << "SYCL error during device selection: " << e.what() << "\n";
+        throw;
     }
 }
 
@@ -172,16 +176,16 @@ void SYCL_DEVICE::create()
 {
     try
     {
-        queues = std::vector<sycl::queue>(n_queues);
-
+        queues.resize(n_queues);
         for (size_t i = 0; i < n_queues; ++i)
         {
-            queues[i] = sycl::queue(sycl::gpu_selector_v);
+            queues[i] = sycl::queue(selected_device_);
         }
     }
-    catch (const sycl::exception &e)
+    catch (const std::exception &e)
     {
-        std::cout << "SYCL exception during creation: " << e.what() << "\n";
+        std::cout << "SYCL error during queue creation: " << e.what() << "\n";
+        throw;
     }
 }
 

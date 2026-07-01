@@ -55,7 +55,7 @@ elif [[ "$2" == "sycl" ]]; then
     echo "Input parameter for release or dev mode is missing. Using default: Build in Release mode"
     PRESET=release-linux-sycl
   fi
-elif [[ "$2" != "cpu" ]]; then
+else
   echo "Input parameter is not any of {cpu,cuda,sycl}. Using default: CPU in release mode."
   PRESET=release-linux
 fi
@@ -80,6 +80,14 @@ else
   GPRAT_APEX_STEPS=OFF
   GPRAT_APEX_CHOLESKY=OFF
 fi
+
+###################################################################################################
+# SYCL target defaults (overridden per host below)
+###################################################################################################
+GPRAT_SYCL_NVIDIA=${GPRAT_SYCL_NVIDIA:-OFF}
+GPRAT_SYCL_AMD=${GPRAT_SYCL_AMD:-OFF}
+GPRAT_SYCL_INTEL=${GPRAT_SYCL_INTEL:-OFF}
+HIP_TARGETS=${HIP_TARGETS:-}
 
 ###################################################################################################
 # Pick Spack installation depending on the host
@@ -196,7 +204,23 @@ if command -v spack &>/dev/null; then
 
         elif [[ "$2" == "sycl" ]]; then # GPRat on NVIDIA GPUs with SYCL
 
-          if command -v icpx --version &>/dev/null; then
+          # Source Intel oneAPI environment if icpx is not yet in PATH
+          ONEAPI_COMPILER_ROOT=""
+          if ! command -v icpx &>/dev/null; then
+            ONEAPI_SETVARS="/import/sgs.scratch-simcl1/breyerml/Programs/spack/opt/spack/linux-zen4/intel-oneapi-compilers-2025.1.1-5ynklzzqslh265azbglzqdtecdghl7ob/setvars.sh"
+            if [[ -f "$ONEAPI_SETVARS" ]]; then
+              # setvars.sh requires a login shell; source just the compiler bin directory instead
+              ONEAPI_COMPILER_ROOT="$(dirname $ONEAPI_SETVARS)/compiler/2025.1"
+              export PATH="$ONEAPI_COMPILER_ROOT/bin:$PATH"
+              export LD_LIBRARY_PATH="$ONEAPI_COMPILER_ROOT/lib:${LD_LIBRARY_PATH:-}"
+            fi
+          fi
+          if [[ -z "$ONEAPI_COMPILER_ROOT" ]] && command -v icpx &>/dev/null; then
+            # icpx was already in PATH; derive root from its location
+            ONEAPI_COMPILER_ROOT="$(dirname $(dirname $(which icpx)))"
+          fi
+
+          if command -v icpx &>/dev/null; then
 
             # Set default compiler to icpx
             export CXX=icpx
@@ -204,6 +228,13 @@ if command -v spack &>/dev/null; then
 
             # Set GPRat build options for SYCL on NVIDIA GPUs
             GPRAT_SYCL_NVIDIA=ON
+
+            # Load CUDA so icpx can find libdevice for NVIDIA SYCL targets
+            module load cuda/12.0.1
+            GPRAT_SYCL_CUDA_PATH=${CUDA_HOME}
+            # Detect GPU SM arch (e.g. sm_80 for A30); default to sm_80 if detection fails
+            GPRAT_SYCL_NVIDIA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1 | tr -d '.' | sed 's/^/sm_/')
+            GPRAT_SYCL_NVIDIA_ARCH=${GPRAT_SYCL_NVIDIA_ARCH:-sm_80}
 
             # Add oneMath installation to CMAKE_PREFIX_PATH
             CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
@@ -233,7 +264,7 @@ if command -v spack &>/dev/null; then
   # simcl1n3 with AMD GPU #########################################################################
   elif [[ "$HOSTNAME" == "simcl1n3" ]]; then
 
-      if [[ "$2" == "cpu" ]]; then # CPU build
+    if [[ "$2" == "cpu" ]]; then # CPU build
 
       # Check if the gprat_cpu_gcc environment exists
       if spack env list | grep -q "gprat_cpu_gcc"; then
@@ -265,8 +296,39 @@ if command -v spack &>/dev/null; then
 
         if [[ "$2" == "sycl" ]]; then # GPRat on AMD GPUs with SYCL
 
-          if command -v icpx --version &>/dev/null; then
-            
+          # Source Intel oneAPI environment if icpx is not yet in PATH
+          ONEAPI_COMPILER_ROOT=""
+          if ! command -v icpx &>/dev/null; then
+            ONEAPI_SETVARS="/import/sgs.scratch-simcl1/breyerml/Programs/spack/opt/spack/linux-zen4/intel-oneapi-compilers-2025.1.1-5ynklzzqslh265azbglzqdtecdghl7ob/setvars.sh"
+            if [[ -f "$ONEAPI_SETVARS" ]]; then
+              # setvars.sh requires a login shell; source just the compiler bin directory instead
+              ONEAPI_COMPILER_ROOT="$(dirname $ONEAPI_SETVARS)/compiler/2025.1"
+              export PATH="$ONEAPI_COMPILER_ROOT/bin:$PATH"
+              export LD_LIBRARY_PATH="$ONEAPI_COMPILER_ROOT/lib:${LD_LIBRARY_PATH:-}"
+            fi
+          fi
+          if [[ -z "$ONEAPI_COMPILER_ROOT" ]] && command -v icpx &>/dev/null; then
+            # icpx was already in PATH; derive root from its location
+            ONEAPI_COMPILER_ROOT="$(dirname $(dirname $(which icpx)))"
+          fi
+
+          # Set up ROCm/HIP environment (required for AMD GPU device libraries at link time)
+          ROCM_PATH=${ROCM_PATH:-/opt/rocm-6.4.0}
+          if [[ -d "$ROCM_PATH" ]]; then
+            export PATH="$ROCM_PATH/bin:$PATH"
+            export LD_LIBRARY_PATH="$ROCM_PATH/lib:$ROCM_PATH/lib64:$ROCM_PATH/hip/lib:${LD_LIBRARY_PATH:-}"
+            export LIBRARY_PATH="$ROCM_PATH/lib:$ROCM_PATH/lib64:$ROCM_PATH/hip/lib:${LIBRARY_PATH:-}"
+            export ROCM_PATH
+          fi
+          # Compatibility shim: libamd_comgr.so.2 → libamd_comgr.so.3 for icpx HIP adapter
+          COMGR_COMPAT_DIR="/data/scratch-simcl1/breyerml/Programs/.modulefiles/icpx"
+          if [[ -d "$COMGR_COMPAT_DIR" ]]; then
+            export LD_LIBRARY_PATH="$COMGR_COMPAT_DIR:${LD_LIBRARY_PATH:-}"
+          fi
+          export HSA_XNACK=1
+
+          if command -v icpx &>/dev/null; then
+
             # Set default compiler to icpx
             export CXX=icpx
             export CC=icx
@@ -341,7 +403,7 @@ if command -v spack &>/dev/null; then
 
       if [[ "$2" == "sycl" ]]; then # GPRat on Intel GPUs with SYCL
 
-        if command -v icpx --version &>/dev/null; then
+        if command -v icpx &>/dev/null; then
 
           # Set default compiler to icpx
           export CXX=icpx
@@ -394,7 +456,7 @@ fi
 # CPU build
 if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
 
-  cmake --preset $PRESET \
+  cmake --preset $PRESET -Wno-dev \
     -DGPRAT_BUILD_BINDINGS=$BINDINGS \
     -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
     -DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
@@ -403,6 +465,7 @@ if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
     -DGPRAT_ENABLE_MKL=$USE_MKL \
     -DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS} \
     -DGPRAT_APEX_CHOLESKY=${GPRAT_APEX_CHOLESKY} \
+    -DGPRAT_WITH_DISTRIBUTED=ON \
     -DGPRAT_ENABLE_TESTS=ON \
     -DGPRAT_ENABLE_EXAMPLES=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -410,7 +473,7 @@ if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
 # CUDA build
 elif [[ $PRESET == "release-linux-cuda" || $PRESET == "dev-linux-cuda" ]]; then
 
-  cmake --preset $PRESET \
+  cmake --preset $PRESET -Wno-dev \
     -DGPRAT_BUILD_BINDINGS=$BINDINGS \
     -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
     -DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
@@ -418,11 +481,13 @@ elif [[ $PRESET == "release-linux-cuda" || $PRESET == "dev-linux-cuda" ]]; then
     -DGPRAT_ENABLE_MKL=$USE_MKL \
     -DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS} \
     -DGPRAT_APEX_CHOLESKY=${GPRAT_APEX_CHOLESKY} \
+    -DGPRAT_WITH_DISTRIBUTED=ON \
     -DCMAKE_C_COMPILER=$(which clang) \
     -DCMAKE_CXX_COMPILER=$(which clang++) \
     -DCMAKE_CUDA_COMPILER=$(which clang++) \
     -DCMAKE_CUDA_FLAGS=--cuda-path=${CUDA_HOME} \
     -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+    -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_HOME}/targets/x86_64-linux/lib" \
     -DGPRAT_ENABLE_TESTS=ON \
     -DGPRAT_ENABLE_EXAMPLES=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -430,7 +495,7 @@ elif [[ $PRESET == "release-linux-cuda" || $PRESET == "dev-linux-cuda" ]]; then
 # SYCL build
 elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
 
-  cmake --preset $PRESET \
+  cmake --preset $PRESET -Wno-dev \
     -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH \
     -DGPRAT_BUILD_BINDINGS=$BINDINGS \
     -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
@@ -439,6 +504,7 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
     -DGPRAT_ENABLE_MKL=$USE_MKL \
     -DGPRAT_APEX_STEPS=${GPRAT_APEX_STEPS} \
     -DGPRAT_APEX_CHOLESKY=${GPRAT_APEX_CHOLESKY} \
+    -DGPRAT_WITH_DISTRIBUTED=ON \
     -DCMAKE_C_COMPILER=$(which icx) \
     -DCMAKE_CXX_COMPILER=$(which icpx) \
     -DGPRAT_WITH_SYCL=ON \
@@ -446,6 +512,9 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
     -DGPRAT_SYCL_AMD=$GPRAT_SYCL_AMD \
     -DGPRAT_SYCL_INTEL=$GPRAT_SYCL_INTEL \
     -DHIP_TARGETS=$HIP_TARGETS \
+    -DGPRAT_SYCL_CUDA_PATH=${GPRAT_SYCL_CUDA_PATH:-} \
+    -DGPRAT_SYCL_NVIDIA_ARCH=${GPRAT_SYCL_NVIDIA_ARCH:-} \
+    -DCMAKE_BUILD_RPATH="${GPRAT_SYCL_CUDA_PATH:-}/lib64;${ONEAPI_COMPILER_ROOT}/lib" \
     -DGPRAT_ENABLE_TESTS=ON \
     -DGPRAT_ENABLE_EXAMPLES=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
